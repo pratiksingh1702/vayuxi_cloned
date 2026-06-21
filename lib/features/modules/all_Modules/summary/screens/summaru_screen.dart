@@ -556,6 +556,13 @@ class _PebWorkSummaryView extends ConsumerStatefulWidget {
 class _PebWorkSummaryViewState extends ConsumerState<_PebWorkSummaryView> {
   final ScrollController _controller = ScrollController();
   int _selectedTab = 0;
+  double _projectTrackingZoom = 0.68;
+
+  void _setProjectTrackingZoom(double value) {
+    setState(() {
+      _projectTrackingZoom = value.clamp(0.55, 1.2);
+    });
+  }
 
   @override
   void dispose() {
@@ -569,10 +576,10 @@ class _PebWorkSummaryViewState extends ConsumerState<_PebWorkSummaryView> {
     final selectedSite = ref.watch(selectedSiteProvider);
     final summaryAsync = ref.watch(pebWorkSummaryProvider);
     final profitLossAsync = ref.watch(pebProfitLossProvider);
-    final type = ref.watch(typeProvider);
-    final title = type == 'fabrication_work'
-        ? 'Fabrication Summary & Analysis'
-        : 'Erection Summary & Analysis';
+    final siteTitle = selectedSite?.siteName.trim();
+    final title = siteTitle != null && siteTitle.isNotEmpty
+        ? '$siteTitle\n${_summaryRangeLabel(filter)}'
+        : 'Summary & Analysis';
 
     return Scaffold(
       drawer: const CustomDrawer(),
@@ -591,6 +598,7 @@ class _PebWorkSummaryViewState extends ConsumerState<_PebWorkSummaryView> {
                       selectedTab: _selectedTab,
                       onTabChanged: (index) =>
                           setState(() => _selectedTab = index),
+                      showContextHeader: false,
                       siteName: selectedSite?.siteName ?? 'Selected Site',
                       rangeLabel: _summaryRangeLabel(filter),
                       children: const [_PebSummaryLoading(compact: true)],
@@ -600,6 +608,7 @@ class _PebWorkSummaryViewState extends ConsumerState<_PebWorkSummaryView> {
                       selectedTab: _selectedTab,
                       onTabChanged: (index) =>
                           setState(() => _selectedTab = index),
+                      showContextHeader: false,
                       siteName: selectedSite?.siteName ?? 'Selected Site',
                       rangeLabel: _summaryRangeLabel(filter),
                       children: [
@@ -617,6 +626,7 @@ class _PebWorkSummaryViewState extends ConsumerState<_PebWorkSummaryView> {
                         selectedTab: _selectedTab,
                         onTabChanged: (index) =>
                             setState(() => _selectedTab = index),
+                        showContextHeader: false,
                         siteName: profitLoss.site.name,
                         rangeLabel:
                             '${_dateLabel(profitLoss.fromDate)} - ${_dateLabel(profitLoss.toDate)}',
@@ -630,6 +640,13 @@ class _PebWorkSummaryViewState extends ConsumerState<_PebWorkSummaryView> {
                       selectedTab: _selectedTab,
                       onTabChanged: (index) =>
                           setState(() => _selectedTab = index),
+                      projectTrackingZoom: _projectTrackingZoom,
+                      onZoomIn: () =>
+                          _setProjectTrackingZoom(_projectTrackingZoom + 0.05),
+                      onZoomOut: () =>
+                          _setProjectTrackingZoom(_projectTrackingZoom - 0.05),
+                      onZoomReset: () => _setProjectTrackingZoom(0.68),
+                      showContextHeader: false,
                       siteName: selectedSite?.siteName ?? 'Selected Site',
                       rangeLabel: _summaryRangeLabel(filter),
                       children: const [_PebSummaryLoading(compact: true)],
@@ -639,6 +656,13 @@ class _PebWorkSummaryViewState extends ConsumerState<_PebWorkSummaryView> {
                       selectedTab: _selectedTab,
                       onTabChanged: (index) =>
                           setState(() => _selectedTab = index),
+                      projectTrackingZoom: _projectTrackingZoom,
+                      onZoomIn: () =>
+                          _setProjectTrackingZoom(_projectTrackingZoom + 0.05),
+                      onZoomOut: () =>
+                          _setProjectTrackingZoom(_projectTrackingZoom - 0.05),
+                      onZoomReset: () => _setProjectTrackingZoom(0.68),
+                      showContextHeader: false,
                       siteName: selectedSite?.siteName ?? 'Selected Site',
                       rangeLabel: _summaryRangeLabel(filter),
                       children: [
@@ -656,6 +680,13 @@ class _PebWorkSummaryViewState extends ConsumerState<_PebWorkSummaryView> {
                         selectedTab: _selectedTab,
                         onTabChanged: (index) =>
                             setState(() => _selectedTab = index),
+                        projectTrackingZoom: _projectTrackingZoom,
+                        onZoomIn: () => _setProjectTrackingZoom(
+                            _projectTrackingZoom + 0.05),
+                        onZoomOut: () => _setProjectTrackingZoom(
+                            _projectTrackingZoom - 0.05),
+                        onZoomReset: () => _setProjectTrackingZoom(0.68),
+                        showContextHeader: false,
                         siteName: selectedSite?.siteName ?? 'Selected Site',
                         rangeLabel: _summaryRangeLabel(filter),
                         children: _buildProjectTrackingSections(summary),
@@ -941,10 +972,6 @@ class _PebPlanningTrackingView extends StatelessWidget {
         const SizedBox(height: 8),
         _StageAssignmentPerformanceCard(stages: stages),
         const SizedBox(height: 8),
-        _StageWiseCompactProgressCard(stages: stages),
-        const SizedBox(height: 8),
-        _PlanningInsightGrid(summary: summary),
-        const SizedBox(height: 8),
         _PebTrendSection(
           points: summary.plannedVsActual,
           title: 'Plan vs Actual Trend',
@@ -1010,12 +1037,12 @@ class _PlanningProgressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final assignment = summary.modeSummary.assignmentStatus;
+    final boqScope = summary.modeSummary.boqScope;
     final boqMarks = summary.overview.totalBoqMarks;
     final assignedMarks = summary.overview.totalAssigned;
     final completedMarks = summary.overview.totalCompleted;
     final remainingAssignedMarks =
         math.max(assignedMarks - completedMarks, 0).toInt();
-    final unassignedBoqMarks = math.max(boqMarks - assignedMarks, 0).toInt();
 
     final assignedWeight = _firstPositive([
       assignment.assignedTillDate.weightMt,
@@ -1023,6 +1050,7 @@ class _PlanningProgressCard extends StatelessWidget {
       summary.overview.totalPlannedWeightKg / 1000,
     ]);
     final completedWeight = _firstPositive([
+      boqScope.completed.weightMt,
       assignment.completedTillDate.weightMt,
       summary.overview.totalActualWeightMt,
       summary.overview.totalActualWeightKg / 1000,
@@ -1031,22 +1059,19 @@ class _PlanningProgressCard extends StatelessWidget {
         ? math.max<double>(assignedWeight - completedWeight, 0)
         : 0.0;
     final totalBoqWeight = _firstPositive([
-      summary.modeSummary.boqScope.totalScope.weightMt,
+      boqScope.totalScope.weightMt,
       summary.overview.totalBoqWeightMt,
     ]);
-    final unassignedBoqWeight = totalBoqWeight > 0
-        ? math.max<double>(totalBoqWeight - assignedWeight, 0)
-        : 0.0;
 
-    final assignmentProgress = assignedWeight > 0
-        ? (completedWeight / assignedWeight) * 100
-        : assignedMarks > 0
-            ? (completedMarks / assignedMarks) * 100
-            : 0.0;
     final boqCoverage = boqMarks > 0
-        ? (assignedMarks / boqMarks) * 100
+        ? (assignedMarks / boqMarks) * 100.0
         : totalBoqWeight > 0
             ? (assignedWeight / totalBoqWeight) * 100
+            : 0.0;
+    final completedCoverage = boqMarks > 0
+        ? (completedMarks / boqMarks) * 100.0
+        : totalBoqWeight > 0
+            ? (completedWeight / totalBoqWeight) * 100
             : 0.0;
     final difference = completedWeight - assignedWeight;
     final behind = difference < 0;
@@ -1060,32 +1085,15 @@ class _PlanningProgressCard extends StatelessWidget {
         color: cs.primary,
       ),
       _ScopeMetricData(
-        title: 'Assigned Scope',
-        value:
-            assignedMarks > 0 ? '$assignedMarks' : '${_fmt(assignedWeight)} MT',
-        subtitle: assignedMarks > 0 ? '${_fmt(assignedWeight)} MT' : 'Planned',
-        icon: Icons.assignment_outlined,
-        color: const Color(0xFF5B21B6),
-      ),
-      _ScopeMetricData(
         title: 'Completed',
         value: completedMarks > 0
             ? '$completedMarks'
             : '${_fmt(completedWeight)} MT',
-        subtitle: completedMarks > 0 ? '${_fmt(completedWeight)} MT' : 'Actual',
+        subtitle: completedMarks > 0
+            ? '${_fmt(completedWeight)} MT'
+            : 'DPR completed',
         icon: Icons.check_circle_outline_rounded,
         color: const Color(0xFF059669),
-      ),
-      _ScopeMetricData(
-        title: 'Not Assigned',
-        value: unassignedBoqMarks > 0
-            ? '$unassignedBoqMarks'
-            : '${_fmt(unassignedBoqWeight)} MT',
-        subtitle: unassignedBoqMarks > 0
-            ? '${_fmt(unassignedBoqWeight)} MT'
-            : 'BOQ balance',
-        icon: Icons.pending_actions_rounded,
-        color: const Color(0xFFF59E0B),
       ),
     ];
 
@@ -1102,13 +1110,13 @@ class _PlanningProgressCard extends StatelessWidget {
           const SizedBox(height: 12),
           _LabelProgressLine(
             label: 'Assigned Coverage',
-            value: boqCoverage,
+            value: boqCoverage.clamp(0, 100).toDouble(),
             color: const Color(0xFF5B21B6),
           ),
           const SizedBox(height: 12),
           _LabelProgressLine(
-            label: 'Completed',
-            value: assignmentProgress,
+            label: 'Completed Coverage',
+            value: completedCoverage.clamp(0, 100).toDouble(),
             color: const Color(0xFF059669),
           ),
           const SizedBox(height: 14),
@@ -1140,7 +1148,8 @@ class _PlanningProgressCard extends StatelessWidget {
             ),
             child: Text(
               'Assigned remaining: ${remainingAssignedMarks > 0 ? '$remainingAssignedMarks mark nos' : '${_fmt(remainingAssignedWeight)} MT'}'
-              '  •  ${behind ? 'Actual is below assigned scope' : 'Actual is aligned with assigned scope'}',
+              '  •  ${behind ? 'Actual is below assigned scope' : 'Actual is aligned with assigned scope'}'
+              '  •  Coverage is calculated against full BOQ scope.',
               style: TextStyle(
                 color: cs.onSurfaceVariant,
                 fontWeight: FontWeight.w700,
@@ -1270,6 +1279,7 @@ class _StageAssignmentPerformanceCard extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _StageWiseCompactProgressCard extends StatelessWidget {
   final List<PebStageSummary> stages;
 
@@ -1307,6 +1317,7 @@ class _StageWiseCompactProgressCard extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _PlanningInsightGrid extends StatelessWidget {
   final PebWorkSummaryModel summary;
 
@@ -2083,7 +2094,7 @@ class _LabelProgressLine extends StatelessWidget {
         SizedBox(
           width: 42,
           child: Text(
-            '${value.clamp(0, 999).toStringAsFixed(0)}%',
+            '${_percentLabel(value)}%',
             textAlign: TextAlign.end,
             style: TextStyle(
               color: cs.onSurface,
@@ -2739,6 +2750,11 @@ class _PebTabbedScroll extends StatelessWidget {
   final ValueChanged<int> onTabChanged;
   final String siteName;
   final String rangeLabel;
+  final bool showContextHeader;
+  final double projectTrackingZoom;
+  final VoidCallback? onZoomIn;
+  final VoidCallback? onZoomOut;
+  final VoidCallback? onZoomReset;
   final List<Widget> children;
 
   const _PebTabbedScroll({
@@ -2747,30 +2763,279 @@ class _PebTabbedScroll extends StatelessWidget {
     required this.onTabChanged,
     required this.siteName,
     required this.rangeLabel,
+    this.showContextHeader = true,
+    this.projectTrackingZoom = 1,
+    this.onZoomIn,
+    this.onZoomOut,
+    this.onZoomReset,
     required this.children,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (selectedTab == 1) {
+      return _ProjectTrackingViewport(
+        controller: controller,
+        selectedTab: selectedTab,
+        onTabChanged: onTabChanged,
+        zoom: projectTrackingZoom,
+        onZoomIn: onZoomIn,
+        onZoomOut: onZoomOut,
+        onZoomReset: onZoomReset,
+        children: children,
+      );
+    }
+
     return CustomScrollbar(
       controller: controller,
       child: ListView(
         controller: controller,
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
         children: [
-          _PebContextHeader(
-            siteName: siteName,
-            rangeLabel: rangeLabel,
-          ),
-          const SizedBox(height: 12),
+          if (showContextHeader) ...[
+            _PebContextHeader(
+              siteName: siteName,
+              rangeLabel: rangeLabel,
+            ),
+            const SizedBox(height: 10),
+          ],
           _PebSummaryTabSwitcher(
             selectedIndex: selectedTab,
             onChanged: onTabChanged,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           ...children,
         ],
+      ),
+    );
+  }
+}
+
+class _ProjectTrackingViewport extends StatelessWidget {
+  final ScrollController controller;
+  final int selectedTab;
+  final ValueChanged<int> onTabChanged;
+  final double zoom;
+  final VoidCallback? onZoomIn;
+  final VoidCallback? onZoomOut;
+  final VoidCallback? onZoomReset;
+  final List<Widget> children;
+
+  const _ProjectTrackingViewport({
+    required this.controller,
+    required this.selectedTab,
+    required this.onTabChanged,
+    required this.zoom,
+    required this.onZoomIn,
+    required this.onZoomOut,
+    required this.onZoomReset,
+    required this.children,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final allowScroll = zoom > 0.72;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+      child: Column(
+        children: [
+          _PebSummaryTabSwitcher(
+            selectedIndex: selectedTab,
+            onChanged: onTabChanged,
+          ),
+          const SizedBox(height: 5),
+          _ProjectTrackingZoomBar(
+            zoom: zoom,
+            onZoomIn: onZoomIn,
+            onZoomOut: onZoomOut,
+            onReset: onZoomReset,
+          ),
+          const SizedBox(height: 5),
+          Expanded(
+            child: ClipRect(
+              child: allowScroll
+                  ? CustomScrollbar(
+                      controller: controller,
+                      child: SingleChildScrollView(
+                        controller: controller,
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: _ScaledProjectTrackingContent(
+                          scale: zoom,
+                          children: children,
+                        ),
+                      ),
+                    )
+                  : _FitProjectTrackingContent(children: children),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FitProjectTrackingContent extends StatelessWidget {
+  final List<Widget> children;
+
+  const _FitProjectTrackingContent({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return FittedBox(
+          fit: BoxFit.contain,
+          alignment: Alignment.topCenter,
+          child: SizedBox(
+            width: constraints.maxWidth,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: children,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ProjectTrackingZoomBar extends StatelessWidget {
+  final double zoom;
+  final VoidCallback? onZoomIn;
+  final VoidCallback? onZoomOut;
+  final VoidCallback? onReset;
+
+  const _ProjectTrackingZoomBar({
+    required this.zoom,
+    this.onZoomIn,
+    this.onZoomOut,
+    this.onReset,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final percent = (zoom * 100).round();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.outlineVariant.withOpacity(0.65)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.fit_screen_rounded, size: 16, color: cs.primary),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              'Dashboard zoom',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: cs.onSurface,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          _ZoomButton(
+            icon: Icons.remove_rounded,
+            onTap: onZoomOut,
+            enabled: zoom > 0.751,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: onReset,
+              child: Container(
+                width: 52,
+                height: 30,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: cs.primaryContainer.withOpacity(0.4),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$percent%',
+                  style: TextStyle(
+                    color: cs.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          _ZoomButton(
+            icon: Icons.add_rounded,
+            onTap: onZoomIn,
+            enabled: zoom < 1.199,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ZoomButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+  final bool enabled;
+
+  const _ZoomButton({
+    required this.icon,
+    required this.onTap,
+    required this.enabled,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: enabled ? onTap : null,
+      child: Container(
+        width: 30,
+        height: 30,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: enabled ? cs.primary : cs.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          icon,
+          size: 18,
+          color: enabled ? cs.onPrimary : cs.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
+class _ScaledProjectTrackingContent extends StatelessWidget {
+  final double scale;
+  final List<Widget> children;
+
+  const _ScaledProjectTrackingContent({
+    required this.scale,
+    required this.children,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.topCenter,
+      heightFactor: scale,
+      child: Transform.scale(
+        scale: scale,
+        alignment: Alignment.topCenter,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: children,
+        ),
       ),
     );
   }
@@ -2833,7 +3098,7 @@ class _TabButton extends StatelessWidget {
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(vertical: 11),
+          padding: const EdgeInsets.symmetric(vertical: 9),
           decoration: BoxDecoration(
             color: selected ? cs.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
@@ -2846,7 +3111,7 @@ class _TabButton extends StatelessWidget {
             style: TextStyle(
               color: selected ? cs.onPrimary : cs.onSurfaceVariant,
               fontWeight: FontWeight.w800,
-              fontSize: 13,
+              fontSize: 12,
             ),
           ),
         ),
@@ -2996,10 +3261,10 @@ class _PebProfitLossView extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
             color: resultColor.withOpacity(0.09),
             borderRadius: BorderRadius.circular(14),
@@ -3007,8 +3272,8 @@ class _PebProfitLossView extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 34,
-                height: 34,
+                width: 30,
+                height: 30,
                 decoration: BoxDecoration(
                   color: resultColor.withOpacity(0.12),
                   shape: BoxShape.circle,
@@ -3018,9 +3283,10 @@ class _PebProfitLossView extends StatelessWidget {
                       ? Icons.arrow_upward_rounded
                       : Icons.arrow_downward_rounded,
                   color: resultColor,
+                  size: 18,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -3030,26 +3296,27 @@ class _PebProfitLossView extends StatelessWidget {
                       style: TextStyle(
                         color: resultColor,
                         fontWeight: FontWeight.w900,
+                        fontSize: 12,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 1),
                     Text(
                       _moneyFull(data.totals.profitLoss.abs()),
                       style: TextStyle(
                         color: resultColor,
                         fontWeight: FontWeight.w900,
-                        fontSize: 18,
+                        fontSize: 16,
                       ),
                     ),
                   ],
                 ),
               ),
               Container(
-                height: 38,
+                height: 34,
                 width: 1,
                 color: cs.outlineVariant.withOpacity(0.7),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -3058,15 +3325,16 @@ class _PebProfitLossView extends StatelessWidget {
                     style: TextStyle(
                       color: cs.onSurface,
                       fontWeight: FontWeight.w700,
+                      fontSize: 12,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 1),
                   Text(
                     '${data.totals.marginPercentage.toStringAsFixed(1)}%',
                     style: TextStyle(
                       color: resultColor,
                       fontWeight: FontWeight.w900,
-                      fontSize: 15,
+                      fontSize: 14,
                     ),
                   ),
                 ],
@@ -3074,7 +3342,7 @@ class _PebProfitLossView extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         _ProfitLossChart(
           data: data,
           onRevenueTap: () => Navigator.push(
@@ -3087,9 +3355,9 @@ class _PebProfitLossView extends StatelessWidget {
             MaterialPageRoute(builder: (_) => _ExpenseOverviewPage(data: data)),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         _ProfitLossInsight(data: data),
-        const SizedBox(height: 18),
+        const SizedBox(height: 10),
         Row(
           children: [
             Expanded(
@@ -3100,7 +3368,7 @@ class _PebProfitLossView extends StatelessWidget {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: revenueColor,
                   side: const BorderSide(color: revenueColor),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: 11),
                 ),
               ),
             ),
@@ -3113,7 +3381,7 @@ class _PebProfitLossView extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: revenueColor,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: 11),
                 ),
               ),
             ),
@@ -3218,8 +3486,8 @@ class _FinancialTile extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
-        constraints: const BoxConstraints(minHeight: 118),
-        padding: const EdgeInsets.all(12),
+        constraints: const BoxConstraints(minHeight: 92),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: cs.surface,
           borderRadius: BorderRadius.circular(14),
@@ -3232,53 +3500,56 @@ class _FinancialTile extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              width: 38,
-              height: 38,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(color: tint, shape: BoxShape.circle),
-              child: Icon(icon, color: color, size: 22),
+              child: Icon(icon, color: color, size: 21),
             ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: TextStyle(
-                color: cs.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-              ),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: cs.onSurface,
-                fontWeight: FontWeight.w900,
-                fontSize: 17,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
+            const SizedBox(width: 9),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: cs.onSurface,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
                     hint,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: cs.onSurfaceVariant,
                       fontWeight: FontWeight.w600,
-                      fontSize: 11,
+                      fontSize: 9.5,
                     ),
                   ),
-                ),
-                Icon(Icons.arrow_forward_rounded, color: color, size: 20),
-              ],
+                ],
+              ),
             ),
+            const SizedBox(width: 4),
+            Icon(Icons.arrow_forward_rounded, color: color, size: 18),
           ],
         ),
       ),
@@ -3336,6 +3607,7 @@ class _ProfitLossChart extends ConsumerWidget {
                   child: DropdownButton<SummaryFilterType>(
                     value: filter.filterType,
                     isDense: true,
+                    menuMaxHeight: 260,
                     borderRadius: BorderRadius.circular(12),
                     icon: Icon(
                       Icons.keyboard_arrow_down_rounded,
@@ -3367,46 +3639,188 @@ class _ProfitLossChart extends ConsumerWidget {
                   color: cs.onSurfaceVariant, size: 18),
             ],
           ),
-          const SizedBox(height: 14),
-          Text(
-            'Amount (₹)',
-            style: TextStyle(
-              color: cs.onSurfaceVariant,
-              fontWeight: FontWeight.w700,
-              fontSize: 12,
-            ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Text(
+                'Amount (₹)',
+                style: TextStyle(
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                ),
+              ),
+              if (!isSinglePeriod) ...[
+                const Spacer(),
+                const _LegendDot(
+                  color: Color(0xFF5B2BBE),
+                  label: 'Revenue',
+                  compact: true,
+                ),
+                const SizedBox(width: 10),
+                const _LegendDot(
+                  color: Color(0xFFFF3B72),
+                  label: 'Expense',
+                  compact: true,
+                ),
+                if (data.totals.profitLoss != 0) ...[
+                  const SizedBox(width: 10),
+                  _LegendDot(
+                    color: data.totals.isProfit
+                        ? const Color(0xFF059669)
+                        : const Color(0xFFFF3B72),
+                    label: data.totals.isProfit ? 'Profit' : 'Loss',
+                    outline: true,
+                    compact: true,
+                  ),
+                ],
+              ],
+            ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           SizedBox(
-            height: isSinglePeriod ? 250 : 220,
+            height: isSinglePeriod ? 205 : 210,
             child: _ProfitLossBarPlot(
               points: visible,
               maxAmount: yMax,
               singlePeriod: isSinglePeriod,
+              filterType: filter.filterType,
               onRevenueTap: onRevenueTap,
               onExpenseTap: onExpenseTap,
             ),
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            children: [
-              _LegendDot(
-                color: const Color(0xFF5B2BBE),
-                label: 'Revenue (${_moneyFull(data.totals.revenue)})',
-              ),
-              _LegendDot(
-                color: const Color(0xFFFF3B72),
-                label: 'Expense (${_moneyFull(data.totals.expense)})',
-              ),
-              if (!data.totals.isProfit)
+          const SizedBox(height: 8),
+          if (isSinglePeriod)
+            Wrap(
+              spacing: 14,
+              runSpacing: 6,
+              children: [
+                _LegendDot(
+                  color: const Color(0xFF5B2BBE),
+                  label: 'Revenue (${_moneyFull(data.totals.revenue)})',
+                ),
                 _LegendDot(
                   color: const Color(0xFFFF3B72),
-                  label: 'Loss (${_moneyFull(data.totals.profitLoss.abs())})',
-                  outline: true,
+                  label: 'Expense (${_moneyFull(data.totals.expense)})',
                 ),
-            ],
+                if (data.totals.profitLoss != 0)
+                  _LegendDot(
+                    color: data.totals.isProfit
+                        ? const Color(0xFF059669)
+                        : const Color(0xFFFF3B72),
+                    label:
+                        '${data.totals.isProfit ? 'Profit' : 'Loss'} (${_moneyFull(data.totals.profitLoss.abs())})',
+                    outline: true,
+                  ),
+              ],
+            )
+          else
+            _ProfitLossTotalsStrip(data: data),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfitLossTotalsStrip extends StatelessWidget {
+  final PebProfitLossModel data;
+
+  const _ProfitLossTotalsStrip({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _MiniTotalTile(
+            color: const Color(0xFF5B2BBE),
+            label: 'Total Revenue',
+            value: _moneyFull(data.totals.revenue),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: _MiniTotalTile(
+            color: const Color(0xFFFF3B72),
+            label: 'Total Expense',
+            value: _moneyFull(data.totals.expense),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: _MiniTotalTile(
+            color: const Color(0xFFFF3B72),
+            label: data.totals.isProfit ? 'Total Profit' : 'Total Loss',
+            value: _moneyFull(data.totals.profitLoss.abs()),
+            outline: !data.totals.isProfit,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MiniTotalTile extends StatelessWidget {
+  final Color color;
+  final String label;
+  final String value;
+  final bool outline;
+
+  const _MiniTotalTile({
+    required this.color,
+    required this.label,
+    required this.value,
+    this.outline = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 9,
+            height: 9,
+            decoration: BoxDecoration(
+              color: outline ? Colors.transparent : color,
+              borderRadius: BorderRadius.circular(3),
+              border: outline ? Border.all(color: color, width: 1.1) : null,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 8.5,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: cs.onSurface,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 10.5,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -3418,6 +3832,7 @@ class _ProfitLossBarPlot extends StatelessWidget {
   final List<PebProfitLossTrendPoint> points;
   final double maxAmount;
   final bool singlePeriod;
+  final SummaryFilterType filterType;
   final VoidCallback onRevenueTap;
   final VoidCallback onExpenseTap;
 
@@ -3425,6 +3840,7 @@ class _ProfitLossBarPlot extends StatelessWidget {
     required this.points,
     required this.maxAmount,
     required this.singlePeriod,
+    required this.filterType,
     required this.onRevenueTap,
     required this.onExpenseTap,
   });
@@ -3436,7 +3852,7 @@ class _ProfitLossBarPlot extends StatelessWidget {
     return Row(
       children: [
         SizedBox(
-          width: 36,
+          width: 30,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -3452,7 +3868,7 @@ class _ProfitLossBarPlot extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         Expanded(
           child: Stack(
             children: [
@@ -3468,6 +3884,14 @@ class _ProfitLossBarPlot extends StatelessWidget {
               ),
               Positioned.fill(
                 top: 16,
+                left: 1,
+                bottom: 22,
+                child: CustomPaint(
+                  painter: _ChartEdgesPainter(color: cs.onSurface),
+                ),
+              ),
+              Positioned.fill(
+                top: 14,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: singlePeriod
@@ -3478,7 +3902,11 @@ class _ProfitLossBarPlot extends StatelessWidget {
                               value: points.first.revenue,
                               maxAmount: maxAmount,
                               color: const Color(0xFF5B2BBE),
-                              loss: points.first.loss,
+                              variance: math.max(
+                                points.first.expense - points.first.revenue,
+                                0,
+                              ),
+                              varianceColor: const Color(0xFFFF3B72),
                               onTap: onRevenueTap,
                             ),
                           ),
@@ -3489,6 +3917,11 @@ class _ProfitLossBarPlot extends StatelessWidget {
                               value: points.first.expense,
                               maxAmount: maxAmount,
                               color: const Color(0xFFFF3B72),
+                              variance: math.max(
+                                points.first.revenue - points.first.expense,
+                                0,
+                              ),
+                              varianceColor: const Color(0xFF059669),
                               onTap: onExpenseTap,
                             ),
                           ),
@@ -3501,6 +3934,11 @@ class _ProfitLossBarPlot extends StatelessWidget {
                                     const EdgeInsets.symmetric(horizontal: 4),
                                 child: _GroupedFinancialBar(
                                   point: point,
+                                  label: _chartPointLabel(
+                                    point,
+                                    points.indexOf(point),
+                                    filterType,
+                                  ),
                                   maxAmount: maxAmount,
                                   onRevenueTap: onRevenueTap,
                                   onExpenseTap: onExpenseTap,
@@ -3523,11 +3961,13 @@ class _LegendDot extends StatelessWidget {
   final Color color;
   final String label;
   final bool outline;
+  final bool compact;
 
   const _LegendDot({
     required this.color,
     required this.label,
     this.outline = false,
+    this.compact = false,
   });
 
   @override
@@ -3544,8 +3984,14 @@ class _LegendDot extends StatelessWidget {
             border: outline ? Border.all(color: color) : null,
           ),
         ),
-        const SizedBox(width: 6),
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+        SizedBox(width: compact ? 4 : 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: compact ? 9 : 12,
+          ),
+        ),
       ],
     );
   }
@@ -3556,7 +4002,8 @@ class _SingleFinancialBar extends StatelessWidget {
   final double value;
   final double maxAmount;
   final Color color;
-  final double loss;
+  final double variance;
+  final Color varianceColor;
   final VoidCallback onTap;
 
   const _SingleFinancialBar({
@@ -3565,14 +4012,15 @@ class _SingleFinancialBar extends StatelessWidget {
     required this.maxAmount,
     required this.color,
     required this.onTap,
-    this.loss = 0,
+    this.variance = 0,
+    this.varianceColor = const Color(0xFFFF3B72),
   });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final heightFactor = (value / maxAmount).clamp(0.03, 1.0).toDouble();
-    final lossFactor = (loss / maxAmount).clamp(0.0, 1.0).toDouble();
+    final varianceFactor = (variance / maxAmount).clamp(0.0, 1.0).toDouble();
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
@@ -3590,24 +4038,26 @@ class _SingleFinancialBar extends StatelessWidget {
             child: Align(
               alignment: Alignment.bottomCenter,
               child: FractionallySizedBox(
-                heightFactor: (heightFactor + lossFactor).clamp(0.03, 1.0),
+                heightFactor: (heightFactor + varianceFactor).clamp(0.03, 1.0),
                 child: Stack(
                   alignment: Alignment.bottomCenter,
                   children: [
-                    if (loss > 0)
+                    if (variance > 0)
                       Positioned.fill(
                         child: CustomPaint(
-                          painter: _LossHatchPainter(color: color),
+                          painter: _LossHatchPainter(color: varianceColor),
                         ),
                       ),
                     FractionallySizedBox(
                       heightFactor: heightFactor /
-                          math.max(0.03, heightFactor + lossFactor),
+                          math.max(0.03, heightFactor + varianceFactor),
                       alignment: Alignment.bottomCenter,
                       child: Container(
                         decoration: BoxDecoration(
                           color: color,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(5),
+                          ),
                         ),
                       ),
                     ),
@@ -3624,6 +4074,7 @@ class _SingleFinancialBar extends StatelessWidget {
             style: TextStyle(
               color: cs.onSurface,
               fontWeight: FontWeight.w800,
+              fontSize: 11,
             ),
           ),
         ],
@@ -3634,12 +4085,14 @@ class _SingleFinancialBar extends StatelessWidget {
 
 class _GroupedFinancialBar extends StatelessWidget {
   final PebProfitLossTrendPoint point;
+  final String label;
   final double maxAmount;
   final VoidCallback onRevenueTap;
   final VoidCallback onExpenseTap;
 
   const _GroupedFinancialBar({
     required this.point,
+    required this.label,
     required this.maxAmount,
     required this.onRevenueTap,
     required this.onExpenseTap,
@@ -3650,63 +4103,197 @@ class _GroupedFinancialBar extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final revenueHeight = (point.revenue / maxAmount).clamp(0.03, 1.0);
     final expenseHeight = (point.expense / maxAmount).clamp(0.03, 1.0);
+    final loss = math.max(point.loss, point.expense - point.revenue);
+    final lossHeight = (loss / maxAmount).clamp(0.0, 1.0);
+    final profit = math.max<double>(point.revenue - point.expense, 0);
+    final profitHeight = (profit / maxAmount).clamp(0.0, 1.0);
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Stack(
+            alignment: Alignment.bottomCenter,
             children: [
-              Flexible(
-                child: InkWell(
-                  onTap: onRevenueTap,
-                  child: FractionallySizedBox(
-                    heightFactor: revenueHeight,
-                    alignment: Alignment.bottomCenter,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF5B2BBE),
-                        borderRadius: BorderRadius.circular(6),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: InkWell(
+                      onTap: onRevenueTap,
+                      child: FractionallySizedBox(
+                        heightFactor:
+                            (revenueHeight + lossHeight).clamp(0.03, 1.0),
+                        alignment: Alignment.bottomCenter,
+                        child: Stack(
+                          alignment: Alignment.bottomCenter,
+                          children: [
+                            if (loss > 0)
+                              Positioned.fill(
+                                child: CustomPaint(
+                                  painter: _LossHatchPainter(
+                                    color: const Color(0xFFFF3B72),
+                                  ),
+                                ),
+                              ),
+                            FractionallySizedBox(
+                              heightFactor: revenueHeight /
+                                  math.max(0.03, revenueHeight + lossHeight),
+                              alignment: Alignment.bottomCenter,
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF5B2BBE),
+                                  borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(4),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Flexible(
+                    child: InkWell(
+                      onTap: onExpenseTap,
+                      child: FractionallySizedBox(
+                        heightFactor:
+                            (expenseHeight + profitHeight).clamp(0.03, 1.0),
+                        alignment: Alignment.bottomCenter,
+                        child: Stack(
+                          alignment: Alignment.bottomCenter,
+                          children: [
+                            if (profit > 0)
+                              Positioned.fill(
+                                child: CustomPaint(
+                                  painter: _LossHatchPainter(
+                                    color: const Color(0xFF059669),
+                                  ),
+                                ),
+                              ),
+                            FractionallySizedBox(
+                              heightFactor: expenseHeight /
+                                  math.max(0.03, expenseHeight + profitHeight),
+                              alignment: Alignment.bottomCenter,
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFFF3B72),
+                                  borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(4),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (loss > 0)
+                Positioned(
+                  top: math.max<double>(
+                    0,
+                    (1 - (revenueHeight + lossHeight).clamp(0.03, 1.0)) * 150 -
+                        8,
+                  ),
+                  left: 0,
+                  right: 0,
+                  child: Text(
+                    _compactMoney(loss),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFFFF3B72),
+                      fontWeight: FontWeight.w900,
+                      fontSize: 8.5,
+                    ),
+                  ),
+                ),
+              if (profit > 0)
+                Positioned(
+                  top: math.max<double>(
+                    0,
+                    (1 - (expenseHeight + profitHeight).clamp(0.03, 1.0)) *
+                            150 -
+                        8,
+                  ),
+                  left: 0,
+                  right: 0,
+                  child: Align(
+                    alignment: Alignment.topRight,
+                    child: Text(
+                      _compactMoney(profit),
+                      style: const TextStyle(
+                        color: Color(0xFF059669),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 8.5,
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 5),
-              Flexible(
-                child: InkWell(
-                  onTap: onExpenseTap,
-                  child: FractionallySizedBox(
-                    heightFactor: expenseHeight,
-                    alignment: Alignment.bottomCenter,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFF3B72),
-                        borderRadius: BorderRadius.circular(6),
+              if (point.expense > point.revenue && point.expense > 0)
+                Positioned(
+                  top: math.max<double>(0, (1 - expenseHeight) * 150 - 8),
+                  left: 0,
+                  right: 0,
+                  child: Align(
+                    alignment: Alignment.topRight,
+                    child: Text(
+                      _compactMoney(point.expense),
+                      style: const TextStyle(
+                        color: Color(0xFFFF3B72),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 8.5,
                       ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
         const SizedBox(height: 8),
         Text(
-          point.label,
-          maxLines: 1,
+          label,
+          maxLines: 2,
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
           style: TextStyle(
             color: cs.onSurfaceVariant,
             fontWeight: FontWeight.w700,
-            fontSize: 10,
+            fontSize: 9,
           ),
         ),
       ],
     );
   }
+}
+
+class _ChartEdgesPainter extends CustomPainter {
+  final Color color;
+
+  const _ChartEdgesPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color.withOpacity(0.82)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawLine(Offset.zero, Offset(0, size.height), paint);
+    canvas.drawLine(
+        Offset(0, size.height), Offset(size.width, size.height), paint);
+    canvas.drawLine(Offset.zero, const Offset(5, 0), paint);
+    canvas.drawLine(Offset(size.width, size.height),
+        Offset(size.width, size.height - 5), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ChartEdgesPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 class _LossHatchPainter extends CustomPainter {
@@ -6398,8 +6985,19 @@ PebStageSummary _emptyTrackingStage(String stageName) {
   );
 }
 
-String _stageKey(String value) =>
-    value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '');
+String _stageKey(String value) {
+  final normalized = value.toLowerCase();
+  if ((normalized.contains('qc') || normalized.contains('quality')) &&
+      (normalized.contains('clearance') || normalized.contains('clearence'))) {
+    return 'qcclearance';
+  }
+  if (normalized.trim() == 'qc' ||
+      normalized.trim() == 'q c' ||
+      normalized.trim() == 'quality check') {
+    return 'qcclearance';
+  }
+  return normalized.replaceAll(RegExp(r'[^a-z0-9]+'), '');
+}
 
 double _stagePlannedWeight(PebStageSummary stage) {
   return _firstPositive([
@@ -6497,6 +7095,14 @@ String _fmt(double value) {
   return value.toStringAsFixed(2);
 }
 
+String _percentLabel(double value) {
+  final clamped = value.clamp(0, 999).toDouble();
+  if (clamped == 0) return '0';
+  if (clamped < 1) return clamped.toStringAsFixed(1);
+  if (clamped == clamped.roundToDouble()) return clamped.toStringAsFixed(0);
+  return clamped.toStringAsFixed(1);
+}
+
 String _trackingModeLabel(String mode) {
   switch (mode) {
     case 'boq_work_assignment':
@@ -6541,6 +7147,26 @@ String _moneyFull(double value) {
   return '${isNegative ? '-' : ''}₹${buffer.toString()}';
 }
 
+String _compactMoney(double value) {
+  final absValue = value.abs();
+  final prefix = value < 0 ? '-' : '';
+  if (absValue >= 100000) {
+    final lakhs = absValue / 100000;
+    final formatted = lakhs == lakhs.roundToDouble()
+        ? lakhs.toStringAsFixed(0)
+        : lakhs.toStringAsFixed(1);
+    return '${prefix}${formatted}L';
+  }
+  if (absValue >= 1000) {
+    final thousands = absValue / 1000;
+    final formatted = thousands == thousands.roundToDouble()
+        ? thousands.toStringAsFixed(0)
+        : thousands.toStringAsFixed(1);
+    return '${prefix}${formatted}K';
+  }
+  return '$prefix${absValue.round()}';
+}
+
 double _niceChartMax(double amount) {
   if (amount <= 0) return 1;
   if (amount <= 100000) return 100000;
@@ -6568,6 +7194,35 @@ String _chartViewLabel(String view) {
     default:
       return 'Monthly';
   }
+}
+
+String _chartPointLabel(
+  PebProfitLossTrendPoint point,
+  int index,
+  SummaryFilterType filterType,
+) {
+  if (filterType == SummaryFilterType.weekly) return 'Week ${index + 1}';
+  if (filterType == SummaryFilterType.daily) {
+    final parsed = DateTime.tryParse(point.startDate);
+    if (parsed != null) {
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+      return '${parsed.day.toString().padLeft(2, '0')}\n${months[parsed.month - 1]}';
+    }
+  }
+  return point.label.isNotEmpty ? point.label : _filterTypeLabel(filterType);
 }
 
 String _filterTypeLabel(SummaryFilterType type) {

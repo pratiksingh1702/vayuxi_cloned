@@ -110,14 +110,14 @@ final pebWorkSummaryProvider =
     throw Exception('Please select a site first');
   }
 
-  final range = _pebSummaryRange(filter);
+  final range = _pebPeriodRange(filter);
 
   return SummaryService.fetchPebWorkSummary(
     siteId: siteId,
     type: type,
     fromDate: _formatDate(range.from),
     toDate: _formatDate(range.to),
-    view: range.view,
+    view: filter.filterType == SummaryFilterType.weekly ? 'weekly' : 'daily',
   );
 });
 
@@ -131,42 +131,27 @@ final pebProfitLossProvider =
     throw Exception('Please select a site first');
   }
 
-  final range = _pebSummaryRange(filter);
+  final range = _pebPeriodRange(filter);
 
   return SummaryService.fetchPebProfitLoss(
     siteId: siteId,
     type: type,
     fromDate: _formatDate(range.from),
     toDate: _formatDate(range.to),
-    view: filter.filterType == SummaryFilterType.yearly ? 'yearly' : range.view,
+    view: filter.filterType == SummaryFilterType.yearly
+        ? 'yearly'
+        : filter.filterType.name,
   );
 });
 
-({DateTime from, DateTime to, String view}) _pebSummaryRange(
-  SummaryFilter filter,
-) {
-  switch (filter.filterType) {
-    case SummaryFilterType.daily:
-      return (from: filter.date, to: filter.date, view: 'daily');
-    case SummaryFilterType.weekly:
-      return (
-        from: filter.rangeFromDate,
-        to: filter.rangeToDate,
-        view: 'weekly'
-      );
-    case SummaryFilterType.monthly:
-      final year = int.tryParse(filter.year) ?? DateTime.now().year;
-      final from = DateTime(year, filter.month, 1);
-      final to = DateTime(year, filter.month + 1, 0);
-      return (from: from, to: to, view: 'monthly');
-    case SummaryFilterType.yearly:
-      final year = int.tryParse(filter.year) ?? DateTime.now().year;
-      return (
-        from: DateTime(year, 1, 1),
-        to: DateTime(year, 12, 31),
-        view: 'monthly'
-      );
+({DateTime from, DateTime to}) _pebPeriodRange(SummaryFilter filter) {
+  final year = int.tryParse(filter.year) ?? DateTime.now().year;
+  if (filter.filterType == SummaryFilterType.yearly) {
+    return (from: DateTime(year, 1, 1), to: DateTime(year, 12, 31));
   }
+  final from = DateTime(year, filter.month, 1);
+  final to = DateTime(year, filter.month + 1, 0);
+  return (from: from, to: to);
 }
 
 String _formatDate(DateTime date) {

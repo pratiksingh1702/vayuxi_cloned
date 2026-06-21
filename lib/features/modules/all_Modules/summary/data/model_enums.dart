@@ -768,28 +768,35 @@ class PebProfitLossModel {
     required this.empty,
   });
 
-  factory PebProfitLossModel.fromJson(Map<String, dynamic> json) =>
-      PebProfitLossModel(
-        site: PebProfitLossSite.fromJson(json['site'] ?? {}),
-        type: json['type']?.toString() ?? '',
-        fromDate: json['fromDate']?.toString() ?? '',
-        toDate: json['toDate']?.toString() ?? '',
-        view: json['view']?.toString() ?? '',
-        totals: PebProfitLossTotals.fromJson(json['totals'] ?? {}),
-        trend: (json['trend'] as List? ?? [])
-            .map((e) =>
-                PebProfitLossTrendPoint.fromJson(Map<String, dynamic>.from(e)))
-            .toList(),
-        revenueBreakdown: (json['revenueBreakdown'] as List? ?? [])
-            .map((e) =>
-                PebRevenueBreakdownItem.fromJson(Map<String, dynamic>.from(e)))
-            .toList(),
-        expenseBreakdown: (json['expenseBreakdown'] as List? ?? [])
-            .map((e) =>
-                PebExpenseBreakdownItem.fromJson(Map<String, dynamic>.from(e)))
-            .toList(),
-        empty: json['empty'] == true,
-      );
+  factory PebProfitLossModel.fromJson(Map<String, dynamic> json) {
+    final totals = PebProfitLossTotals.fromJson(json['totals'] ?? {});
+    final rawRevenueRows = (json['revenueBreakdown'] as List? ?? [])
+        .map((e) =>
+            PebRevenueBreakdownItem.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+
+    return PebProfitLossModel(
+      site: PebProfitLossSite.fromJson(json['site'] ?? {}),
+      type: json['type']?.toString() ?? '',
+      fromDate: json['fromDate']?.toString() ?? '',
+      toDate: json['toDate']?.toString() ?? '',
+      view: json['view']?.toString() ?? '',
+      totals: totals,
+      trend: (json['trend'] as List? ?? [])
+          .map((e) =>
+              PebProfitLossTrendPoint.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+      revenueBreakdown: PebRevenueBreakdownItem.summaryOnly(
+        rawRevenueRows,
+        totalRevenue: totals.revenue,
+      ),
+      expenseBreakdown: (json['expenseBreakdown'] as List? ?? [])
+          .map((e) =>
+              PebExpenseBreakdownItem.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+      empty: json['empty'] == true,
+    );
+  }
 }
 
 class PebProfitLossSite {
@@ -887,6 +894,35 @@ class PebRevenueBreakdownItem {
         unit: json['unit']?.toString() ?? '',
         source: json['source']?.toString() ?? 'Summary Sheet',
       );
+
+  static List<PebRevenueBreakdownItem> summaryOnly(
+    List<PebRevenueBreakdownItem> rows, {
+    required double totalRevenue,
+  }) {
+    if (rows.isEmpty && totalRevenue <= 0) return const [];
+    final first = rows.isNotEmpty ? rows.first : null;
+    final revenue = totalRevenue > 0
+        ? totalRevenue
+        : rows.fold<double>(0, (sum, item) => sum + item.revenue);
+    final weightedQty =
+        rows.fold<double>(0, (sum, item) => sum + item.quantity);
+    final unit = first?.unit ?? '';
+    final rate = first?.rate ?? 0;
+
+    return [
+      PebRevenueBreakdownItem(
+        activityName: rows.length == 1
+            ? (first?.activityName ?? 'Summary Sheet Total')
+            : 'Summary Sheet Total',
+        revenue: revenue,
+        contributionPercentage: revenue > 0 ? 100 : 0,
+        quantity: weightedQty > 0 ? weightedQty : (first?.quantity ?? 0),
+        rate: rate,
+        unit: unit,
+        source: 'Summary Sheet',
+      ),
+    ];
+  }
 }
 
 class PebExpenseBreakdownItem {
