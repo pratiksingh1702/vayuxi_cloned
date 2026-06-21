@@ -3332,57 +3332,246 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     return Container(
       margin: EdgeInsets.only(bottom: layout.cardGap),
       decoration: BoxDecoration(
-        color: cs.surface,
+        color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.65)),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.55)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
+            color: cs.shadow.withValues(alpha: 0.08),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      padding: EdgeInsets.all(layout.cardPadding),
+      padding: EdgeInsets.all(layout.compact ? 10 : 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              SizedBox(
-                width: 74,
-                height: 62,
-                child: _containedWorkImage(
-                  work.setupItem,
-                  height: 62,
-                  padding: 6,
-                  fit: BoxFit.contain,
+              Expanded(
+                child: Text(
+                  work.stageName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: cs.onSurface,
+                    fontSize: layout.compact ? 17 : 19,
+                    fontWeight: FontWeight.w900,
+                    height: 1.15,
+                  ),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(width: 8),
+              _level1RemarkPill(cs, layout),
+            ],
+          ),
+          SizedBox(height: layout.compact ? 10 : 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final stackContent = constraints.maxWidth < 320;
+              final imagePanel = _level1ImagePanel(work, cs, layout);
+              final inputPanel = _level1InputPanel(
+                work: work,
+                existingQty: existingQty,
+                weightValue: weightValue,
+                uomValue: uomValue,
+                cs: cs,
+                layout: layout,
+              );
+
+              if (stackContent) {
+                return Column(
+                  children: [
+                    imagePanel,
+                    SizedBox(height: layout.cardGap),
+                    inputPanel,
+                  ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 10, child: imagePanel),
+                  SizedBox(width: layout.compact ? 10 : 12),
+                  Expanded(flex: 10, child: inputPanel),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _level1RemarkPill(ColorScheme cs, _PebDprResponsive layout) {
+    return Container(
+      constraints: BoxConstraints(
+        minWidth: layout.compact ? 74 : 86,
+        minHeight: layout.compact ? 32 : 36,
+      ),
+      alignment: Alignment.center,
+      padding: EdgeInsets.symmetric(
+        horizontal: layout.compact ? 10 : 12,
+        vertical: layout.compact ? 7 : 8,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFC9FAF7),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.36)),
+      ),
+      child: Text(
+        'Remark',
+        style: TextStyle(
+          color: Colors.black,
+          fontSize: layout.compact ? 12 : 13,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+
+  Widget _level1ImagePanel(
+    _VisibleWork work,
+    ColorScheme cs,
+    _PebDprResponsive layout,
+  ) {
+    return Container(
+      height: layout.compact ? 148 : 166,
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.52)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: cs.surfaceContainerHighest.withValues(alpha: 0.14),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(layout.compact ? 6 : 8),
+            child: SizedBox.expand(
+              child: Image(
+                image:
+                    pebWorkImageProvider(work.setupItem, widget.executionType),
+                width: double.infinity,
+                height: double.infinity,
+                fit: BoxFit.contain,
+                alignment: Alignment.center,
+                filterQuality: FilterQuality.medium,
+                errorBuilder: (_, __, ___) => SizedBox.expand(
+                  child: pebWorkImageFallback(
+                    work.setupItem,
+                    widget.executionType,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _level1InputPanel({
+    required _VisibleWork work,
+    required double existingQty,
+    required String weightValue,
+    required String uomValue,
+    required ColorScheme cs,
+    required _PebDprResponsive layout,
+  }) {
+    return Column(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: cs.surface,
+            borderRadius: BorderRadius.circular(10),
+            border:
+                Border.all(color: cs.outlineVariant.withValues(alpha: 0.45)),
+          ),
+          padding: EdgeInsets.all(layout.compact ? 8 : 10),
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(
+                  horizontal: layout.compact ? 8 : 10,
+                  vertical: layout.compact ? 6 : 8,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0EAFB),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      work.stageName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      'UOM',
                       style: TextStyle(
-                        color: cs.onSurface,
-                        fontSize: 15,
+                        color: cs.onSurfaceVariant,
+                        fontSize: layout.compact ? 11 : 12,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      existingQty > 0
-                          ? 'Saved today: ${_prettyNumber(existingQty)} $uomValue'
-                          : 'Enter daily progress directly',
-                      style: TextStyle(
-                        color: cs.onSurfaceVariant,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: TextFormField(
+                        initialValue: uomValue,
+                        textAlign: TextAlign.center,
+                        onChanged: (value) => setState(
+                            () => _level1UomInputs[work.setupItem.id] = value),
+                        style: TextStyle(
+                          color: cs.primary,
+                          fontSize: layout.compact ? 13 : 15,
+                          fontWeight: FontWeight.w900,
+                        ),
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: layout.compact ? 8 : 10),
+              IntrinsicHeight(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _level1MetricValue(
+                        value: '-',
+                        label: '',
+                        color: cs.onSurface,
+                        layout: layout,
+                      ),
+                    ),
+                    VerticalDivider(
+                      color: cs.outlineVariant.withValues(alpha: 0.8),
+                    ),
+                    Expanded(
+                      child: _level1MetricValue(
+                        value: '-',
+                        label: '',
+                        color: cs.onSurface,
+                        layout: layout,
+                      ),
+                    ),
+                    VerticalDivider(
+                      color: cs.outlineVariant.withValues(alpha: 0.8),
+                    ),
+                    Expanded(
+                      child: _level1MetricValue(
+                        value: _prettyNumber(existingQty),
+                        label: 'Complete',
+                        color: Colors.green.shade600,
+                        layout: layout,
                       ),
                     ),
                   ],
@@ -3390,42 +3579,90 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: TextFormField(
-                  key: ValueKey(
-                      'level1-weight-${work.setupItem.id}-$_level1InputResetVersion'),
-                  initialValue: weightValue,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  onChanged: (value) => setState(
-                      () => _level1WeightInputs[work.setupItem.id] = value),
-                  decoration: const InputDecoration(
-                    labelText: 'Weight',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 2,
-                child: TextFormField(
-                  initialValue: uomValue,
-                  onChanged: (value) => setState(
-                      () => _level1UomInputs[work.setupItem.id] = value),
-                  decoration: const InputDecoration(
-                    labelText: 'UOM',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ),
-            ],
+        ),
+        SizedBox(height: layout.compact ? 8 : 10),
+        TextFormField(
+          key: ValueKey(
+              'level1-weight-${work.setupItem.id}-$_level1InputResetVersion'),
+          initialValue: weightValue,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          onChanged: (value) =>
+              setState(() => _level1WeightInputs[work.setupItem.id] = value),
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: cs.onSurface,
+            fontSize: layout.compact ? 16 : 18,
+            fontWeight: FontWeight.w900,
           ),
+          decoration: InputDecoration(
+            hintText: 'Enter weight',
+            hintStyle: TextStyle(
+              color: cs.onSurfaceVariant.withValues(alpha: 0.45),
+              fontWeight: FontWeight.w700,
+            ),
+            filled: true,
+            fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.20),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: layout.compact ? 10 : 12,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(
+                color: cs.onSurface.withValues(alpha: 0.78),
+                width: 1.2,
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(
+                color: cs.onSurface.withValues(alpha: 0.78),
+                width: 1.2,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: cs.primary, width: 1.7),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _level1MetricValue({
+    required String value,
+    required String label,
+    required Color color,
+    required _PebDprResponsive layout,
+  }) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (label.isNotEmpty) ...[
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.grey.shade700,
+              fontSize: layout.compact ? 9 : 10,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 4),
         ],
-      ),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: color,
+            fontSize: layout.compact ? 15 : 17,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
     );
   }
 
