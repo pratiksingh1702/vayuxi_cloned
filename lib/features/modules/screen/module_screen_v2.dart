@@ -805,18 +805,14 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   }
 
   String _moduleListSignature(List<ModuleItem> modules) {
-    return modules
-        .asMap()
-        .entries
-        .map((entry) {
-          final item = entry.value;
-          return [
-            entry.key.toString(),
-            _safeTourPart(item.routeName),
-            _safeTourPart(item.labelKey),
-          ].join('_');
-        })
-        .join('__');
+    return modules.asMap().entries.map((entry) {
+      final item = entry.value;
+      return [
+        entry.key.toString(),
+        _safeTourPart(item.routeName),
+        _safeTourPart(item.labelKey),
+      ].join('_');
+    }).join('__');
   }
 
   String _safeTourPart(String value) {
@@ -851,8 +847,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       '/site-list/inv-entry':
           'Tap here to write material that came in or material that was used.',
       '/site': 'Tap here to add the site name and site details.',
-      '/site-list/rate':
-          'Tap here to add the money rate for work or material.',
+      '/site-list/rate': 'Tap here to add the money rate for work or material.',
       '/manpower': 'Tap here to add worker names and worker details.',
       '/site-list/team': 'Tap here to make worker groups or teams.',
       '/site-list/inv-setup':
@@ -877,11 +872,9 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       '/summary': 'Tap here to see a short count of site work.',
       '/salary': 'Tap here to see and download salary slips.',
       '/site-list/dprReport': 'Tap here to see or download daily work reports.',
-      '/site-list/structure-pm-report':
-          'Tap here to see machine work reports.',
+      '/site-list/structure-pm-report': 'Tap here to see machine work reports.',
       '/site-list/expense': 'Tap here to see or download money spent records.',
-      '/site-list/att-sheet':
-          'Tap here to see or download who came today.',
+      '/site-list/att-sheet': 'Tap here to see or download who came today.',
       '/site-list/inv-Report': 'Tap here to see material records.',
       '/profile': 'Tap here to see or change your name and photo.',
       '/subscription': 'Tap here to see your app plan.',
@@ -955,8 +948,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           'Purana data app mein dalne ke liye yahan tap kijiye.',
       '/site-list/addMoc':
           'Roj ki entry se pehle jaruri option jodne ke liye yahan tap kijiye.',
-      Routes.erectionSetup:
-          'Structure ke part jodne ke liye yahan tap kijiye.',
+      Routes.erectionSetup: 'Structure ke part jodne ke liye yahan tap kijiye.',
       Routes.civilSetup:
           'Roj ki entry se pehle jaruri option jodne ke liye yahan tap kijiye.',
       Routes.roofingSetup:
@@ -968,7 +960,8 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       '/site-list/structure-pm-setup':
           'Machine ke naam pehle se jodne ke liye yahan tap kijiye.',
       '/summary': 'Site ka chhota hisab dekhne ke liye yahan tap kijiye.',
-      '/salary': 'Salary slip dekhne ya download karne ke liye yahan tap kijiye.',
+      '/salary':
+          'Salary slip dekhne ya download karne ke liye yahan tap kijiye.',
       '/site-list/dprReport':
           'D P R report dekhne ya download karne ke liye yahan tap kijiye.',
       '/site-list/structure-pm-report':
@@ -979,7 +972,8 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           'Kaun aaya tha, ye record dekhne ya download karne ke liye yahan tap kijiye.',
       '/site-list/inv-Report':
           'Material ka record dekhne ke liye yahan tap kijiye.',
-      '/profile': 'Apna naam aur photo dekhne ya badalne ke liye yahan tap kijiye.',
+      '/profile':
+          'Apna naam aur photo dekhne ya badalne ke liye yahan tap kijiye.',
       '/subscription': 'App ka plan dekhne ke liye yahan tap kijiye.',
       '/upcoming-update':
           'App mein naya kya hai, ye dekhne ke liye yahan tap kijiye.',
@@ -1052,8 +1046,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           'पुराना डेटा ऐप में डालने के लिए यहां टैप कीजिए।',
       '/site-list/addMoc':
           'रोज की एंट्री से पहले जरूरी विकल्प जोड़ने के लिए यहां टैप कीजिए।',
-      Routes.erectionSetup:
-          'स्ट्रक्चर के पार्ट जोड़ने के लिए यहां टैप कीजिए।',
+      Routes.erectionSetup: 'स्ट्रक्चर के पार्ट जोड़ने के लिए यहां टैप कीजिए।',
       Routes.civilSetup:
           'रोज की एंट्री से पहले जरूरी विकल्प जोड़ने के लिए यहां टैप कीजिए।',
       Routes.roofingSetup:
@@ -1280,24 +1273,31 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
 
   Widget _buildScrollBody(Translator t, ColorScheme cs, bool isDark) {
     ref.watch(workflowControllerProvider);
+    final isSetupTab = _currentIndex == 1;
     return SingleChildScrollView(
       controller: _scrollController,
-      physics: const AlwaysScrollableScrollPhysics(),
+      physics: isSetupTab
+          ? const NeverScrollableScrollPhysics()
+          : const AlwaysScrollableScrollPhysics(),
       child: Column(
         children: [
           _buildContextualHeader(t),
-          const SizedBox(height: 24),
+          SizedBox(height: isSetupTab ? 12 : 24),
           _buildDropdownRow(),
-          const SizedBox(height: 20),
+          SizedBox(height: isSetupTab ? 10 : 20),
           // CONDITIONAL: inline module card (detached state)
-          AnimatedSize(
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeOutCubic,
-            child: _moduleCardAttached || !_moduleCardVisible
-                ? const SizedBox.shrink()
-                : _buildInlineModuleCard(t, cs, isDark),
-          ),
-          const SizedBox(height: 16),
+          if (isSetupTab)
+            _buildSetupSectionBoard(t, cs, isDark)
+          else ...[
+            AnimatedSize(
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeOutCubic,
+              child: _moduleCardAttached || !_moduleCardVisible
+                  ? const SizedBox.shrink()
+                  : _buildInlineModuleCard(t, cs, isDark),
+            ),
+            const SizedBox(height: 16),
+          ],
           if (_currentIndex == 0) ...[
             _buildDailyStatsSection(cs, isDark),
             const SizedBox(height: 10),
@@ -1306,7 +1306,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           AnimatedContainer(
             duration: const Duration(milliseconds: 450),
             curve: Curves.easeOutCubic,
-            height: _getDockSpacerHeight(_currentModules),
+            height: isSetupTab ? 90 : _getDockSpacerHeight(_currentModules),
           ),
         ],
       ),
@@ -2247,6 +2247,188 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     );
   }
 
+  Widget _buildSetupSectionBoard(Translator t, ColorScheme cs, bool isDark) {
+    final modules = _setupModules;
+    final hrms = modules
+        .where((m) =>
+            m.labelKey == 'manpower_details_card' ||
+            m.labelKey == 'create_team_card')
+        .toList();
+    final projectSetup = modules
+        .where((m) =>
+            m.labelKey == 'site_details_card' ||
+            m.labelKey == 'rate_card' ||
+            m.labelKey == 'inventory_setup_card' ||
+            m.labelKey == 'BOQ' ||
+            m.labelKey.contains('DPR Setup') ||
+            m.labelKey.contains('Setup') && m.labelKey != 'P&M Setup' ||
+            m.labelKey == 'P&M Setup')
+        .where((m) =>
+            m.labelKey != 'manpower_details_card' &&
+            m.labelKey != 'create_team_card')
+        .toList();
+    final execution = modules
+        .where((m) =>
+            m.labelKey == 'Work Assignment' || m.labelKey == 'History Upload')
+        .toList();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
+      child: Column(
+        children: [
+          _buildSetupSection(
+            title: 'Project Setup',
+            icon: Icons.settings_applications_rounded,
+            items: projectSetup,
+            translator: t,
+            cs: cs,
+            isDark: isDark,
+            columns: 4,
+            accent: cs.primary,
+          ),
+          const SizedBox(height: 8),
+          _buildSetupSection(
+            title: 'HRMS',
+            icon: Icons.groups_2_rounded,
+            items: hrms,
+            translator: t,
+            cs: cs,
+            isDark: isDark,
+            columns: 4,
+            accent: Colors.deepOrange,
+          ),
+          const SizedBox(height: 8),
+          _buildSetupSection(
+            title: 'Project Execution',
+            icon: Icons.playlist_add_check_circle_rounded,
+            items: execution,
+            translator: t,
+            cs: cs,
+            isDark: isDark,
+            columns: 4,
+            accent: Colors.deepPurple,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSetupSection({
+    required String title,
+    required IconData icon,
+    required List<ModuleItem> items,
+    required Translator translator,
+    required ColorScheme cs,
+    required bool isDark,
+    required int columns,
+    required Color accent,
+  }) {
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 11),
+      decoration: BoxDecoration(
+        color: isDark ? cs.surfaceContainerHigh : Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: _borderColor(cs, isDark), width: 0.8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.28 : 0.11),
+            blurRadius: 22,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Icon(icon, size: 15, color: accent),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: cs.onSurface,
+                    height: 1.1,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final gap = 0.0;
+              final tileWidth =
+                  (constraints.maxWidth - (gap * (columns - 1))) / columns;
+              return Wrap(
+                spacing: gap,
+                runSpacing: 10,
+                children: [
+                  for (final item in items)
+                    KeyedSubtree(
+                      key: _moduleTourTargetKey(
+                        item,
+                        _setupModules.indexWhere(
+                          (module) => module.routeName == item.routeName,
+                        ),
+                      ),
+                      child: _buildSetupTile(
+                        item: item,
+                        width: tileWidth,
+                        translator: translator,
+                        cs: cs,
+                        isDark: isDark,
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSetupTile({
+    required ModuleItem item,
+    required double width,
+    required Translator translator,
+    required ColorScheme cs,
+    required bool isDark,
+  }) {
+    final isPressed = _pressedMap[item.routeName] == true;
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressedMap[item.routeName] = true),
+      onTapUp: (_) => setState(() => _pressedMap[item.routeName] = false),
+      onTapCancel: () => setState(() => _pressedMap[item.routeName] = false),
+      onTap: _overlayType != null ? null : () => _handleModuleTap(item),
+      child: _buildModuleItemVisual(
+        item: item,
+        width: width,
+        translator: translator,
+        isPressed: isPressed,
+      ),
+    );
+  }
+
   Widget _buildAttachedModulePanel(Translator t, ColorScheme cs, bool isDark) {
     return Container(
       decoration: BoxDecoration(
@@ -2899,7 +3081,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
         child: pill,
       ),
     );
-
   }
 
   GlobalKey _tabTourKey(int index) {
