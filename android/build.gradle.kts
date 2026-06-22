@@ -50,7 +50,9 @@ subprojects {
     tasks.matching {
         it.name.contains("Resources", ignoreCase = true)
     }.configureEach {
-        dependsOn(cleanDuplicateAndroidResourceCopies)
+        if (providers.gradleProperty("cleanDuplicateAndroidResources").isPresent) {
+            dependsOn(cleanDuplicateAndroidResourceCopies)
+        }
     }
 }
 
