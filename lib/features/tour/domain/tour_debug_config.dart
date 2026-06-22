@@ -1,6 +1,7 @@
 class TourDebugConfig {
   const TourDebugConfig._();
 
-  static const bool resetTourOnHotRestart = true;
-  static const bool resetLanguagePopupOnHotRestart = true;
+  static const bool enabled = false;
+  static const bool resetTourOnHotRestart = false;
+  static const bool resetLanguagePopupOnHotRestart = false;
 }

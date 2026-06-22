@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'tour_analytics.dart';
 import 'tour_models.dart';
 import 'tour_storage.dart';
+import '../domain/tour_debug_config.dart';
 import '../definitions/module_screen_tours.dart';
 
 class AppTourController extends StateNotifier<AppTourState> {
@@ -54,6 +55,7 @@ class AppTourController extends StateNotifier<AppTourState> {
     AppTourDefinition definition, {
     required String policyTourId,
   }) async {
+    if (!TourDebugConfig.enabled) return false;
     if (state.status == AppTourStatus.running) return false;
     if (!_allowedTourIds.contains(policyTourId)) return false;
     if (await _storage.isDone(definition.id)) return false;
@@ -63,6 +65,7 @@ class AppTourController extends StateNotifier<AppTourState> {
   }
 
   Future<bool> maybeStartTour(String tourId) async {
+    if (!TourDebugConfig.enabled) return false;
     if (state.status == AppTourStatus.running) return false;
     if (!_allowedTourIds.contains(tourId)) return false;
     if (await _storage.isDone(tourId)) return false;
@@ -71,12 +74,14 @@ class AppTourController extends StateNotifier<AppTourState> {
   }
 
   Future<void> replayTour(String tourId) async {
+    if (!TourDebugConfig.enabled) return;
     if (!_allowedTourIds.contains(tourId)) return;
     await _storage.resetTour(tourId);
     await _startTour(tourId, AppTourTrigger.replay);
   }
 
   Future<void> resetAllAndStart() async {
+    if (!TourDebugConfig.enabled) return;
     final firstTourId = _definitions.first.id;
     await _storage.resetAllPhase1();
     await _startTour(firstTourId, AppTourTrigger.replay);

@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:untitled2/features/tour/domain/tour_debug_config.dart';
 
 class LanguageFirstTimePopup extends StatefulWidget {
   final FutureOr<void> Function() onSelectLanguage;
@@ -47,6 +48,10 @@ class _LanguageFirstTimePopupState extends State<LanguageFirstTimePopup> {
     try {
       await action();
       if (!mounted) return;
+      if (!TourDebugConfig.enabled) {
+        await widget.onSkipPopup();
+        return;
+      }
       setState(() {
         _busy = false;
         _activePanel = 1;
@@ -340,7 +345,8 @@ class _LanguageBody extends StatelessWidget {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.translate_rounded, size: 19),
-            label: Text('Select Language', style: font(weight: FontWeight.w700)),
+            label:
+                Text('Select Language', style: font(weight: FontWeight.w700)),
             style: ElevatedButton.styleFrom(
               elevation: 0,
               backgroundColor: cs.primary,
@@ -610,15 +616,15 @@ class _TourIntroImageSliderState extends State<_TourIntroImageSlider> {
     return Column(
       children: [
         TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 850),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, child) {
-        return Transform.translate(
-          offset: Offset(0, (1 - value) * 14),
-          child: Opacity(opacity: value, child: child),
-        );
-      },
+          tween: Tween(begin: 0, end: 1),
+          duration: const Duration(milliseconds: 850),
+          curve: Curves.easeOutCubic,
+          builder: (context, value, child) {
+            return Transform.translate(
+              offset: Offset(0, (1 - value) * 14),
+              child: Opacity(opacity: value, child: child),
+            );
+          },
           child: SizedBox(
             height: 190,
             child: PageView.builder(
@@ -633,7 +639,8 @@ class _TourIntroImageSliderState extends State<_TourIntroImageSlider> {
                     double distance = 0;
                     if (_controller.hasClients &&
                         _controller.position.haveDimensions) {
-                      distance = (_controller.page ?? _activeIndex.toDouble()) - index;
+                      distance =
+                          (_controller.page ?? _activeIndex.toDouble()) - index;
                     } else {
                       distance = (_activeIndex - index).toDouble();
                     }

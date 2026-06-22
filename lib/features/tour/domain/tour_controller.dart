@@ -21,6 +21,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'tour_module.dart';
 import 'tour_presistent.dart';
 import 'tour_step_model.dart';
+import 'tour_debug_config.dart';
 import 'voice_assistant_service.dart';
 
 export 'tour_step_model.dart' show TourStatus, TourStep, BuddyWaitMode;
@@ -124,6 +125,7 @@ class TourController extends StateNotifier<TourState> {
   /// Start a specific module's tour.
   /// Resumes from where the user left off (if partially completed).
   Future<void> startModule(TourModule module) async {
+    if (!TourDebugConfig.enabled) return;
     _cancelHintTimer();
     _activeModule = module;
 
@@ -142,7 +144,8 @@ class TourController extends StateNotifier<TourState> {
     final savedIndex = await persistence.getModuleStepIndex(module.id);
     final resumeIndex = (savedIndex < module.steps.length) ? savedIndex : 0;
 
-    debugPrint('🔍 TourController.startModule: module=${module.id}, savedIndex=$savedIndex, resumeIndex=$resumeIndex, totalSteps=${module.steps.length}');
+    debugPrint(
+        '🔍 TourController.startModule: module=${module.id}, savedIndex=$savedIndex, resumeIndex=$resumeIndex, totalSteps=${module.steps.length}');
 
     state = TourState(
       status: TourStatus.running,
@@ -160,6 +163,7 @@ class TourController extends StateNotifier<TourState> {
 
   /// Start a module only if it hasn't been completed yet.
   Future<void> startModuleIfNeeded(TourModule module) async {
+    if (!TourDebugConfig.enabled) return;
     final persistence = _ref.read(tourPersistenceProvider);
     if (await persistence.isModuleDone(module.id)) return;
     await startModule(module);
@@ -282,12 +286,14 @@ class TourController extends StateNotifier<TourState> {
   // ── Replay ─────────────────────────────────────────────────────────────────
 
   Future<void> replayModule(TourModule module) async {
+    if (!TourDebugConfig.enabled) return;
     await _ref.read(tourPersistenceProvider).resetModule(module.id);
     await startModule(module);
   }
 
   /// Hard reset all tour flags and runtime state, then start module from step 0.
   Future<void> resetAllAndStartModule(TourModule module) async {
+    if (!TourDebugConfig.enabled) return;
     debugPrint('🔄 TourController: RESET ALL - clearing all tour state');
     _cancelHintTimer();
     await _ref.read(voiceAssistantProvider).stop();
@@ -298,13 +304,16 @@ class TourController extends StateNotifier<TourState> {
     await _ref.read(tourPersistenceProvider).reset();
     await _ref.read(tourPersistenceProvider).saveModuleStepIndex(module.id, 0);
 
-    debugPrint('🔄 TourController: saved step=0 for module=${module.id}, now calling startModule');
+    debugPrint(
+        '🔄 TourController: saved step=0 for module=${module.id}, now calling startModule');
     await startModule(module);
   }
 
   /// Hard reset only one module and runtime state, then start from step 0.
   Future<void> resetModuleAndStartFromBeginning(TourModule module) async {
-    debugPrint('🔄 TourController: RESET MODULE ${module.id} - clearing module-specific state');
+    if (!TourDebugConfig.enabled) return;
+    debugPrint(
+        '🔄 TourController: RESET MODULE ${module.id} - clearing module-specific state');
     _cancelHintTimer();
     await _ref.read(voiceAssistantProvider).stop();
 
@@ -312,12 +321,15 @@ class TourController extends StateNotifier<TourState> {
     state = TourState.idle;
 
     await _ref.read(tourPersistenceProvider).resetModule(module.id);
-    final afterReset = await _ref.read(tourPersistenceProvider).getModuleStepIndex(module.id);
+    final afterReset =
+        await _ref.read(tourPersistenceProvider).getModuleStepIndex(module.id);
     debugPrint('🔄 TourController: after resetModule, stepIndex=$afterReset');
-    
+
     await _ref.read(tourPersistenceProvider).saveModuleStepIndex(module.id, 0);
-    final afterSave = await _ref.read(tourPersistenceProvider).getModuleStepIndex(module.id);
-    debugPrint('🔄 TourController: after saveModuleStepIndex(0), stepIndex=$afterSave');
+    final afterSave =
+        await _ref.read(tourPersistenceProvider).getModuleStepIndex(module.id);
+    debugPrint(
+        '🔄 TourController: after saveModuleStepIndex(0), stepIndex=$afterSave');
 
     debugPrint('🔄 TourController: now calling startModule');
     await startModule(module);
@@ -428,6 +440,7 @@ class TourController extends StateNotifier<TourState> {
   }
 
   Future<void> autoStartIfFirstTime() async {
+    if (!TourDebugConfig.enabled) return;
     final completed =
         await _ref.read(tourPersistenceProvider).isGlobalCompleted();
     if (!completed) {
@@ -438,6 +451,7 @@ class TourController extends StateNotifier<TourState> {
 
   /// Legacy — kept so any existing call site still compiles.
   void start() {
+    if (!TourDebugConfig.enabled) return;
     state = state.copyWith(
       status: TourStatus.running,
       stepIndex: 0,
@@ -446,6 +460,7 @@ class TourController extends StateNotifier<TourState> {
   }
 
   Future<void> replay() async {
+    if (!TourDebugConfig.enabled) return;
     await _ref.read(tourPersistenceProvider).reset();
     start();
   }
