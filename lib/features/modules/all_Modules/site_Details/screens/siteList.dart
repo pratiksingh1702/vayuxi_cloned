@@ -358,29 +358,29 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
         _emptyTourKey,
         Center(
           child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 64, color: cs.error),
-            const SizedBox(height: 16),
-            Text(
-              'Error loading sites',
-              style: TextStyle(fontSize: 18, color: cs.onSurface),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              siteState.error!,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: cs.onSurfaceVariant),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                print("🔄 Retry button pressed");
-                ref.read(siteProvider.notifier).fetchSites();
-              },
-              child: const Text('Try Again'),
-            ),
-          ],
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: cs.error),
+              const SizedBox(height: 16),
+              Text(
+                'Error loading sites',
+                style: TextStyle(fontSize: 18, color: cs.onSurface),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                siteState.error!,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: cs.onSurfaceVariant),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  print("🔄 Retry button pressed");
+                  ref.read(siteProvider.notifier).fetchSites();
+                },
+                child: const Text('Try Again'),
+              ),
+            ],
           ),
         ),
       );
@@ -423,12 +423,12 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
           child: GridView.builder(
             controller: _gridScrollController,
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 24),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 1,
-              childAspectRatio: 1.1,
+              mainAxisSpacing: 14,
+              crossAxisSpacing: 12,
+              childAspectRatio: 0.82,
             ),
             itemCount: siteState.sites.length,
             itemBuilder: (context, index) {
@@ -446,7 +446,7 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
                     child: CompanyCard(
                       imagePath: site.siteImage ?? '',
                       fallbackIcon: Icons.location_city_rounded,
-                      companyName: site.siteName ?? 'Unknown Site',
+                      companyName: site.siteName,
                       onTap: _isSelectionMode
                           ? () => _toggleSiteSelection(site.id)
                           : () {
@@ -508,8 +508,8 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color:
-                                    cs.shadow.withOpacity(isDark ? 0.28 : 0.2),
+                                color: cs.shadow
+                                    .withValues(alpha: isDark ? 0.28 : 0.2),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               ),
@@ -540,8 +540,7 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
   }) {
     final hasSites = sites.isNotEmpty;
     final definition = AppTourDefinition(
-      id:
-          '${SiteRateModuleTours.siteDetailsId}_list_${hasSites ? 'with_sites' : 'empty'}_${showActions ? 'manage' : 'select'}',
+      id: '${SiteRateModuleTours.siteDetailsId}_list_${hasSites ? 'with_sites' : 'empty'}_${showActions ? 'manage' : 'select'}',
       title: 'Site List',
       description: 'Learn how to use the site list.',
       icon: Icons.location_city_rounded,
@@ -590,8 +589,8 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
       ],
     );
 
-    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
-
+    bindScreenOwnedTour(
+        tourId: definition.id, showcaseContext: showcaseContext);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
