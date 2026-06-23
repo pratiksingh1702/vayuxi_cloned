@@ -708,10 +708,36 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen>
 
   @override
   Widget build(BuildContext context) {
-    final type = ref.read(typeProvider)!;
+    final type = ref.watch(typeProvider);
     final colorScheme = Theme.of(context).colorScheme;
     final selectedSiteId = ref.watch(selectedSiteIdProvider);
     final selectedSite = ref.watch(siteDropdownValueProvider);
+
+    if (type == null || type.isEmpty) {
+      return Scaffold(
+        drawer: const CustomDrawer(),
+        backgroundColor: colorScheme.surfaceContainerLowest,
+        body: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return const [
+              CustomSliverAppBar(title: "View Manpower Details"),
+            ];
+          },
+          body: BottomButtonWrapper(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  "Please select a work type first to view manpower.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: colorScheme.onSurfaceVariant),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     final manpowerAsync = ref.watch(
       manpowerOfflineProvider((type: type)),

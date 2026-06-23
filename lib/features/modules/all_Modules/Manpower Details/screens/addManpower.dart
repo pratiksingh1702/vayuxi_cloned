@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:showcaseview/showcaseview.dart';
+import 'package:untitled2/core/router/routes.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/screens/widgets/popup.dart';
@@ -29,7 +30,6 @@ import '../service/manPowerProvider.dart';
 
 import 'dart:math';
 import 'man_import.dart';
-import 'manpowerList.dart';
 
 class NewManpowerScreen extends ConsumerStatefulWidget {
   const NewManpowerScreen({super.key});
@@ -397,16 +397,17 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen>
         );
       }
 
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const ManpowerListScreen()),
-      );
+      if (!mounted) return;
+      context.go(Routes.manpowerList);
     } catch (e, s) {
       print(s);
       print("Error 😑😑😑😑😑😑😑: $e");
       final message = extractBackendError(e);
       AppToast.error(message);
     } finally {
-      setState(() => loading = false);
+      if (mounted) {
+        setState(() => loading = false);
+      }
     }
   }
 
