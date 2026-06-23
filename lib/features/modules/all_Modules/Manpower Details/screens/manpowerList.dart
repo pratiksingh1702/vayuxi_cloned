@@ -8,6 +8,7 @@ import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:showcaseview/showcaseview.dart';
+import 'package:untitled2/core/router/routes.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/upload/manager/upload_manager.dart';
 import 'package:untitled2/core/upload/models/upload_status.dart';
@@ -750,20 +751,27 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen>
                   title: _isSelectionMode
                       ? '${_selectedManpowerIds.length} Selected'
                       : "View Manpower Details",
+                  actions: [
+                    _tourTarget(
+                      _sheetTourKey,
+                      IconButton(
+                        tooltip: 'Download Sheet',
+                        icon: const Icon(Icons.download_rounded),
+                        onPressed: () => _showFormatSelectionDialog(context),
+                      ),
+                    ),
+                  ],
                 ),
               ];
             },
             body: BottomButtonWrapper(
               customButtons: [
                 CustomButton(
-                  button: _tourTarget(
-                    _sheetTourKey,
-                    RoundedButton(
-                      text: "View Sheet",
-                      color: colorScheme.primary,
-                      textColor: colorScheme.onPrimary,
-                      onPressed: () => _showFormatSelectionDialog(context), // ✅
-                    ),
+                  button: RoundedButton(
+                    text: "Add",
+                    color: colorScheme.primary,
+                    textColor: colorScheme.onPrimary,
+                    onPressed: () => context.push(Routes.manpowerAddDetails),
                   ),
                 ),
               ],

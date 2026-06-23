@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 
 class CustomSliverAppBar extends StatelessWidget {
   final String title;
+  final List<Widget> actions;
 
-  const CustomSliverAppBar({super.key, required this.title});
+  const CustomSliverAppBar({
+    super.key,
+    required this.title,
+    this.actions = const [],
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -16,6 +21,7 @@ class CustomSliverAppBar extends StatelessWidget {
       snap: false,
       expandedHeight: 100, // your full appbar height
       backgroundColor: isDark ? cs.surfaceContainerHigh : cs.surface,
+      actions: actions,
 
       flexibleSpace: LayoutBuilder(
         builder: (context, constraints) {

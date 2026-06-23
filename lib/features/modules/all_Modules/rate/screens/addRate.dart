@@ -21,6 +21,7 @@ import '../../../../tour/providers/tour_providers.dart';
 import 'package:untitled2/features/tour/widgets/no_cutout_tour_target.dart';
 import '../data/rateApi.dart';
 import '../data/rate_provider.dart';
+import 'import_sheet.dart';
 
 class AddRateScreen extends ConsumerStatefulWidget {
   final String? initialSiteId;
@@ -32,7 +33,8 @@ class AddRateScreen extends ConsumerStatefulWidget {
   ConsumerState<AddRateScreen> createState() => _AddRateScreenState();
 }
 
-class _AddRateScreenState extends ConsumerState<AddRateScreen> with ScreenOwnedTourMixin<AddRateScreen> {
+class _AddRateScreenState extends ConsumerState<AddRateScreen>
+    with ScreenOwnedTourMixin<AddRateScreen> {
   final TextEditingController siteNameController = TextEditingController();
   final TextEditingController hsnCodeController = TextEditingController();
   final TextEditingController rateController = TextEditingController();
@@ -257,7 +259,8 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> with ScreenOwnedT
         ),
       ],
     );
-    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+    bindScreenOwnedTour(
+        tourId: definition.id, showcaseContext: showcaseContext);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted || isloading) return;
@@ -316,177 +319,195 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> with ScreenOwnedT
       builder: (showcaseContext) {
         _syncRateFormTour(showcaseContext);
         return Scaffold(
-      drawer: const CustomDrawer(),
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
-      appBar: CustomAppBar(title: "Add Rate"),
-      body: BottomButtonWrapper(
-        customButtons: [
-          CustomButton(
-              button: _tourTarget(
-            _saveTourKey,
-            RoundedButton(
-              text: isloading ? "Saving..." : "Save",
-              color: colorScheme.primary,
-              textColor: colorScheme.onPrimary,
-              onPressed: _saveRate,
-            ),
-          ))
-        ],
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _tourTarget(
-                _productTourKey,
-                CustomTextField(
-                  label: "Product",
-                  controller: siteNameController,
-                  isRequired: true,
-                ),
+          drawer: const CustomDrawer(),
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+          appBar: CustomAppBar(
+            title: "Add Rate",
+            actions: [
+              IconButton(
+                tooltip: 'Import Sheet',
+                icon: const Icon(Icons.upload_file_rounded),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ImportCsvScreen(),
+                    ),
+                  );
+                },
               ),
-              _tourTarget(
-                _hsnTourKey,
-                CustomTextField(
-                  label: "HSN/SAC Code",
-                  controller: hsnCodeController,
-                  isRequired: false,
+            ],
+          ),
+          body: BottomButtonWrapper(
+            customButtons: [
+              CustomButton(
+                  button: _tourTarget(
+                _saveTourKey,
+                RoundedButton(
+                  text: isloading ? "Saving..." : "Save",
+                  color: colorScheme.primary,
+                  textColor: colorScheme.onPrimary,
+                  onPressed: _saveRate,
                 ),
-              ),
-              _tourTarget(
-                _rateTourKey,
-                CustomTextField(
-                  label: "Rate in RS.",
-                  controller: rateController,
-                  keyboardType: TextInputType.number,
-                  isRequired: true,
-                ),
-              ),
-
-              // UOM Section with Label
-              // UOM Section
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
+              ))
+            ],
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  RichText(
-                    text: TextSpan(
-                      text: "Uom",
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: colorScheme.onSurface,
-                      ),
-                      children: [
-                        TextSpan(
-                          text: ' *',
-                          style: TextStyle(color: colorScheme.error),
-                        ),
-                      ],
+                  _tourTarget(
+                    _productTourKey,
+                    CustomTextField(
+                      label: "Product",
+                      controller: siteNameController,
+                      isRequired: true,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 4),
+                  _tourTarget(
+                    _hsnTourKey,
+                    CustomTextField(
+                      label: "HSN/SAC Code",
+                      controller: hsnCodeController,
+                      isRequired: false,
+                    ),
+                  ),
+                  _tourTarget(
+                    _rateTourKey,
+                    CustomTextField(
+                      label: "Rate in RS.",
+                      controller: rateController,
+                      keyboardType: TextInputType.number,
+                      isRequired: true,
+                    ),
+                  ),
 
-              _tourTarget(
-                _uomTourKey,
-                SearchableDropdown(
-                  data: uomList,
-                  value: uomController.text,
-                  placeholder: "Search or type Unit of Measurement",
-                  onSelect: (value) {
-                    setState(() {
-                      uomController.text = value;
-                    });
-                  },
-                  containerDecoration: BoxDecoration(
-                    color: colorScheme.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: colorScheme.outlineVariant,
-                      width: 1,
-                    ),
-                  ),
-                  inputDecoration: InputDecoration(
-                    hintText: "Search or type Unit of Measurement",
-                    hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    border: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                  ),
-                ),
-              ),
-
-              // // Combined UOM Field - Can type or select from dropdown
-              // TextFormField(
-              //   controller: uomController,
-              //   focusNode: uomFocusNode,
-              //   onChanged: _onUOMChanged,
-              //   decoration: InputDecoration(
-              //     hintText: "Select or type Unit of Measurement",
-              //     hintStyle: TextStyle(color: Colors.grey[500]),
-              //     border: OutlineInputBorder(
-              //       borderRadius: BorderRadius.circular(8),
-              //       borderSide: const BorderSide(color: Color(0xFFDFE2E6)),
-              //     ),
-              //     enabledBorder: OutlineInputBorder(
-              //       borderRadius: BorderRadius.circular(8),
-              //       borderSide: const BorderSide(color: Color(0xFFDFE2E6)),
-              //     ),
-              //     focusedBorder: OutlineInputBorder(
-              //       borderRadius: BorderRadius.circular(8),
-              //       borderSide: const BorderSide(color: Colors.blue),
-              //     ),
-              //     filled: true,
-              //     fillColor: Colors.white,
-              //     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-              //     suffixIcon: IconButton(
-              //       icon: const Icon(Icons.arrow_drop_down),
-              //       onPressed: _showUOMBottomSheet,
-              //     ),
-              //   ),
-              //   style: const TextStyle(fontSize: 16),
-              // ),
-              //
-              // Show indicator if using custom UOM
-              if (isCustomUOM && uomController.text.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4.0),
-                  child: Row(
+                  // UOM Section with Label
+                  // UOM Section
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      Icon(Icons.edit, size: 14, color: colorScheme.tertiary),
-                      const SizedBox(width: 4),
-                      Text(
-                        "Using custom UOM",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: colorScheme.tertiary,
-                          fontStyle: FontStyle.italic,
+                      RichText(
+                        text: TextSpan(
+                          text: "Uom",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: colorScheme.onSurface,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: ' *',
+                              style: TextStyle(color: colorScheme.error),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 4),
 
-              _tourTarget(
-                _remarkTourKey,
-                CustomTextField(
-                  label: "Remark (if any)",
-                  controller: remarkController,
-                  maxLines: 3,
-                ),
+                  _tourTarget(
+                    _uomTourKey,
+                    SearchableDropdown(
+                      data: uomList,
+                      value: uomController.text,
+                      placeholder: "Search or type Unit of Measurement",
+                      onSelect: (value) {
+                        setState(() {
+                          uomController.text = value;
+                        });
+                      },
+                      containerDecoration: BoxDecoration(
+                        color: colorScheme.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: colorScheme.outlineVariant,
+                          width: 1,
+                        ),
+                      ),
+                      inputDecoration: InputDecoration(
+                        hintText: "Search or type Unit of Measurement",
+                        hintStyle:
+                            TextStyle(color: colorScheme.onSurfaceVariant),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        border: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                      ),
+                    ),
+                  ),
+
+                  // // Combined UOM Field - Can type or select from dropdown
+                  // TextFormField(
+                  //   controller: uomController,
+                  //   focusNode: uomFocusNode,
+                  //   onChanged: _onUOMChanged,
+                  //   decoration: InputDecoration(
+                  //     hintText: "Select or type Unit of Measurement",
+                  //     hintStyle: TextStyle(color: Colors.grey[500]),
+                  //     border: OutlineInputBorder(
+                  //       borderRadius: BorderRadius.circular(8),
+                  //       borderSide: const BorderSide(color: Color(0xFFDFE2E6)),
+                  //     ),
+                  //     enabledBorder: OutlineInputBorder(
+                  //       borderRadius: BorderRadius.circular(8),
+                  //       borderSide: const BorderSide(color: Color(0xFFDFE2E6)),
+                  //     ),
+                  //     focusedBorder: OutlineInputBorder(
+                  //       borderRadius: BorderRadius.circular(8),
+                  //       borderSide: const BorderSide(color: Colors.blue),
+                  //     ),
+                  //     filled: true,
+                  //     fillColor: Colors.white,
+                  //     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                  //     suffixIcon: IconButton(
+                  //       icon: const Icon(Icons.arrow_drop_down),
+                  //       onPressed: _showUOMBottomSheet,
+                  //     ),
+                  //   ),
+                  //   style: const TextStyle(fontSize: 16),
+                  // ),
+                  //
+                  // Show indicator if using custom UOM
+                  if (isCustomUOM && uomController.text.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4.0),
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit,
+                              size: 14, color: colorScheme.tertiary),
+                          const SizedBox(width: 4),
+                          Text(
+                            "Using custom UOM",
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: colorScheme.tertiary,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  _tourTarget(
+                    _remarkTourKey,
+                    CustomTextField(
+                      label: "Remark (if any)",
+                      controller: remarkController,
+                      maxLines: 3,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
               ),
-              const SizedBox(height: 20),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
+        );
       },
     );
   }

@@ -28,6 +28,7 @@ import '../../site_Details/repository/siteModel.dart';
 import '../service/manPowerProvider.dart';
 
 import 'dart:math';
+import 'man_import.dart';
 import 'manpowerList.dart';
 
 class NewManpowerScreen extends ConsumerStatefulWidget {
@@ -37,7 +38,8 @@ class NewManpowerScreen extends ConsumerStatefulWidget {
   ConsumerState<NewManpowerScreen> createState() => _NewManpowerScreenState();
 }
 
-class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> with ScreenOwnedTourMixin<NewManpowerScreen> {
+class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen>
+    with ScreenOwnedTourMixin<NewManpowerScreen> {
   final _formKey = GlobalKey<FormState>();
 
   // Controllers
@@ -588,14 +590,16 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> with Scre
         const AppTourStep(
           id: 'manpower_add_intro',
           title: 'Add Manpower',
-          body: 'Use this form to save worker details for attendance, teams, and reports.',
+          body:
+              'Use this form to save worker details for attendance, teams, and reports.',
           progressLabel: 'Add manpower',
           useSpotlight: false,
         ),
         AppTourStep(
           id: 'manpower_add_basic',
           title: 'Basic Details',
-          body: 'Enter the worker name here. This name will appear in attendance and reports.',
+          body:
+              'Enter the worker name here. This name will appear in attendance and reports.',
           targetKey: _basicTourKey,
           progressLabel: 'Basic',
           autoScrollToTarget: true,
@@ -603,7 +607,8 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> with Scre
         AppTourStep(
           id: 'manpower_add_designation',
           title: 'Designation',
-          body: 'Choose the worker role and whether they are direct or indirect manpower.',
+          body:
+              'Choose the worker role and whether they are direct or indirect manpower.',
           targetKey: _designationTourKey,
           progressLabel: 'Role',
           autoScrollToTarget: true,
@@ -611,7 +616,8 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> with Scre
         AppTourStep(
           id: 'manpower_add_site',
           title: 'Phone and Sites',
-          body: 'Add the phone number and select the sites where this worker can be used.',
+          body:
+              'Add the phone number and select the sites where this worker can be used.',
           targetKey: _siteTourKey,
           progressLabel: 'Site',
           autoScrollToTarget: true,
@@ -627,7 +633,8 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> with Scre
         AppTourStep(
           id: 'manpower_add_identity',
           title: 'ID and Bank Details',
-          body: 'Add ID, bank, PF, UAN, and ESIC details if you need them for records.',
+          body:
+              'Add ID, bank, PF, UAN, and ESIC details if you need them for records.',
           targetKey: _identityTourKey,
           progressLabel: 'ID',
           autoScrollToTarget: true,
@@ -643,7 +650,8 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> with Scre
         AppTourStep(
           id: 'manpower_add_payroll',
           title: 'Payroll Details',
-          body: 'Add salary, shift hours, allowances, and remarks used for payment records.',
+          body:
+              'Add salary, shift hours, allowances, and remarks used for payment records.',
           targetKey: _payrollTourKey,
           progressLabel: 'Payroll',
           autoScrollToTarget: true,
@@ -660,8 +668,8 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> with Scre
       ],
     );
 
-    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
-
+    bindScreenOwnedTour(
+        tourId: definition.id, showcaseContext: showcaseContext);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
@@ -706,509 +714,532 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> with Scre
       builder: (showcaseContext) {
         _syncManpowerFormTour(showcaseContext);
         return Scaffold(
-      drawer: const CustomDrawer(),
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
-      appBar: CustomAppBar(title: "New Employee Details"),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(12),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Full Name ──
-              _tourTarget(
-                _basicTourKey,
-                CustomTextField(
-                  label: "Full Name",
-                  controller: _fullNameController,
-                  isRequired: true,
-                ),
+          drawer: const CustomDrawer(),
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+          appBar: CustomAppBar(
+            title: "New Employee Details",
+            actions: [
+              IconButton(
+                tooltip: 'Import Sheet',
+                icon: const Icon(Icons.upload_file_rounded),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ManImportCsvScreen(),
+                    ),
+                  );
+                },
               ),
-
-              // ── Designation ──
-              const SizedBox(height: 16),
-              _tourTarget(
-                _designationTourKey,
-                Column(
+            ],
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(12),
+            child: Form(
+              key: _formKey,
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "Designation",
-                    style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: colorScheme.onSurface),
-                  ),
-                  const SizedBox(height: 6),
-                  SearchableDropdown(
-                    data: _designationOptions,
-                    onSelect: (value) => setState(() {
-                      _selectedDesignation = value;
-                      _selectedManpowerCategory = _inferManpowerCategory(value);
-                    }),
-                    placeholder: "Search Designation",
-                    value: _selectedDesignation,
-                    containerDecoration: BoxDecoration(
-                      color: colorScheme.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: colorScheme.outlineVariant, width: 1),
-                    ),
-                    inputDecoration: InputDecoration(
-                      hintText: "Search Designation",
-                      hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 14),
-                      border: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      enabledBorder: InputBorder.none,
+                  // ── Full Name ──
+                  _tourTarget(
+                    _basicTourKey,
+                    CustomTextField(
+                      label: "Full Name",
+                      controller: _fullNameController,
+                      isRequired: true,
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedManpowerCategory,
-                    decoration: InputDecoration(
-                      labelText: "Manpower Category",
-                      filled: true,
-                      fillColor: colorScheme.surface,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                            color: colorScheme.outlineVariant, width: 1),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                            color: colorScheme.outlineVariant, width: 1),
-                      ),
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: "DIRECT",
-                        child: Text("Direct Manpower"),
-                      ),
-                      DropdownMenuItem(
-                        value: "INDIRECT",
-                        child: Text("Indirect Manpower"),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      if (value == null) return;
-                      setState(() => _selectedManpowerCategory = value);
-                    },
-                  ),
-                ],
-                ),
-              ),
 
-              // ── Phone ──
-              const SizedBox(height: 16),
-              _tourTarget(
-                _siteTourKey,
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    PhoneInputField(controller: _phoneController),
-
-              // ── ✅ Site Selector ──
-              const SizedBox(height: 16),
-                    _buildSiteSelector(siteState.sites),
-                  ],
-                ),
-              ),
-
-              // ── Login Credentials Toggle ──
-              const SizedBox(height: 16),
-              _tourTarget(
-                _loginTourKey,
-                Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border:
-                      Border.all(color: colorScheme.outlineVariant, width: 1.5),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  // ── Designation ──
+                  const SizedBox(height: 16),
+                  _tourTarget(
+                    _designationTourKey,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Enable Login Credentials",
+                          "Designation",
                           style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: colorScheme.onSurface),
                         ),
-                        Switch(
-                          value: _enableLoginCredentials,
+                        const SizedBox(height: 6),
+                        SearchableDropdown(
+                          data: _designationOptions,
+                          onSelect: (value) => setState(() {
+                            _selectedDesignation = value;
+                            _selectedManpowerCategory =
+                                _inferManpowerCategory(value);
+                          }),
+                          placeholder: "Search Designation",
+                          value: _selectedDesignation,
+                          containerDecoration: BoxDecoration(
+                            color: colorScheme.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                                color: colorScheme.outlineVariant, width: 1),
+                          ),
+                          inputDecoration: InputDecoration(
+                            hintText: "Search Designation",
+                            hintStyle:
+                                TextStyle(color: colorScheme.onSurfaceVariant),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 14),
+                            border: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        DropdownButtonFormField<String>(
+                          initialValue: _selectedManpowerCategory,
+                          decoration: InputDecoration(
+                            labelText: "Manpower Category",
+                            filled: true,
+                            fillColor: colorScheme.surface,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                  color: colorScheme.outlineVariant, width: 1),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                  color: colorScheme.outlineVariant, width: 1),
+                            ),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: "DIRECT",
+                              child: Text("Direct Manpower"),
+                            ),
+                            DropdownMenuItem(
+                              value: "INDIRECT",
+                              child: Text("Indirect Manpower"),
+                            ),
+                          ],
                           onChanged: (value) {
-                            setState(() {
-                              _enableLoginCredentials = value;
-                              if (value) {
-                                _generateOtp();
-                              } else {
-                                _emailController.clear();
-                                _otpController.clear();
-                                _generatedOtp = "";
-                              }
-                            });
+                            if (value == null) return;
+                            setState(() => _selectedManpowerCategory = value);
                           },
-                          activeColor: colorScheme.primary,
                         ),
                       ],
                     ),
-                    if (_enableLoginCredentials) ...[
-                      const SizedBox(height: 12),
-                      CustomTextField(
-                        label: "Login Email",
-                        controller: _emailController,
-                        isRequired: true,
-                        keyboardType: TextInputType.emailAddress,
+                  ),
+
+                  // ── Phone ──
+                  const SizedBox(height: 16),
+                  _tourTarget(
+                    _siteTourKey,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        PhoneInputField(controller: _phoneController),
+
+                        // ── ✅ Site Selector ──
+                        const SizedBox(height: 16),
+                        _buildSiteSelector(siteState.sites),
+                      ],
+                    ),
+                  ),
+
+                  // ── Login Credentials Toggle ──
+                  const SizedBox(height: 16),
+                  _tourTarget(
+                    _loginTourKey,
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: colorScheme.outlineVariant, width: 1.5),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: CustomTextField(
-                              label: "OTP Password",
-                              controller: _otpController,
-                              isRequired: true,
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "Enable Login Credentials",
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: colorScheme.onSurface),
+                              ),
+                              Switch(
+                                value: _enableLoginCredentials,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _enableLoginCredentials = value;
+                                    if (value) {
+                                      _generateOtp();
+                                    } else {
+                                      _emailController.clear();
+                                      _otpController.clear();
+                                      _generatedOtp = "";
+                                    }
+                                  });
+                                },
+                                activeColor: colorScheme.primary,
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
+                          if (_enableLoginCredentials) ...[
+                            const SizedBox(height: 12),
+                            CustomTextField(
+                              label: "Login Email",
+                              controller: _emailController,
+                              isRequired: true,
+                              keyboardType: TextInputType.emailAddress,
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: CustomTextField(
+                                    label: "OTP Password",
+                                    controller: _otpController,
+                                    isRequired: true,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton(
+                                  onPressed: _generateOtp,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: colorScheme.primary,
+                                    foregroundColor: colorScheme.onPrimary,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  child: const Text("Regenerate"),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              "OTP will be used as initial password",
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: colorScheme.onSurfaceVariant),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // ── Aadhar ──
+                  const SizedBox(height: 16),
+                  _tourTarget(
+                    _identityTourKey,
+                    CustomTextField(
+                      label: "Aadhar Number",
+                      controller: _aadhaarController,
+                      isRequired: false,
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+
+                  // ── PAN ──
+                  const SizedBox(height: 16),
+                  CustomTextField(
+                    label: "PAN Number",
+                    controller: _panController,
+                    isRequired: false,
+                  ),
+
+                  // ── Bank ──
+                  const SizedBox(height: 16),
+                  CustomTextField(
+                    label: "Bank Account Number",
+                    controller: _bankController,
+                    isRequired: false,
+                    keyboardType: TextInputType.number,
+                  ),
+
+                  // ── IFSC ──
+                  const SizedBox(height: 16),
+                  CustomTextField(
+                    label: "IFSC Code",
+                    controller: _ifscController,
+                    isRequired: false,
+                  ),
+
+                  // ── EPF ──
+                  const SizedBox(height: 16),
+                  CustomTextField(
+                    label: "EPF Number",
+                    controller: _epfController,
+                    isRequired: false,
+                    keyboardType: TextInputType.number,
+                  ),
+
+                  // ── UAN ──
+                  const SizedBox(height: 16),
+                  CustomTextField(
+                    label: "UAN Number",
+                    controller: _uanController,
+                    isRequired: false,
+                    keyboardType: TextInputType.number,
+                  ),
+
+                  // ── ESIC ──
+                  const SizedBox(height: 16),
+                  CustomTextField(
+                    label: "ESIC Number",
+                    controller: _esicController,
+                    isRequired: false,
+                    keyboardType: TextInputType.number,
+                  ),
+
+                  // ── Dates ──
+                  const SizedBox(height: 16),
+                  _tourTarget(
+                    _datesTourKey,
+                    Row(
+                      children: [
+                        Expanded(
+                            child:
+                                _buildDatePicker("Date of Birth", _dob, true)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                            child: _buildDatePicker(
+                                "Date of Joining", _doj, false)),
+                      ],
+                    ),
+                  ),
+
+                  // ── PF Toggle ──
+                  const SizedBox(height: 16),
+                  _tourTarget(
+                    _payrollTourKey,
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: colorScheme.outlineVariant, width: 1.5),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("PF Applicable",
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: colorScheme.onSurface)),
+                          Switch(
+                            value: _isPfApplicable,
+                            activeColor: colorScheme.primary,
+                            onChanged: (val) =>
+                                setState(() => _isPfApplicable = val),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // ── Pay Basics ──
+                  const SizedBox(height: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Pay Basics",
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: colorScheme.onSurface)),
+                      const SizedBox(height: 6),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: colorScheme.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: colorScheme.outlineVariant, width: 1.5),
+                          boxShadow: [
+                            BoxShadow(
+                                color: colorScheme.shadow.withOpacity(0.08),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2))
+                          ],
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButtonFormField<String>(
+                            value: _payBasic,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 14),
+                              border: InputBorder.none,
+                            ),
+                            icon: Icon(Icons.keyboard_arrow_down_rounded,
+                                color: colorScheme.onSurfaceVariant),
+                            items: const [
+                              DropdownMenuItem(
+                                  value: "daily", child: Text("Daily")),
+                              DropdownMenuItem(
+                                  value: "monthly", child: Text("Monthly")),
+                              DropdownMenuItem(
+                                  value: "yearly", child: Text("Yearly")),
+                              DropdownMenuItem(
+                                  value: "fixed", child: Text("Fixed")),
+                            ],
+                            onChanged: (val) =>
+                                setState(() => _payBasic = val!),
+                            dropdownColor: colorScheme.surface,
+                            style: TextStyle(
+                                fontSize: 15,
+                                color: colorScheme.onSurface,
+                                fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // ── Salary ──
+                  const SizedBox(height: 16),
+                  CustomTextField(
+                    label: "Salary",
+                    controller: _salaryController,
+                    isRequired: true,
+                    keyboardType: TextInputType.number,
+                  ),
+
+                  // ── Shift Hour ──
+                  const SizedBox(height: 20),
+                  CustomDropdownField<String>(
+                    label: "Shift Hour",
+                    value: _selectedTotalHour,
+                    hint: "Select Total Working Hours",
+                    items: _totalHourOptions
+                        .map((hour) => DropdownMenuItem<String>(
+                            value: hour, child: Text(hour)))
+                        .toList(),
+                    onChanged: (value) =>
+                        setState(() => _selectedTotalHour = value),
+                  ),
+
+                  // ── Basic Salary ──
+                  const SizedBox(height: 16),
+                  CustomTextField(
+                    label: "Basic Salary",
+                    controller: _basicSalaryController,
+                    keyboardType: TextInputType.number,
+                  ),
+
+                  // ── DA ──
+                  const SizedBox(height: 12),
+                  CustomTextField(
+                    label: "Dearness Allowance (DA)",
+                    controller: _daController,
+                    keyboardType: TextInputType.number,
+                  ),
+
+                  // ── HRA ──
+                  const SizedBox(height: 12),
+                  CustomTextField(
+                    label: "Home Rent Allowance (HRA)",
+                    controller: _hra,
+                    keyboardType: TextInputType.number,
+                  ),
+
+                  // ── Special Allowance ──
+                  const SizedBox(height: 12),
+                  CustomTextField(
+                    label: "Special Allowance",
+                    controller: _specialAllowanceController,
+                    keyboardType: TextInputType.number,
+                  ),
+
+                  // ── Travel Allowance ──
+                  const SizedBox(height: 12),
+                  CustomTextField(
+                    label: "Travel Allowance",
+                    controller: _travelAllowanceController,
+                    keyboardType: TextInputType.number,
+                  ),
+
+                  // ── Medical Allowance ──
+                  const SizedBox(height: 12),
+                  CustomTextField(
+                    label: "Medical Allowance",
+                    controller: _medicalAllowanceController,
+                    keyboardType: TextInputType.number,
+                  ),
+
+                  // ── Remarks ──
+                  const SizedBox(height: 16),
+                  CustomTextField(
+                    label: "Remarks",
+                    controller: _remarksController,
+                    isRequired: false,
+                    maxLines: 3,
+                  ),
+
+                  // ── Buttons ──
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _tourTarget(
+                          _saveTourKey,
                           ElevatedButton(
-                            onPressed: _generateOtp,
+                            onPressed: loading ? null : _saveManpower,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: colorScheme.primary,
                               foregroundColor: colorScheme.onPrimary,
                               shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8)),
+                                  borderRadius: BorderRadius.circular(30)),
                             ),
-                            child: const Text("Regenerate"),
+                            child: loading
+                                ? CircularProgressIndicator(
+                                    color: colorScheme.onPrimary)
+                                : const Text("Save"),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "OTP will be used as initial password",
-                        style: TextStyle(
-                            fontSize: 12, color: colorScheme.onSurfaceVariant),
+                        ),
                       ),
                     ],
-                  ],
-                ),
-                ),
-              ),
-
-              // ── Aadhar ──
-              const SizedBox(height: 16),
-              _tourTarget(
-                _identityTourKey,
-                CustomTextField(
-                  label: "Aadhar Number",
-                  controller: _aadhaarController,
-                  isRequired: false,
-                  keyboardType: TextInputType.number,
-                ),
-              ),
-
-              // ── PAN ──
-              const SizedBox(height: 16),
-              CustomTextField(
-                label: "PAN Number",
-                controller: _panController,
-                isRequired: false,
-              ),
-
-              // ── Bank ──
-              const SizedBox(height: 16),
-              CustomTextField(
-                label: "Bank Account Number",
-                controller: _bankController,
-                isRequired: false,
-                keyboardType: TextInputType.number,
-              ),
-
-              // ── IFSC ──
-              const SizedBox(height: 16),
-              CustomTextField(
-                label: "IFSC Code",
-                controller: _ifscController,
-                isRequired: false,
-              ),
-
-              // ── EPF ──
-              const SizedBox(height: 16),
-              CustomTextField(
-                label: "EPF Number",
-                controller: _epfController,
-                isRequired: false,
-                keyboardType: TextInputType.number,
-              ),
-
-              // ── UAN ──
-              const SizedBox(height: 16),
-              CustomTextField(
-                label: "UAN Number",
-                controller: _uanController,
-                isRequired: false,
-                keyboardType: TextInputType.number,
-              ),
-
-              // ── ESIC ──
-              const SizedBox(height: 16),
-              CustomTextField(
-                label: "ESIC Number",
-                controller: _esicController,
-                isRequired: false,
-                keyboardType: TextInputType.number,
-              ),
-
-              // ── Dates ──
-              const SizedBox(height: 16),
-              _tourTarget(
-                _datesTourKey,
-                Row(
-                children: [
-                  Expanded(
-                      child: _buildDatePicker("Date of Birth", _dob, true)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                      child: _buildDatePicker("Date of Joining", _doj, false)),
-                ],
-                ),
-              ),
-
-              // ── PF Toggle ──
-              const SizedBox(height: 16),
-              _tourTarget(
-                _payrollTourKey,
-                Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border:
-                      Border.all(color: colorScheme.outlineVariant, width: 1.5),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text("PF Applicable",
-                        style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: colorScheme.onSurface)),
-                    Switch(
-                      value: _isPfApplicable,
-                      activeColor: colorScheme.primary,
-                      onChanged: (val) => setState(() => _isPfApplicable = val),
-                    ),
-                  ],
-                ),
-                ),
-              ),
-
-              // ── Pay Basics ──
-              const SizedBox(height: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Pay Basics",
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: colorScheme.onSurface)),
-                  const SizedBox(height: 6),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: colorScheme.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: colorScheme.outlineVariant, width: 1.5),
-                      boxShadow: [
-                        BoxShadow(
-                            color: colorScheme.shadow.withOpacity(0.08),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2))
-                      ],
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButtonFormField<String>(
-                        value: _payBasic,
-                        isExpanded: true,
-                        decoration: const InputDecoration(
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 14),
-                          border: InputBorder.none,
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _resetForm,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: colorScheme.primary,
+                            foregroundColor: colorScheme.onPrimary,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30)),
+                          ),
+                          child: const Text("Reset"),
                         ),
-                        icon: Icon(Icons.keyboard_arrow_down_rounded,
-                            color: colorScheme.onSurfaceVariant),
-                        items: const [
-                          DropdownMenuItem(
-                              value: "daily", child: Text("Daily")),
-                          DropdownMenuItem(
-                              value: "monthly", child: Text("Monthly")),
-                          DropdownMenuItem(
-                              value: "yearly", child: Text("Yearly")),
-                          DropdownMenuItem(
-                              value: "fixed", child: Text("Fixed")),
-                        ],
-                        onChanged: (val) => setState(() => _payBasic = val!),
-                        dropdownColor: colorScheme.surface,
-                        style: TextStyle(
-                            fontSize: 15,
-                            color: colorScheme.onSurface,
-                            fontWeight: FontWeight.w500),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-
-              // ── Salary ──
-              const SizedBox(height: 16),
-              CustomTextField(
-                label: "Salary",
-                controller: _salaryController,
-                isRequired: true,
-                keyboardType: TextInputType.number,
-              ),
-
-              // ── Shift Hour ──
-              const SizedBox(height: 20),
-              CustomDropdownField<String>(
-                label: "Shift Hour",
-                value: _selectedTotalHour,
-                hint: "Select Total Working Hours",
-                items: _totalHourOptions
-                    .map((hour) => DropdownMenuItem<String>(
-                        value: hour, child: Text(hour)))
-                    .toList(),
-                onChanged: (value) =>
-                    setState(() => _selectedTotalHour = value),
-              ),
-
-              // ── Basic Salary ──
-              const SizedBox(height: 16),
-              CustomTextField(
-                label: "Basic Salary",
-                controller: _basicSalaryController,
-                keyboardType: TextInputType.number,
-              ),
-
-              // ── DA ──
-              const SizedBox(height: 12),
-              CustomTextField(
-                label: "Dearness Allowance (DA)",
-                controller: _daController,
-                keyboardType: TextInputType.number,
-              ),
-
-              // ── HRA ──
-              const SizedBox(height: 12),
-              CustomTextField(
-                label: "Home Rent Allowance (HRA)",
-                controller: _hra,
-                keyboardType: TextInputType.number,
-              ),
-
-              // ── Special Allowance ──
-              const SizedBox(height: 12),
-              CustomTextField(
-                label: "Special Allowance",
-                controller: _specialAllowanceController,
-                keyboardType: TextInputType.number,
-              ),
-
-              // ── Travel Allowance ──
-              const SizedBox(height: 12),
-              CustomTextField(
-                label: "Travel Allowance",
-                controller: _travelAllowanceController,
-                keyboardType: TextInputType.number,
-              ),
-
-              // ── Medical Allowance ──
-              const SizedBox(height: 12),
-              CustomTextField(
-                label: "Medical Allowance",
-                controller: _medicalAllowanceController,
-                keyboardType: TextInputType.number,
-              ),
-
-              // ── Remarks ──
-              const SizedBox(height: 16),
-              CustomTextField(
-                label: "Remarks",
-                controller: _remarksController,
-                isRequired: false,
-                maxLines: 3,
-              ),
-
-              // ── Buttons ──
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: _tourTarget(
-                      _saveTourKey,
-                      ElevatedButton(
-                        onPressed: loading ? null : _saveManpower,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: colorScheme.primary,
-                          foregroundColor: colorScheme.onPrimary,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => context.pop(),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: colorScheme.surface,
+                            foregroundColor: colorScheme.onSurface,
+                            side: BorderSide(color: colorScheme.outlineVariant),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30)),
+                          ),
+                          child: const Text("Back"),
                         ),
-                        child: loading
-                            ? CircularProgressIndicator(
-                                color: colorScheme.onPrimary)
-                            : const Text("Save"),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _resetForm,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: colorScheme.primary,
-                        foregroundColor: colorScheme.onPrimary,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30)),
-                      ),
-                      child: const Text("Reset"),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => context.pop(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: colorScheme.surface,
-                        foregroundColor: colorScheme.onSurface,
-                        side: BorderSide(color: colorScheme.outlineVariant),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30)),
-                      ),
-                      child: const Text("Back"),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
         );
       },
     );

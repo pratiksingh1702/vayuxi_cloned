@@ -51,7 +51,8 @@ class RateScreen extends ConsumerStatefulWidget {
   ConsumerState<RateScreen> createState() => _RateScreenState();
 }
 
-class _RateScreenState extends ConsumerState<RateScreen> with ScreenOwnedTourMixin<RateScreen> {
+class _RateScreenState extends ConsumerState<RateScreen>
+    with ScreenOwnedTourMixin<RateScreen> {
   // Selection mode state
   bool _isSelectionMode = false;
   Set<String> _selectedRateIds = {};
@@ -488,7 +489,8 @@ class _RateScreenState extends ConsumerState<RateScreen> with ScreenOwnedTourMix
       const AppTourStep(
         id: 'rate_list_intro',
         title: 'Rate List',
-        body: 'Use this screen to check, search, edit, delete, and download saved rates.',
+        body:
+            'Use this screen to check, search, edit, delete, and download saved rates.',
         progressLabel: 'Rate list',
         useSpotlight: false,
       ),
@@ -506,7 +508,8 @@ class _RateScreenState extends ConsumerState<RateScreen> with ScreenOwnedTourMix
         AppTourStep(
           id: 'rate_list_delete_mode',
           title: 'Select for Delete',
-          body: 'Tap this button when you want to select and delete multiple rates.',
+          body:
+              'Tap this button when you want to select and delete multiple rates.',
           targetKey: _deleteModeTourKey,
           progressLabel: 'Delete mode',
         ),
@@ -537,7 +540,8 @@ class _RateScreenState extends ConsumerState<RateScreen> with ScreenOwnedTourMix
           AppTourStep(
             id: 'rate_list_first_rate_badge',
             title: 'Rate Amount',
-            body: 'This shows the saved amount and its unit, such as Rs per Meter or Nos.',
+            body:
+                'This shows the saved amount and its unit, such as Rs per Meter or Nos.',
             targetKey: _firstRateBadgeTourKey,
             progressLabel: 'Amount',
           ),
@@ -547,7 +551,8 @@ class _RateScreenState extends ConsumerState<RateScreen> with ScreenOwnedTourMix
         AppTourStep(
           id: 'rate_list_empty',
           title: 'No Rates Yet',
-          body: 'When there are no matching rates, this area tells you what to do next.',
+          body:
+              'When there are no matching rates, this area tells you what to do next.',
           targetKey: _emptyTourKey,
           progressLabel: 'Empty list',
         ),
@@ -573,8 +578,8 @@ class _RateScreenState extends ConsumerState<RateScreen> with ScreenOwnedTourMix
       steps: steps,
     );
 
-    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
-
+    bindScreenOwnedTour(
+        tourId: definition.id, showcaseContext: showcaseContext);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
@@ -630,349 +635,373 @@ class _RateScreenState extends ConsumerState<RateScreen> with ScreenOwnedTourMix
     return ShowCaseWidget(
       builder: (showcaseContext) {
         return Scaffold(
-      drawer: const CustomDrawer(),
-      backgroundColor: colorScheme.surfaceContainerLowest,
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [
-            CustomSliverAppBar(
-              title: _isSelectionMode
-                  ? '${_selectedRateIds.length} Selected'
-                  : "Rates",
-            ),
-          ];
-        },
-        body: BottomButtonWrapper(
-          customButtons: [
-            CustomButton(
-              button: _tourTarget(
-                _viewSheetTourKey,
-                RoundedButton(
-                  text: "View Sheet",
-                  color: colorScheme.primary,
-                  textColor: colorScheme.onPrimary,
-                  onPressed: () {
-                    final type = ref.read(typeProvider);
-                    if (type != null) {
-                      saveCsvWithDialog(context, type, site!.id);
-                    }
-                  },
-                ),
-              ),
-            ),
-          ],
-          child: Column(
-            children: [
-              // Search and Filter Row
-              _tourTarget(
-                _searchFilterTourKey,
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: colorScheme.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                              color:
-                                  colorScheme.outlineVariant.withOpacity(0.5)),
-                        ),
-                        child: TextField(
-                          controller: _searchController,
-                          style: const TextStyle(fontSize: 14),
-                          decoration: InputDecoration(
-                            hintText: 'Search service...',
-                            prefixIcon: Icon(Icons.search,
-                                color: colorScheme.primary, size: 20),
-                            border: InputBorder.none,
-                            contentPadding:
-                                const EdgeInsets.symmetric(vertical: 14),
-                            suffixIcon: _searchQuery.isNotEmpty
-                                ? IconButton(
-                                    icon: const Icon(Icons.clear, size: 18),
-                                    onPressed: () => _searchController.clear(),
-                                  )
-                                : null,
-                          ),
-                        ),
+          drawer: const CustomDrawer(),
+          backgroundColor: colorScheme.surfaceContainerLowest,
+          body: NestedScrollView(
+            headerSliverBuilder: (context, innerBoxIsScrolled) {
+              return [
+                CustomSliverAppBar(
+                  title: _isSelectionMode
+                      ? '${_selectedRateIds.length} Selected'
+                      : "Rates",
+                  actions: [
+                    _tourTarget(
+                      _viewSheetTourKey,
+                      IconButton(
+                        tooltip: 'Download Sheet',
+                        icon: const Icon(Icons.download_rounded),
+                        onPressed: () {
+                          final type = ref.read(typeProvider);
+                          if (type != null && site != null) {
+                            saveCsvWithDialog(context, type, site.id);
+                          }
+                        },
                       ),
-                    ),
-                      const SizedBox(width: 8),
-                      InkWell(
-                        onTap: _showFilterSortBottomSheet,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: hasActiveFilters
-                              ? colorScheme.primary
-                              : colorScheme.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: hasActiveFilters
-                                ? colorScheme.primary
-                                : colorScheme.outlineVariant.withOpacity(0.5),
-                          ),
-                        ),
-                        child: Icon(
-                          Icons.tune,
-                          color: hasActiveFilters
-                              ? colorScheme.onPrimary
-                              : colorScheme.primary,
-                          size: 22,
-                        ),
-                      ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Top action bar with selection controls
-              if (rates.isNotEmpty)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Row(
-                      children: [
-                        if (_isSelectionMode) ...[
-                          IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: _toggleSelectionMode,
-                            tooltip: 'Cancel',
-                          ),
-                          TextButton(
-                            onPressed: () => _selectAllRates(rates),
-                            child: const Text('Select All'),
-                          ),
-                          const SizedBox(width: 8),
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.delete_sweep, size: 18),
-                            label: const Text('Delete'),
-                            onPressed: _selectedRateIds.isEmpty
-                                ? null
-                                : _deleteSelectedRates,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: colorScheme.error,
-                              foregroundColor: colorScheme.onError,
-                            ),
-                          ),
-                        ] else ...[
-                          _tourTarget(
-                            _deleteModeTourKey,
-                            IconButton(
-                              icon: Icon(Icons.delete_sweep,
-                                  color: colorScheme.error),
-                              onPressed:
-                                  rates.isEmpty ? null : _toggleSelectionMode,
-                              tooltip: 'Select Rates to Delete',
-                            ),
-                          ),
-                        ],
-                      ],
                     ),
                   ],
                 ),
+              ];
+            },
+            body: BottomButtonWrapper(
+              customButtons: [
+                CustomButton(
+                  button: RoundedButton(
+                    text: "Add",
+                    color: colorScheme.primary,
+                    textColor: colorScheme.onPrimary,
+                    onPressed: () {
+                      context.push(
+                        Routes.addRate,
+                        extra: {
+                          'siteId': ref.read(selectedSiteIdProvider),
+                          'type': ref.read(typeProvider),
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+              child: Column(
+                children: [
+                  // Search and Filter Row
+                  _tourTarget(
+                    _searchFilterTourKey,
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: colorScheme.surfaceContainerLow,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                    color: colorScheme.outlineVariant
+                                        .withOpacity(0.5)),
+                              ),
+                              child: TextField(
+                                controller: _searchController,
+                                style: const TextStyle(fontSize: 14),
+                                decoration: InputDecoration(
+                                  hintText: 'Search service...',
+                                  prefixIcon: Icon(Icons.search,
+                                      color: colorScheme.primary, size: 20),
+                                  border: InputBorder.none,
+                                  contentPadding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                  suffixIcon: _searchQuery.isNotEmpty
+                                      ? IconButton(
+                                          icon:
+                                              const Icon(Icons.clear, size: 18),
+                                          onPressed: () =>
+                                              _searchController.clear(),
+                                        )
+                                      : null,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          InkWell(
+                            onTap: _showFilterSortBottomSheet,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: hasActiveFilters
+                                    ? colorScheme.primary
+                                    : colorScheme.surfaceContainerLow,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: hasActiveFilters
+                                      ? colorScheme.primary
+                                      : colorScheme.outlineVariant
+                                          .withOpacity(0.5),
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.tune,
+                                color: hasActiveFilters
+                                    ? colorScheme.onPrimary
+                                    : colorScheme.primary,
+                                size: 22,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
 
-              // Rates list
-              Expanded(
-                  child: state.loading
-                      ? const ShimmerList(
-                          type: ShimmerListType.tile,
-                          itemCount: 8,
-                        )
-                      : state.error != null
-                          ? EmptyModuleState(
-                              title: "Connection Error",
-                              subtitle:
-                                  "Could not load rate records right now. Please try again.",
-                              icon: Icons.error_outline_rounded,
-                              actionLabel: "Retry",
-                              onAction: () {
-                                final type = ref.read(typeProvider);
-                                final siteId = ref.read(selectedSiteIdProvider);
-                                if (type != null && siteId != null) {
-                                  ref
-                                      .read(rateNotifierProvider.notifier)
-                                      .fetchRate(type, siteId);
-                                }
-                              },
+                  // Top action bar with selection controls
+                  if (rates.isNotEmpty)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Row(
+                          children: [
+                            if (_isSelectionMode) ...[
+                              IconButton(
+                                icon: const Icon(Icons.close),
+                                onPressed: _toggleSelectionMode,
+                                tooltip: 'Cancel',
+                              ),
+                              TextButton(
+                                onPressed: () => _selectAllRates(rates),
+                                child: const Text('Select All'),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton.icon(
+                                icon: const Icon(Icons.delete_sweep, size: 18),
+                                label: const Text('Delete'),
+                                onPressed: _selectedRateIds.isEmpty
+                                    ? null
+                                    : _deleteSelectedRates,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: colorScheme.error,
+                                  foregroundColor: colorScheme.onError,
+                                ),
+                              ),
+                            ] else ...[
+                              _tourTarget(
+                                _deleteModeTourKey,
+                                IconButton(
+                                  icon: Icon(Icons.delete_sweep,
+                                      color: colorScheme.error),
+                                  onPressed: rates.isEmpty
+                                      ? null
+                                      : _toggleSelectionMode,
+                                  tooltip: 'Select Rates to Delete',
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+
+                  // Rates list
+                  Expanded(
+                      child: state.loading
+                          ? const ShimmerList(
+                              type: ShimmerListType.tile,
+                              itemCount: 8,
                             )
-                          : state.data == null || state.data!.isEmpty
-                              ? () {
-                                  _syncRateListTour(
-                                    showcaseContext,
-                                    hasRates: false,
-                                    hasVisibleRates: false,
-                                  );
-                                  return _tourTarget(
-                                    _emptyTourKey,
-                                    EmptyModuleState(
-                                  title: "No Rates Added",
+                          : state.error != null
+                              ? EmptyModuleState(
+                                  title: "Connection Error",
                                   subtitle:
-                                      "Add your first rate to get started",
-                                  icon: Icons.currency_rupee_rounded,
-                                  actionLabel: "Add Rate",
+                                      "Could not load rate records right now. Please try again.",
+                                  icon: Icons.error_outline_rounded,
+                                  actionLabel: "Retry",
                                   onAction: () {
+                                    final type = ref.read(typeProvider);
                                     final siteId =
                                         ref.read(selectedSiteIdProvider);
-                                    final type = ref.read(typeProvider);
-                                    context.push(
-                                      Routes.addRate,
-                                      extra: {
-                                        'siteId': siteId,
-                                        'type': type,
-                                      },
-                                    );
+                                    if (type != null && siteId != null) {
+                                      ref
+                                          .read(rateNotifierProvider.notifier)
+                                          .fetchRate(type, siteId);
+                                    }
                                   },
-                                    ),
-                                  );
-                                }()
-                              : () {
-                                  // Apply Filtering
-                                  var filteredList = rates.where((rate) {
-                                    // Search
-                                    if (_searchQuery.isNotEmpty &&
-                                        !rate.serviceName
-                                            .toLowerCase()
-                                            .contains(
-                                                _searchQuery.toLowerCase()) &&
-                                        !rate.hsnSacCode.toLowerCase().contains(
-                                            _searchQuery.toLowerCase())) {
-                                      return false;
-                                    }
-
-                                    // UOM
-                                    if (_filterUOM.isNotEmpty &&
-                                        !_filterUOM.contains(rate.uom)) {
-                                      return false;
-                                    }
-
-                                    // Type
-                                    if (_filterType.isNotEmpty &&
-                                        !_filterType.contains(rate.type)) {
-                                      return false;
-                                    }
-
-                                    // Rate Range
-                                    if (_filterRateMin != null &&
-                                        rate.rate < _filterRateMin!)
-                                      return false;
-                                    if (_filterRateMax != null &&
-                                        rate.rate > _filterRateMax!)
-                                      return false;
-
-                                    return true;
-                                  }).toList();
-
-                                  // Apply Sorting
-                                  filteredList.sort((a, b) {
-                                    switch (_currentSort) {
-                                      case RateSortOption.latestFirst:
-                                        return b.createdAt
-                                            .compareTo(a.createdAt);
-                                      case RateSortOption.nameAsc:
-                                        return a.serviceName
-                                            .compareTo(b.serviceName);
-                                      case RateSortOption.nameDesc:
-                                        return b.serviceName
-                                            .compareTo(a.serviceName);
-                                      case RateSortOption.rateHighToLow:
-                                        return b.rate.compareTo(a.rate);
-                                      case RateSortOption.rateLowToHigh:
-                                        return a.rate.compareTo(b.rate);
-                                    }
-                                  });
-
-                                  if (filteredList.isEmpty) {
-                                    _syncRateListTour(
-                                      showcaseContext,
-                                      hasRates: rates.isNotEmpty,
-                                      hasVisibleRates: false,
-                                    );
-                                    return _tourTarget(
-                                      _emptyTourKey,
-                                      Center(
-                                        child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.search_off_outlined,
-                                            size: 64,
-                                            color: colorScheme.onSurfaceVariant,
-                                          ),
-                                          const SizedBox(height: 16),
-                                          Text(
-                                            'No results found',
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w600,
-                                              color: colorScheme.onSurface,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 6),
-                                          Text(
-                                            'Try adjusting your search or filters.',
-                                            textAlign: TextAlign.center,
-                                            style: TextStyle(
-                                              color:
-                                                  colorScheme.onSurfaceVariant,
-                                            ),
-                                          ),
-                                        ],
+                                )
+                              : state.data == null || state.data!.isEmpty
+                                  ? () {
+                                      _syncRateListTour(
+                                        showcaseContext,
+                                        hasRates: false,
+                                        hasVisibleRates: false,
+                                      );
+                                      return _tourTarget(
+                                        _emptyTourKey,
+                                        EmptyModuleState(
+                                          title: "No Rates Added",
+                                          subtitle:
+                                              "Add your first rate to get started",
+                                          icon: Icons.currency_rupee_rounded,
+                                          actionLabel: "Add Rate",
+                                          onAction: () {
+                                            final siteId = ref
+                                                .read(selectedSiteIdProvider);
+                                            final type = ref.read(typeProvider);
+                                            context.push(
+                                              Routes.addRate,
+                                              extra: {
+                                                'siteId': siteId,
+                                                'type': type,
+                                              },
+                                            );
+                                          },
                                         ),
-                                      ),
-                                    );
-                                  }
+                                      );
+                                    }()
+                                  : () {
+                                      // Apply Filtering
+                                      var filteredList = rates.where((rate) {
+                                        // Search
+                                        if (_searchQuery.isNotEmpty &&
+                                            !rate.serviceName
+                                                .toLowerCase()
+                                                .contains(_searchQuery
+                                                    .toLowerCase()) &&
+                                            !rate.hsnSacCode
+                                                .toLowerCase()
+                                                .contains(_searchQuery
+                                                    .toLowerCase())) {
+                                          return false;
+                                        }
 
-                                  _syncRateListTour(
-                                    showcaseContext,
-                                    hasRates: true,
-                                    hasVisibleRates: true,
-                                  );
+                                        // UOM
+                                        if (_filterUOM.isNotEmpty &&
+                                            !_filterUOM.contains(rate.uom)) {
+                                          return false;
+                                        }
 
-                                  return CustomScrollbar(
-                                    controller: _scrollController,
-                                    child: ListView.builder(
-                                      controller: _scrollController,
-                                      physics:
-                                          const AlwaysScrollableScrollPhysics(),
-                                      itemCount: filteredList.length,
-                                      itemBuilder: (context, index) {
-                                        final rate = filteredList[index];
-                                        final isSelected =
-                                            _selectedRateIds.contains(rate.id);
+                                        // Type
+                                        if (_filterType.isNotEmpty &&
+                                            !_filterType.contains(rate.type)) {
+                                          return false;
+                                        }
 
-                                        return _buildRateTile(
-                                          context,
-                                          rate,
-                                          site!,
-                                          ref,
-                                          isSelected,
-                                          cardTourKey: index == 0
-                                              ? _firstRateTourKey
-                                              : null,
-                                          actionsTourKey: index == 0
-                                              ? _firstRateActionsTourKey
-                                              : null,
-                                          badgeTourKey: index == 0
-                                              ? _firstRateBadgeTourKey
-                                              : null,
+                                        // Rate Range
+                                        if (_filterRateMin != null &&
+                                            rate.rate < _filterRateMin!)
+                                          return false;
+                                        if (_filterRateMax != null &&
+                                            rate.rate > _filterRateMax!)
+                                          return false;
+
+                                        return true;
+                                      }).toList();
+
+                                      // Apply Sorting
+                                      filteredList.sort((a, b) {
+                                        switch (_currentSort) {
+                                          case RateSortOption.latestFirst:
+                                            return b.createdAt
+                                                .compareTo(a.createdAt);
+                                          case RateSortOption.nameAsc:
+                                            return a.serviceName
+                                                .compareTo(b.serviceName);
+                                          case RateSortOption.nameDesc:
+                                            return b.serviceName
+                                                .compareTo(a.serviceName);
+                                          case RateSortOption.rateHighToLow:
+                                            return b.rate.compareTo(a.rate);
+                                          case RateSortOption.rateLowToHigh:
+                                            return a.rate.compareTo(b.rate);
+                                        }
+                                      });
+
+                                      if (filteredList.isEmpty) {
+                                        _syncRateListTour(
+                                          showcaseContext,
+                                          hasRates: rates.isNotEmpty,
+                                          hasVisibleRates: false,
                                         );
-                                      },
-                                    ),
-                                  );
-                                }() as Widget)
-            ],
+                                        return _tourTarget(
+                                          _emptyTourKey,
+                                          Center(
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Icon(
+                                                  Icons.search_off_outlined,
+                                                  size: 64,
+                                                  color: colorScheme
+                                                      .onSurfaceVariant,
+                                                ),
+                                                const SizedBox(height: 16),
+                                                Text(
+                                                  'No results found',
+                                                  style: TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.w600,
+                                                    color:
+                                                        colorScheme.onSurface,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 6),
+                                                Text(
+                                                  'Try adjusting your search or filters.',
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                    color: colorScheme
+                                                        .onSurfaceVariant,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      }
+
+                                      _syncRateListTour(
+                                        showcaseContext,
+                                        hasRates: true,
+                                        hasVisibleRates: true,
+                                      );
+
+                                      return CustomScrollbar(
+                                        controller: _scrollController,
+                                        child: ListView.builder(
+                                          controller: _scrollController,
+                                          physics:
+                                              const AlwaysScrollableScrollPhysics(),
+                                          itemCount: filteredList.length,
+                                          itemBuilder: (context, index) {
+                                            final rate = filteredList[index];
+                                            final isSelected = _selectedRateIds
+                                                .contains(rate.id);
+
+                                            return _buildRateTile(
+                                              context,
+                                              rate,
+                                              site!,
+                                              ref,
+                                              isSelected,
+                                              cardTourKey: index == 0
+                                                  ? _firstRateTourKey
+                                                  : null,
+                                              actionsTourKey: index == 0
+                                                  ? _firstRateActionsTourKey
+                                                  : null,
+                                              badgeTourKey: index == 0
+                                                  ? _firstRateBadgeTourKey
+                                                  : null,
+                                            );
+                                          },
+                                        ),
+                                      );
+                                    }() as Widget)
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
         );
       },
     );
@@ -983,8 +1012,7 @@ class _RateScreenState extends ConsumerState<RateScreen> with ScreenOwnedTourMix
     Rate rate,
     SiteModel site,
     WidgetRef ref,
-    bool isSelected,
-    {
+    bool isSelected, {
     GlobalKey? cardTourKey,
     GlobalKey? actionsTourKey,
     GlobalKey? badgeTourKey,
@@ -1047,48 +1075,48 @@ class _RateScreenState extends ConsumerState<RateScreen> with ScreenOwnedTourMix
                           _maybeTourTarget(
                             actionsTourKey,
                             Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // ✏️ Edit
-                              IconButton(
-                                icon: Icon(
-                                  Icons.edit,
-                                  color: colorScheme.primary,
-                                ),
-                                onPressed: () async {
-                                  final result = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => EditRateScreen(
-                                        site: site,
-                                        rate: rate,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // ✏️ Edit
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.edit,
+                                    color: colorScheme.primary,
+                                  ),
+                                  onPressed: () async {
+                                    final result = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => EditRateScreen(
+                                          site: site,
+                                          rate: rate,
+                                        ),
                                       ),
-                                    ),
-                                  );
+                                    );
 
-                                  if (result == true && type != null) {
-                                    notifier.fetchRate(type, site.id);
-                                  }
-                                },
-                              ),
-
-                              // 🗑 Delete
-                              IconButton(
-                                icon: Icon(
-                                  Icons.delete_outline,
-                                  color: colorScheme.error,
+                                    if (result == true && type != null) {
+                                      notifier.fetchRate(type, site.id);
+                                    }
+                                  },
                                 ),
-                                onPressed: () {
-                                  _confirmDeleteRate(
-                                    context,
-                                    rate.id,
-                                    notifier,
-                                    type!,
-                                    site.id,
-                                  );
-                                },
-                              ),
-                            ],
+
+                                // 🗑 Delete
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.delete_outline,
+                                    color: colorScheme.error,
+                                  ),
+                                  onPressed: () {
+                                    _confirmDeleteRate(
+                                      context,
+                                      rate.id,
+                                      notifier,
+                                      type!,
+                                      site.id,
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
                           ),
 
@@ -1098,21 +1126,21 @@ class _RateScreenState extends ConsumerState<RateScreen> with ScreenOwnedTourMix
                           _maybeTourTarget(
                             badgeTourKey,
                             Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: colorScheme.surfaceContainerHigh,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              '₹${rate.rate.toStringAsFixed(0)} / ${rate.uom}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: colorScheme.onSurface,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
                               ),
-                            ),
+                              decoration: BoxDecoration(
+                                color: colorScheme.surfaceContainerHigh,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                '₹${rate.rate.toStringAsFixed(0)} / ${rate.uom}',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.onSurface,
+                                ),
+                              ),
                             ),
                           ),
                         ],

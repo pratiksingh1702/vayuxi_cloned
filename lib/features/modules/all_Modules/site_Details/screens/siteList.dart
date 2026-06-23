@@ -1,7 +1,11 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
@@ -10,6 +14,7 @@ import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/core/utlis/widgets/custom_scrollbar.dart';
 import 'package:untitled2/features/language/service/providers.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/screens/site_entry_select_page.dart';
+import 'package:untitled2/features/modules/all_Modules/site_Details/screens/siteDetailScreen.dart';
 
 import '../../../../../core/router/routes.dart';
 import '../../../../../core/utlis/common_functions.dart';
@@ -149,6 +154,67 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
     });
   }
 
+  String _csvCell(Object? value) {
+    final text = (value ?? '').toString();
+    final escaped = text.replaceAll('"', '""');
+    return '"$escaped"';
+  }
+
+  Future<void> _downloadSiteList(List<SiteModel> sites) async {
+    if (sites.isEmpty) {
+      AppToast.info('No site records to download');
+      return;
+    }
+
+    try {
+      final rows = <List<Object?>>[
+        [
+          'Site Name',
+          'Address',
+          'Shipping Address',
+          'Contact Person',
+          'Phone Number',
+          'Email',
+          'GST Number',
+          'Document Number',
+          'Document Date',
+          'Work Types',
+          'Created At',
+        ],
+        ...sites.map(
+          (site) => [
+            site.siteName,
+            site.address,
+            site.shippingAddress,
+            site.contactPerson,
+            site.phoneNumber,
+            site.emailId,
+            site.gstNo,
+            site.documentNumber,
+            site.documentDate,
+            site.workTypes.join(', '),
+            site.createdAt,
+          ],
+        ),
+      ];
+
+      final csv = rows.map((row) => row.map(_csvCell).join(',')).join('\n');
+      final directory = await getTemporaryDirectory();
+      final file = File(
+        '${directory.path}/site-list-${DateTime.now().millisecondsSinceEpoch}.csv',
+      );
+      await file.writeAsString(csv);
+
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'text/csv')],
+        text: 'Site list export',
+      );
+    } catch (e) {
+      debugPrint('❌ Site export failed: $e');
+      AppToast.error('Failed to export site list');
+    }
+  }
+
   /// Select all sites
   void _selectAllSites(List<SiteModel> sites) {
     setState(() {
@@ -239,6 +305,15 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
                   title: _isSelectionMode
                       ? '${_selectedSiteIds.length} Selected'
                       : lang.selectSiteTitle,
+                  actions: [
+                    IconButton(
+                      tooltip: 'Download Sheet',
+                      icon: const Icon(Icons.download_rounded),
+                      onPressed: () => _downloadSiteList(
+                        ref.read(siteProvider).sites,
+                      ),
+                    ),
+                  ],
                 ),
               ];
             },
@@ -265,7 +340,12 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
                 color: cs.primary,
                 textColor: cs.onPrimary,
                 onPressed: () async {
-                  context.push(Routes.siteEntrySelect);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SiteDetailScreen(),
+                    ),
+                  );
                   await TourPersistence().markCompleted();
                 },
                 isOutlined: false,

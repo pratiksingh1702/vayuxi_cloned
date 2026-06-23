@@ -355,10 +355,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             Widget screen;
             switch (module) {
               case 'rate':
-                screen = RateSelectCardGrid();
+                screen = RateScreen();
                 break;
               case 'team':
-                screen = TeamSelectCardGrid();
+                screen = TeamListPage();
                 break;
               case 'dpr':
                 if (type == 'structure_work') {
@@ -450,7 +450,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 screen = GenerateAttendanceSheetScreen();
                 break;
               case 'manpower':
-                screen = ManSelectCardGrid();
+                screen = ManpowerListScreen();
                 break;
 
               case 'man-import':
@@ -642,8 +642,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: Routes.site,
         name: 'site',
         builder: (context, state) {
-          _logRoute('SiteSelectCardGrid', path: state.uri.toString());
-          return const SiteSelectCardGrid();
+          _logRoute('SiteListScreen → module=site', path: state.uri.toString());
+          return SiteListScreen(
+            show: true,
+            module: 'site',
+            pageBuilder: (site) => SiteDetailScreen(site: site),
+          );
         },
       ),
       GoRoute(
@@ -699,11 +703,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               path: state.uri.toString());
 
           Widget buildDestination(SiteModel site) {
-            _logRoute('ManSelectCardGrid',
+            _logRoute('ManpowerListScreen',
                 path: state.uri.toString(), extra: {'siteId': site.id});
             return SiteAwareWrapper(
               site: site,
-              child: const ManSelectCardGrid(),
+              child: const ManpowerListScreen(),
             );
           }
 
