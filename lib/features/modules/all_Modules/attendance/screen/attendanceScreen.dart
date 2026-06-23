@@ -54,7 +54,8 @@ class AttendanceScreen extends ConsumerStatefulWidget {
   ConsumerState<AttendanceScreen> createState() => _AttendanceScreenState();
 }
 
-class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with ScreenOwnedTourMixin<AttendanceScreen> {
+class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
+    with ScreenOwnedTourMixin<AttendanceScreen> {
   bool allPresent = false;
   bool allAbsent = false;
   final ScrollController _scrollController = ScrollController();
@@ -129,7 +130,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Screen
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final type = ref.read(typeProvider);
       final siteId = ref.read(selectedSiteIdProvider);
-      
+
       if (type != null && siteId != null) {
         // Fetch teams first, then load manpower
         await ref
@@ -137,7 +138,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Screen
             .fetchTeams(type: type, siteId: siteId);
         _loadManpower();
       }
-      
+
       _initMultiMode();
     });
     _searchController.addListener(() {
@@ -213,9 +214,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Screen
         builder: (context, setSheetState) {
           final colorScheme = Theme.of(context).colorScheme;
           final draft = ref.read(attendanceDraftProvider);
-          final designations =
-              draft.map((e) => e.manpower.designation ?? 'N/A').toSet().toList()
-                ..sort();
+          final designations = draft
+              .map((e) => e.manpower.designation ?? 'N/A')
+              .toSet()
+              .toList()
+            ..sort();
 
           return Container(
             decoration: BoxDecoration(
@@ -281,8 +284,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Screen
                         selected:
                             _currentSort == AttendanceSortOption.latestFirst,
                         onSelected: (val) {
-                          setSheetState(() => _currentSort =
-                              AttendanceSortOption.latestFirst);
+                          setSheetState(() =>
+                              _currentSort = AttendanceSortOption.latestFirst);
                           setState(() {});
                         },
                       ),
@@ -319,8 +322,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Screen
                         selected:
                             _currentSort == AttendanceSortOption.otHighToLow,
                         onSelected: (val) {
-                          setSheetState(() => _currentSort =
-                              AttendanceSortOption.otHighToLow);
+                          setSheetState(() =>
+                              _currentSort = AttendanceSortOption.otHighToLow);
                           setState(() {});
                         },
                       ),
@@ -382,7 +385,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Screen
                   _buildSliderRange(
                     min: 0,
                     max: 12,
-                    values: RangeValues(_filterHoursMin ?? 0, _filterHoursMax ?? 12),
+                    values: RangeValues(
+                        _filterHoursMin ?? 0, _filterHoursMax ?? 12),
                     onChanged: (values) {
                       setSheetState(() {
                         _filterHoursMin = values.start;
@@ -1096,8 +1100,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Screen
       includeWorkerControls: includeWorkerControls,
     );
 
-    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
-
+    bindScreenOwnedTour(
+        tourId: definition.id, showcaseContext: showcaseContext);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted || isLoading) return;
@@ -1255,6 +1259,110 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Screen
     return NoCutoutTourTarget(targetKey: key, child: child);
   }
 
+  Widget _buildSummaryTile({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color accent,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(10),
+          border:
+              Border.all(color: colorScheme.outlineVariant.withOpacity(0.7)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: accent.withOpacity(0.10),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 16, color: accent),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompactActionChip({
+    required String label,
+    required IconData icon,
+    required Color accent,
+    required VoidCallback onTap,
+    bool selected = false,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: selected ? accent.withOpacity(0.12) : colorScheme.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected ? accent : colorScheme.outlineVariant,
+            width: selected ? 1.4 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon,
+                size: 15,
+                color: selected ? accent : colorScheme.onSurfaceVariant),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: selected ? accent : colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final type = ref.watch(typeProvider)!;
@@ -1301,507 +1409,526 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Screen
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : attendanceState.when(
-                data: (attendanceList) {
-                  // ✅ Only initialize draft when date changes, not on every stream emit
-                  if (_draftLoadedForDate != _selectedDate &&
-                      attendanceList.isNotEmpty) {
-                    _draftLoadedForDate = _selectedDate;
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (!mounted) return;
-                      ref.read(attendanceDraftProvider.notifier).state =
-                          attendanceList.map((e) => e.copyWith()).toList();
-                    });
-                  }
-
-                  final draft = ref.watch(attendanceDraftProvider);
-
-                  // Apply Filtering
-                  var filteredList = draft.where((emp) {
-                    // Search
-                    if (_searchQuery.isNotEmpty &&
-                        !(emp.manpower.fullName ?? '')
-                            .toLowerCase()
-                            .contains(_searchQuery.toLowerCase()) &&
-                        !(emp.manpower.employeeCode ?? '')
-                            .toLowerCase()
-                            .contains(_searchQuery.toLowerCase())) {
-                      return false;
-                    }
-
-                    // Status
-                    if (_filterStatus.isNotEmpty) {
-                      String status =
-                          emp.status == 'present' ? 'Present' : 'Absent';
-                      if (emp.totalHours > 0 && emp.totalHours < 8) {
-                        status = 'Half Day';
+                    data: (attendanceList) {
+                      // ✅ Only initialize draft when date changes, not on every stream emit
+                      if (_draftLoadedForDate != _selectedDate &&
+                          attendanceList.isNotEmpty) {
+                        _draftLoadedForDate = _selectedDate;
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (!mounted) return;
+                          ref.read(attendanceDraftProvider.notifier).state =
+                              attendanceList.map((e) => e.copyWith()).toList();
+                        });
                       }
-                      if (!_filterStatus.contains(status)) return false;
-                    }
 
-                    // Designation
-                    if (_filterDesignation.isNotEmpty &&
-                        !_filterDesignation
-                            .contains(emp.manpower.designation ?? 'N/A')) {
-                      return false;
-                    }
+                      final draft = ref.watch(attendanceDraftProvider);
 
-                    // Hours Range
-                    if (_filterHoursMin != null &&
-                        emp.totalHours < _filterHoursMin!) return false;
-                    if (_filterHoursMax != null &&
-                        emp.totalHours > _filterHoursMax!) return false;
+                      // Apply Filtering
+                      var filteredList = draft.where((emp) {
+                        // Search
+                        if (_searchQuery.isNotEmpty &&
+                            !(emp.manpower.fullName ?? '')
+                                .toLowerCase()
+                                .contains(_searchQuery.toLowerCase()) &&
+                            !(emp.manpower.employeeCode ?? '')
+                                .toLowerCase()
+                                .contains(_searchQuery.toLowerCase())) {
+                          return false;
+                        }
 
-                    // OT Range
-                    if (_filterOTMin != null && emp.ot < _filterOTMin!) {
-                      return false;
-                    }
-                    if (_filterOTMax != null && emp.ot > _filterOTMax!) {
-                      return false;
-                    }
+                        // Status
+                        if (_filterStatus.isNotEmpty) {
+                          String status =
+                              emp.status == 'present' ? 'Present' : 'Absent';
+                          if (emp.totalHours > 0 && emp.totalHours < 8) {
+                            status = 'Half Day';
+                          }
+                          if (!_filterStatus.contains(status)) return false;
+                        }
 
-                    return true;
-                  }).toList();
+                        // Designation
+                        if (_filterDesignation.isNotEmpty &&
+                            !_filterDesignation
+                                .contains(emp.manpower.designation ?? 'N/A')) {
+                          return false;
+                        }
 
-                  // Apply Sorting
-                  filteredList.sort((a, b) {
-                    switch (_currentSort) {
-                      case AttendanceSortOption.nameAsc:
-                        return (a.manpower.fullName ?? '')
-                            .compareTo(b.manpower.fullName ?? '');
-                      case AttendanceSortOption.nameDesc:
-                        return (b.manpower.fullName ?? '')
-                            .compareTo(a.manpower.fullName ?? '');
-                      case AttendanceSortOption.designationAsc:
-                        return (a.manpower.designation ?? '')
-                            .compareTo(b.manpower.designation ?? '');
-                      case AttendanceSortOption.designationDesc:
-                        return (b.manpower.designation ?? '')
-                            .compareTo(a.manpower.designation ?? '');
-                      case AttendanceSortOption.hoursHighToLow:
-                        return b.totalHours.compareTo(a.totalHours);
-                      case AttendanceSortOption.hoursLowToHigh:
-                        return a.totalHours.compareTo(b.totalHours);
-                      case AttendanceSortOption.otHighToLow:
-                        return b.ot.compareTo(a.ot);
-                      case AttendanceSortOption.otLowToHigh:
-                        return a.ot.compareTo(b.ot);
-                      case AttendanceSortOption.latestFirst:
-                        return b.createdAt.compareTo(a.createdAt);
-                    }
-                  });
+                        // Hours Range
+                        if (_filterHoursMin != null &&
+                            emp.totalHours < _filterHoursMin!) return false;
+                        if (_filterHoursMax != null &&
+                            emp.totalHours > _filterHoursMax!) return false;
 
-                  _syncAttendanceTour(
-                    showcaseContext,
-                    includeTimeline: _isMultipleEntry,
-                    includeWorkerControls: filteredList.isNotEmpty,
-                  );
+                        // OT Range
+                        if (_filterOTMin != null && emp.ot < _filterOTMin!) {
+                          return false;
+                        }
+                        if (_filterOTMax != null && emp.ot > _filterOTMax!) {
+                          return false;
+                        }
 
-                  return Padding(
-                    padding: const EdgeInsets.all(5),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (_isMultipleEntry) ...[
-                          _buildAttendanceTourTarget(
-                            key: _timelineTourKey,
-                            targetPadding: const EdgeInsets.all(8),
-                            child: TimelineDatePicker(
-                              selectedDate: _selectedDate,
-                              onDateSelected: _onTimelineDateSelected,
-                              completedDates: _completedDates,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                        ],
+                        return true;
+                      }).toList();
 
-                        // Site Name and Date Row
-                        _buildAttendanceTourTarget(
-                          key: _siteDateTourKey,
-                          targetPadding: const EdgeInsets.all(8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                            Container(
-                              width: MediaQuery.of(context).size.width * 0.3,
-                              child: Text(
-                                site!.siteName,
-                                maxLines: 1,
-                                overflow: TextOverflow.values.first,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            // Date selector — only tappable in edit mode
-                            GestureDetector(
-                              onTap: _isEditMode
-                                  ? () => _selectDate(context)
-                                  : null,
-                              child: _isEditMode
-                                  ? Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: colorScheme.primaryContainer,
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: colorScheme.primary
-                                              .withOpacity(0.25),
-                                        ),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            _formatDate(_selectedDate),
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w600,
-                                              color: colorScheme.primary,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Icon(
-                                            Icons.calendar_today,
-                                            size: 16,
-                                            color: colorScheme.primary,
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  : Text(
-                                      _formatDate(_selectedDate),
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: colorScheme.onSurfaceVariant,
-                                      ),
-                                    ),
-                            ),
-                            ],
-                          ),
-                        ),
+                      // Apply Sorting
+                      filteredList.sort((a, b) {
+                        switch (_currentSort) {
+                          case AttendanceSortOption.nameAsc:
+                            return (a.manpower.fullName ?? '')
+                                .compareTo(b.manpower.fullName ?? '');
+                          case AttendanceSortOption.nameDesc:
+                            return (b.manpower.fullName ?? '')
+                                .compareTo(a.manpower.fullName ?? '');
+                          case AttendanceSortOption.designationAsc:
+                            return (a.manpower.designation ?? '')
+                                .compareTo(b.manpower.designation ?? '');
+                          case AttendanceSortOption.designationDesc:
+                            return (b.manpower.designation ?? '')
+                                .compareTo(a.manpower.designation ?? '');
+                          case AttendanceSortOption.hoursHighToLow:
+                            return b.totalHours.compareTo(a.totalHours);
+                          case AttendanceSortOption.hoursLowToHigh:
+                            return a.totalHours.compareTo(b.totalHours);
+                          case AttendanceSortOption.otHighToLow:
+                            return b.ot.compareTo(a.ot);
+                          case AttendanceSortOption.otLowToHigh:
+                            return a.ot.compareTo(b.ot);
+                          case AttendanceSortOption.latestFirst:
+                            return b.createdAt.compareTo(a.createdAt);
+                        }
+                      });
 
-                        const SizedBox(height: 8),
+                      _syncAttendanceTour(
+                        showcaseContext,
+                        includeTimeline: _isMultipleEntry,
+                        includeWorkerControls: filteredList.isNotEmpty,
+                      );
 
+                      final presentCount =
+                          draft.where((e) => e.status == 'present').length;
+                      final absentCount =
+                          draft.where((e) => e.status != 'present').length;
+                      final otTotal =
+                          draft.fold<double>(0, (sum, e) => sum + e.ot);
 
-                        // Search and Filter Row
-                        _buildAttendanceTourTarget(
-                          key: _searchFilterTourKey,
-                          targetPadding: const EdgeInsets.all(8),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Row(
-                              children: [
-                              Expanded(
-                                child: Container(
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    color: colorScheme.surfaceContainerLow,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                        color: colorScheme.outlineVariant
-                                            .withOpacity(0.5)),
-                                  ),
-                                  child: TextField(
-                                    controller: _searchController,
-                                    style: const TextStyle(fontSize: 14),
-                                    decoration: InputDecoration(
-                                      hintText: 'Search employee...',
-                                      prefixIcon: Icon(Icons.search,
-                                          color: colorScheme.primary, size: 20),
-                                      border: InputBorder.none,
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                              vertical: 14),
-                                      suffixIcon: _searchQuery.isNotEmpty
-                                          ? IconButton(
-                                              icon: const Icon(Icons.clear,
-                                                  size: 18),
-                                              onPressed: () =>
-                                                  _searchController.clear(),
-                                            )
-                                          : null,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              InkWell(
-                                onTap: _showFilterSortBottomSheet,
-                                borderRadius: BorderRadius.circular(12),
-                                child: Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    color: hasActiveFilters
-                                        ? colorScheme.primary
-                                        : colorScheme.surfaceContainerLow,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: hasActiveFilters
-                                          ? colorScheme.primary
-                                          : colorScheme.outlineVariant
-                                              .withOpacity(0.5),
-                                    ),
-                                  ),
-                                  child: Icon(
-                                    Icons.tune,
-                                    color: hasActiveFilters
-                                        ? colorScheme.onPrimary
-                                        : colorScheme.primary,
-                                    size: 22,
-                                  ),
-                                ),
-                              ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        // Edit Mode Button and Action Buttons
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      return Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Edit Button
-                            _buildAttendanceTourTarget(
-                              key: _editTourKey,
-                              targetPadding: const EdgeInsets.all(6),
-                              child: GestureDetector(
-                                onTap: _toggleEditMode,
-                                child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
+                            if (_isMultipleEntry) ...[
+                              _buildAttendanceTourTarget(
+                                key: _timelineTourKey,
+                                targetPadding: const EdgeInsets.all(8),
+                                child: TimelineDatePicker(
+                                  selectedDate: _selectedDate,
+                                  onDateSelected: _onTimelineDateSelected,
+                                  completedDates: _completedDates,
                                 ),
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+
+                            // Site Name and Date Row
+                            _buildAttendanceTourTarget(
+                              key: _siteDateTourKey,
+                              targetPadding: const EdgeInsets.all(8),
+                              child: Container(
+                                padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
-                                  color: _isEditMode
-                                      ? colorScheme.primaryContainer
-                                      : colorScheme.surface,
-                                  borderRadius: BorderRadius.circular(20),
+                                  color: colorScheme.surface,
+                                  borderRadius: BorderRadius.circular(14),
                                   border: Border.all(
-                                    color: _isEditMode
-                                        ? colorScheme.primary
-                                        : colorScheme.outlineVariant,
-                                    width: 2,
+                                    color: colorScheme.outlineVariant
+                                        .withOpacity(0.7),
                                   ),
                                 ),
                                 child: Row(
                                   children: [
-                                    Icon(
-                                      _isEditMode ? Icons.edit_off : Icons.edit,
-                                      size: 16,
-                                      color: _isEditMode
-                                          ? colorScheme.primary
-                                          : colorScheme.onSurfaceVariant,
+                                    Container(
+                                      width: 38,
+                                      height: 38,
+                                      decoration: BoxDecoration(
+                                        color: colorScheme.primary
+                                            .withOpacity(0.10),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Icon(
+                                        Icons.how_to_reg_rounded,
+                                        color: colorScheme.primary,
+                                        size: 20,
+                                      ),
                                     ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      _isEditMode ? "Editing" : "Edit",
-                                      style: TextStyle(
-                                        color: _isEditMode
-                                            ? colorScheme.primary
-                                            : colorScheme.onSurfaceVariant,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            site!.siteName,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w800,
+                                              color: colorScheme.onSurface,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 3),
+                                          Text(
+                                            '${draft.length} workers',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color:
+                                                  colorScheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: _isEditMode
+                                          ? () => _selectDate(context)
+                                          : null,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 8,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: _isEditMode
+                                              ? colorScheme.primary
+                                                  .withOpacity(0.08)
+                                              : colorScheme.surfaceContainerLow,
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                          border: Border.all(
+                                            color: _isEditMode
+                                                ? colorScheme.primary
+                                                    .withOpacity(0.25)
+                                                : colorScheme.outlineVariant,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.calendar_today_outlined,
+                                              size: 14,
+                                              color: _isEditMode
+                                                  ? colorScheme.primary
+                                                  : colorScheme
+                                                      .onSurfaceVariant,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              _formatDate(_selectedDate),
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w700,
+                                                color: _isEditMode
+                                                    ? colorScheme.primary
+                                                    : colorScheme
+                                                        .onSurfaceVariant,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
-                                ),
                               ),
                             ),
 
-                            // All Present / All Absent
-                            _buildAttendanceTourTarget(
-                              key: _bulkActionsTourKey,
-                              targetPadding: const EdgeInsets.all(6),
-                              child: Row(
-                                children: [
-                                GestureDetector(
-                                  onTap: () => _toggleAllAbsent(filteredList),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: allAbsent
-                                          ? Colors.red
-                                          : Colors.red.withOpacity(0.3),
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(color: Colors.red),
-                                    ),
-                                    child: Text(
-                                      "All Absent",
-                                      style: TextStyle(
-                                        color: allAbsent
-                                            ? Colors.white
-                                            : Colors.red,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
+                            const SizedBox(height: 10),
+
+                            Row(
+                              children: [
+                                _buildSummaryTile(
+                                  label: 'Present',
+                                  value: '$presentCount',
+                                  icon: Icons.check_circle_outline_rounded,
+                                  accent: const Color(0xFF168A4A),
                                 ),
                                 const SizedBox(width: 8),
-                                GestureDetector(
-                                  onTap: () => _toggleAllPresent(filteredList),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: allPresent
-                                          ? Colors.green
-                                          : Colors.green.withOpacity(0.3),
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(color: Colors.green),
-                                    ),
-                                    child: Text(
-                                      "All Present",
-                                      style: TextStyle(
-                                        color: allPresent
-                                            ? Colors.white
-                                            : Colors.green,
-                                        fontWeight: FontWeight.bold,
+                                _buildSummaryTile(
+                                  label: 'Absent',
+                                  value: '$absentCount',
+                                  icon: Icons.cancel_outlined,
+                                  accent: const Color(0xFFC2413A),
+                                ),
+                                const SizedBox(width: 8),
+                                _buildSummaryTile(
+                                  label: 'OT Hours',
+                                  value: otTotal.toStringAsFixed(1),
+                                  icon: Icons.access_time_rounded,
+                                  accent: colorScheme.primary,
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 10),
+
+                            // Search and Filter Row
+                            _buildAttendanceTourTarget(
+                              key: _searchFilterTourKey,
+                              targetPadding: const EdgeInsets.all(8),
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 8),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Container(
+                                        height: 48,
+                                        decoration: BoxDecoration(
+                                          color:
+                                              colorScheme.surfaceContainerLow,
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          border: Border.all(
+                                              color: colorScheme.outlineVariant
+                                                  .withOpacity(0.5)),
+                                        ),
+                                        child: TextField(
+                                          controller: _searchController,
+                                          style: const TextStyle(fontSize: 14),
+                                          decoration: InputDecoration(
+                                            hintText: 'Search employee...',
+                                            prefixIcon: Icon(Icons.search,
+                                                color: colorScheme.primary,
+                                                size: 20),
+                                            border: InputBorder.none,
+                                            contentPadding:
+                                                const EdgeInsets.symmetric(
+                                                    vertical: 14),
+                                            suffixIcon: _searchQuery.isNotEmpty
+                                                ? IconButton(
+                                                    icon: const Icon(
+                                                        Icons.clear,
+                                                        size: 18),
+                                                    onPressed: () =>
+                                                        _searchController
+                                                            .clear(),
+                                                  )
+                                                : null,
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ),
+                                    const SizedBox(width: 8),
+                                    InkWell(
+                                      onTap: _showFilterSortBottomSheet,
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Container(
+                                        width: 48,
+                                        height: 48,
+                                        decoration: BoxDecoration(
+                                          color: hasActiveFilters
+                                              ? colorScheme.primary
+                                              : colorScheme.surfaceContainerLow,
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: hasActiveFilters
+                                                ? colorScheme.primary
+                                                : colorScheme.outlineVariant
+                                                    .withOpacity(0.5),
+                                          ),
+                                        ),
+                                        child: Icon(
+                                          Icons.tune,
+                                          color: hasActiveFilters
+                                              ? colorScheme.onPrimary
+                                              : colorScheme.primary,
+                                          size: 22,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                ],
                               ),
                             ),
+
+                            const SizedBox(height: 8),
+
+                            // Edit Mode Button and Action Buttons
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // Edit Button
+                                _buildAttendanceTourTarget(
+                                  key: _editTourKey,
+                                  targetPadding: const EdgeInsets.all(6),
+                                  child: _buildCompactActionChip(
+                                    label: _isEditMode ? 'Editing' : 'Edit',
+                                    icon: _isEditMode
+                                        ? Icons.edit_off_rounded
+                                        : Icons.edit_rounded,
+                                    accent: colorScheme.primary,
+                                    selected: _isEditMode,
+                                    onTap: _toggleEditMode,
+                                  ),
+                                ),
+
+                                // All Present / All Absent
+                                _buildAttendanceTourTarget(
+                                  key: _bulkActionsTourKey,
+                                  targetPadding: const EdgeInsets.all(6),
+                                  child: Row(
+                                    children: [
+                                      _buildCompactActionChip(
+                                        label: 'All Absent',
+                                        icon: Icons.cancel_outlined,
+                                        accent: const Color(0xFFC2413A),
+                                        selected: allAbsent,
+                                        onTap: () =>
+                                            _toggleAllAbsent(filteredList),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _buildCompactActionChip(
+                                        label: 'All Present',
+                                        icon:
+                                            Icons.check_circle_outline_rounded,
+                                        accent: const Color(0xFF168A4A),
+                                        selected: allPresent,
+                                        onTap: () =>
+                                            _toggleAllPresent(filteredList),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 14),
+
+                            // Attendance List
+                            Expanded(
+                              child: CustomScrollbar(
+                                controller: _scrollController,
+                                child: ListView.builder(
+                                  controller: _scrollController,
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
+                                  itemCount: filteredList.length,
+                                  itemBuilder: (context, i) {
+                                    final emp = filteredList[i];
+                                    final totalHours = double.tryParse(
+                                            emp.manpower.totalHour ?? "") ??
+                                        0;
+
+                                    final otOptions = buildOTOptions(
+                                      maxAllowedHours: totalHours,
+                                    );
+                                    return AttendanceCard(
+                                      key: ValueKey(emp.manpower.id),
+                                      name: emp.manpower.fullName ?? "Unnamed",
+                                      maxAllowedHours: totalHours,
+                                      status: emp.status,
+                                      totalHours: emp.totalHours,
+                                      otValue: emp.ot,
+                                      absentOptions: absentOptions,
+                                      otOptions: otOptions,
+                                      isEditMode: _isEditable,
+                                      cardTourKey:
+                                          i == 0 ? _workerCardTourKey : null,
+                                      statusTourKey:
+                                          i == 0 ? _workerStatusTourKey : null,
+                                      hoursTourKey:
+                                          i == 0 ? _workerHoursTourKey : null,
+                                      otTourKey:
+                                          i == 0 ? _workerOtTourKey : null,
+                                      onAbsentChange: (v) {
+                                        if (!_isEditable) {
+                                          _showEditRequiredMessage();
+                                          return;
+                                        }
+
+                                        double hours = 0;
+                                        String st = "absent";
+
+                                        if (v == "P") {
+                                          hours = 8;
+                                          st = "present";
+                                        } else if (v is double && v > 0) {
+                                          hours = v;
+                                          st = "present";
+                                        }
+
+                                        final notifier = ref.read(
+                                            attendanceDraftProvider.notifier);
+                                        final list = notifier.state;
+
+                                        notifier.state = [
+                                          for (final item in list)
+                                            if (item.manpower.id ==
+                                                emp.manpower.id)
+                                              item.copyWith(
+                                                  status: st, totalHours: hours)
+                                            else
+                                              item
+                                        ];
+                                      },
+                                      onOtChange: (v) {
+                                        if (!_isEditable) {
+                                          _showEditRequiredMessage();
+                                          return;
+                                        }
+
+                                        final notifier = ref.read(
+                                            attendanceDraftProvider.notifier);
+                                        final list = notifier.state;
+
+                                        // rule → if absent or < 8h → OT must be 0
+                                        double newOTValue = v;
+                                        if (emp.status == "absent" ||
+                                            emp.totalHours < 8) {
+                                          newOTValue = 0;
+                                        }
+
+                                        // FIRST ENTRY → ASK
+                                        if (_isFirstOTEntry && newOTValue > 0) {
+                                          _isFirstOTEntry = false;
+                                          _firstOTValue = newOTValue;
+                                          // Need to find original index for existing dialog logic
+                                          // OR update dialog to use ID.
+                                          // For now, I'll update the state directly if dialog is too complex to refactor here.
+                                          // Wait, I should probably keep the dialog logic.
+                                          _showOTConfirmationDialogForId(
+                                              newOTValue, emp.manpower.id!);
+                                          return;
+                                        }
+
+                                        notifier.state = [
+                                          for (final item in list)
+                                            if (item.manpower.id ==
+                                                emp.manpower.id)
+                                              item.copyWith(ot: newOTValue)
+                                            else
+                                              item
+                                        ];
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+                            )
                           ],
                         ),
-
-                        const SizedBox(height: 20),
-
-                        // Attendance List
-                        Expanded(
-                          child: CustomScrollbar(
-                            controller: _scrollController,
-                            child: ListView.builder(
-                              controller: _scrollController,
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              itemCount: filteredList.length,
-                              itemBuilder: (context, i) {
-                                final emp = filteredList[i];
-                                final totalHours = double.tryParse(
-                                        emp.manpower.totalHour ?? "") ??
-                                    0;
-
-                                final otOptions = buildOTOptions(
-                                  maxAllowedHours: totalHours,
-                                );
-                                return AttendanceCard(
-                                  key: ValueKey(emp.manpower.id),
-                                  name: emp.manpower.fullName ?? "Unnamed",
-                                  maxAllowedHours: totalHours,
-                                  status: emp.status,
-                                  totalHours: emp.totalHours,
-                                  otValue: emp.ot,
-                                  absentOptions: absentOptions,
-                                  otOptions: otOptions,
-                                  isEditMode: _isEditable,
-                                  cardTourKey:
-                                      i == 0 ? _workerCardTourKey : null,
-                                  statusTourKey:
-                                      i == 0 ? _workerStatusTourKey : null,
-                                  hoursTourKey:
-                                      i == 0 ? _workerHoursTourKey : null,
-                                  otTourKey: i == 0 ? _workerOtTourKey : null,
-                                  onAbsentChange: (v) {
-                                    if (!_isEditable) {
-                                      _showEditRequiredMessage();
-                                      return;
-                                    }
-
-                                    double hours = 0;
-                                    String st = "absent";
-
-                                    if (v == "P") {
-                                      hours = 8;
-                                      st = "present";
-                                    } else if (v is double && v > 0) {
-                                      hours = v;
-                                      st = "present";
-                                    }
-
-                                    final notifier = ref
-                                        .read(attendanceDraftProvider.notifier);
-                                    final list = notifier.state;
-
-                                    notifier.state = [
-                                      for (final item in list)
-                                        if (item.manpower.id == emp.manpower.id)
-                                          item.copyWith(
-                                              status: st, totalHours: hours)
-                                        else
-                                          item
-                                    ];
-                                  },
-                                  onOtChange: (v) {
-                                    if (!_isEditable) {
-                                      _showEditRequiredMessage();
-                                      return;
-                                    }
-
-                                    final notifier = ref
-                                        .read(attendanceDraftProvider.notifier);
-                                    final list = notifier.state;
-
-                                    // rule → if absent or < 8h → OT must be 0
-                                    double newOTValue = v;
-                                    if (emp.status == "absent" ||
-                                        emp.totalHours < 8) {
-                                      newOTValue = 0;
-                                    }
-
-                                    // FIRST ENTRY → ASK
-                                    if (_isFirstOTEntry && newOTValue > 0) {
-                                      _isFirstOTEntry = false;
-                                      _firstOTValue = newOTValue;
-                                      // Need to find original index for existing dialog logic
-                                      // OR update dialog to use ID.
-                                      // For now, I'll update the state directly if dialog is too complex to refactor here.
-                                      // Wait, I should probably keep the dialog logic.
-                                      _showOTConfirmationDialogForId(
-                                          newOTValue, emp.manpower.id!);
-                                      return;
-                                    }
-
-                                    notifier.state = [
-                                      for (final item in list)
-                                        if (item.manpower.id == emp.manpower.id)
-                                          item.copyWith(ot: newOTValue)
-                                        else
-                                          item
-                                    ];
-                                  },
-                                );
-                              },
-                            ),
-                          ),
-                        )
-                      ],
+                      );
+                    },
+                    error: (e, s) {
+                      print(e);
+                      return Text("$e");
+                    },
+                    loading: () => const ShimmerList(
+                      type: ShimmerListType.tile,
+                      itemCount: 8,
                     ),
-                  );
-                },
-                error: (e, s) {
-                  print(e);
-                  return Text("$e");
-                },
-                loading: () => const ShimmerList(
-                  type: ShimmerListType.tile,
-                  itemCount: 8,
-                ),
-              ),
+                  ),
           );
         },
       ),
@@ -1934,41 +2061,31 @@ class _AttendanceCardState extends State<AttendanceCard> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final effectiveOTValue = _present ? _otHours : 0.0;
-    final overlayBase = _present ? Colors.green : Colors.red;
-    final cardColor = Color.alphaBlend(
-      overlayBase
-          .withOpacity(colorScheme.brightness == Brightness.dark ? 0.18 : 0.10),
-      colorScheme.surface,
-    );
+    final statusColor =
+        _present ? const Color(0xFF168A4A) : const Color(0xFFC2413A);
 
     final card = InkWell(
       onTap: widget.isEditMode ? toggleAttendance : null,
-      borderRadius: BorderRadius.circular(10),
-      splashColor: widget.isEditMode
-          ? (_present
-              ? Colors.green.withOpacity(0.2)
-              : Colors.red.withOpacity(0.2))
-          : null,
-      highlightColor: widget.isEditMode
-          ? (_present
-              ? Colors.green.withOpacity(0.1)
-              : Colors.red.withOpacity(0.1))
-          : null,
+      borderRadius: BorderRadius.circular(12),
+      splashColor:
+          widget.isEditMode ? colorScheme.primary.withOpacity(0.08) : null,
+      highlightColor:
+          widget.isEditMode ? colorScheme.primary.withOpacity(0.04) : null,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
+        margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(10),
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: _present ? Colors.green : Colors.red,
+            color: colorScheme.outlineVariant.withOpacity(0.8),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: colorScheme.shadow.withOpacity(0.08),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
+              color: colorScheme.shadow.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -1983,7 +2100,7 @@ class _AttendanceCardState extends State<AttendanceCard> {
                   Row(
                     children: [
                       Container(
-                        constraints: const BoxConstraints(maxWidth: 140),
+                        constraints: const BoxConstraints(maxWidth: 128),
                         child: Text(
                           widget.name,
                           maxLines: 1,
@@ -1999,17 +2116,13 @@ class _AttendanceCardState extends State<AttendanceCard> {
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
-                          vertical: 2,
+                          vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: _present
-                              ? Colors.green.withOpacity(0.1)
-                              : Colors.red.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
+                          color: statusColor.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(999),
                           border: Border.all(
-                            color: _present
-                                ? Colors.green.withOpacity(0.3)
-                                : Colors.red.withOpacity(0.3),
+                            color: statusColor.withOpacity(0.20),
                             width: 1,
                           ),
                         ),
@@ -2017,9 +2130,11 @@ class _AttendanceCardState extends State<AttendanceCard> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              _present ? Icons.check_circle : Icons.cancel,
+                              _present
+                                  ? Icons.check_circle_outline_rounded
+                                  : Icons.cancel_outlined,
                               size: 12,
-                              color: _present ? Colors.green : Colors.red,
+                              color: statusColor,
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -2027,7 +2142,7 @@ class _AttendanceCardState extends State<AttendanceCard> {
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
-                                color: _present ? Colors.green : Colors.red,
+                                color: statusColor,
                               ),
                             ),
                           ],
@@ -2068,8 +2183,11 @@ class _AttendanceCardState extends State<AttendanceCard> {
                     Container(
                       padding: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
-                        color: colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(8.0),
+                        color: colorScheme.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: colorScheme.outlineVariant.withOpacity(0.7),
+                        ),
                       ),
                       child: _buildPAButton(),
                     ),
@@ -2086,26 +2204,16 @@ class _AttendanceCardState extends State<AttendanceCard> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: _present
-                            ? colorScheme.tertiary
-                            : colorScheme.tertiaryContainer,
-                        borderRadius: BorderRadius.circular(6),
-                        boxShadow: _present
-                            ? [
-                                BoxShadow(
-                                  color: colorScheme.tertiary.withOpacity(0.2),
-                                  blurRadius: 2,
-                                  offset: const Offset(0, 1),
-                                ),
-                              ]
-                            : null,
+                        color: colorScheme.primary.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(7),
+                        border: Border.all(
+                          color: colorScheme.primary.withOpacity(0.18),
+                        ),
                       ),
                       child: Text(
                         "OT",
                         style: TextStyle(
-                          color: _present
-                              ? colorScheme.onTertiary
-                              : colorScheme.onSurfaceVariant,
+                          color: colorScheme.primary,
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
@@ -2138,10 +2246,9 @@ class _AttendanceCardState extends State<AttendanceCard> {
   }
 
   Widget _buildPAButton() {
-    final colorScheme = Theme.of(context).colorScheme;
     final button = Container(
       decoration: BoxDecoration(
-        color: colorScheme.surface,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
@@ -2160,6 +2267,7 @@ class _AttendanceCardState extends State<AttendanceCard> {
 
   Widget _segment(String label, bool value) {
     final active = _present == value;
+    final accent = value ? const Color(0xFF168A4A) : const Color(0xFFC2413A);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -2167,18 +2275,13 @@ class _AttendanceCardState extends State<AttendanceCard> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color:
-              active ? (value ? Colors.green : Colors.red) : Colors.transparent,
+          color: active ? accent : Colors.transparent,
           borderRadius: BorderRadius.circular(5),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: active
-                ? Colors.white
-                : value
-                    ? Colors.green.withOpacity(0.6)
-                    : Colors.red.withOpacity(0.6),
+            color: active ? Colors.white : accent.withOpacity(0.65),
             fontWeight: active ? FontWeight.bold : FontWeight.normal,
             fontSize: active ? 13 : 10,
           ),
@@ -2218,16 +2321,12 @@ class _AttendanceCardState extends State<AttendanceCard> {
           : SystemMouseCursors.basic,
       child: Container(
         height: 30,
-        padding: const EdgeInsets.symmetric(horizontal: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 6),
         decoration: BoxDecoration(
-          color: _present
-              ? colorScheme.tertiaryContainer
-              : colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(6),
+          color: colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(7),
           border: Border.all(
-            color: _present
-                ? colorScheme.tertiary.withOpacity(0.25)
-                : colorScheme.outlineVariant,
+            color: colorScheme.outlineVariant.withOpacity(0.8),
             width: 1,
           ),
         ),
@@ -2309,16 +2408,12 @@ class _AttendanceCardState extends State<AttendanceCard> {
           : SystemMouseCursors.basic,
       child: Container(
         height: 30,
-        padding: const EdgeInsets.symmetric(horizontal: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 6),
         decoration: BoxDecoration(
-          color: _present
-              ? colorScheme.tertiaryContainer
-              : colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(6),
+          color: colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(7),
           border: Border.all(
-            color: _present
-                ? colorScheme.tertiary.withOpacity(0.25)
-                : colorScheme.outlineVariant,
+            color: colorScheme.outlineVariant.withOpacity(0.8),
             width: 1,
           ),
         ),

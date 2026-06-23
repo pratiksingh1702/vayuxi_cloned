@@ -107,7 +107,7 @@ class PebTeam {
   factory PebTeam.fromJson(Map<String, dynamic> json) {
     return PebTeam(
       id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
-      name: json['teamName']?.toString() ?? json['name']?.toString() ?? 'Team',
+      name: json['teamName']?.toString() ?? json['name']?.toString() ?? '',
     );
   }
 }

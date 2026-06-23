@@ -31,8 +31,7 @@ class PebWorkAssignmentScreen extends StatefulWidget {
 
 class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
   static const String _defaultTeamId = '__default_team__';
-  static const PebTeam _defaultTeam =
-      PebTeam(id: _defaultTeamId, name: 'Default Team');
+  static const PebTeam _defaultTeam = PebTeam(id: _defaultTeamId, name: '');
 
   final _service = PebExecutionService();
   final _workDescriptionController = TextEditingController();
@@ -2620,7 +2619,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
                 ),
               ),
               subtitle: Text(
-                '${assignment.team?.name ?? 'Team'} · ${item?.assignedQty ?? 0} ${item?.uom ?? ''}\n'
+                '${(assignment.team?.name.trim().isNotEmpty ?? false) ? '${assignment.team!.name} · ' : ''}${item?.assignedQty ?? 0} ${item?.uom ?? ''}\n'
                 '${description.isEmpty ? '' : '$description\n'}'
                 'Start: ${_formatDate(assignment.assignmentDate)} · Expected: ${_formatDate(assignment.expectedCompletionDate)}',
                 style: TextStyle(color: cs.onSurfaceVariant),
@@ -2673,14 +2672,16 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
                   style: const TextStyle(
                       fontSize: 20, fontWeight: FontWeight.w800)),
               const SizedBox(height: 4),
-              Text(
-                assignment.team?.name ?? 'Team',
-                style: TextStyle(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
+              if (assignment.team?.name.trim().isNotEmpty ?? false) ...[
+                Text(
+                  assignment.team!.name,
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 10),
+                const SizedBox(height: 10),
+              ],
               Text('Status: ${assignment.status}'),
               Text('Start: ${_formatDate(assignment.assignmentDate)}'),
               Text(

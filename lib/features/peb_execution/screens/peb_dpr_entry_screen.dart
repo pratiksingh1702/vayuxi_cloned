@@ -37,8 +37,7 @@ class PebDprEntryScreen extends StatefulWidget {
 
 class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   static const String _defaultTeamId = '__default_team__';
-  static const PebTeam _defaultTeam =
-      PebTeam(id: _defaultTeamId, name: 'Default Team');
+  static const PebTeam _defaultTeam = PebTeam(id: _defaultTeamId, name: '');
 
   final _service = PebExecutionService();
   final _bulkTaskManager = DprBulkTaskManager.instance;
@@ -59,6 +58,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   List<PebItemWiseDprItem> _itemWiseItems = [];
   final Map<String, String> _level1WeightInputs = {};
   final Map<String, String> _level1UomInputs = {};
+  final Map<String, String> _level1RemarksInputs = {};
   int _level1InputResetVersion = 0;
   final Map<String, String> _markQuantityInputs = {};
   final Map<String, String> _markRemarks = {};
@@ -1462,20 +1462,20 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       final uom =
           (_level1UomInputs[work.setupItem.id] ?? work.setupItem.uom).trim();
       if (weight <= 0 || uom.isEmpty) continue;
-      final weightKg = _quantityToKg(weight, uom);
+      final remarks = (_level1RemarksInputs[work.setupItem.id] ?? '').trim();
       items.add({
         'setupItemId': work.setupItem.id,
         'sourceType': 'level1_manual',
         'stageName': work.stageName,
         'name': work.stageName,
         'uom': uom,
-        'weight': weightKg,
-        'weightKg': weightKg,
-        'actualQty': weightKg,
-        'manualWeightKg': weightKg,
-        'totalWeightKg': weightKg,
+        'weight': weight,
+        'weightKg': weight,
+        'actualQty': weight,
+        'manualWeightKg': weight,
+        'totalWeightKg': weight,
         'weightMode': 'manual',
-        'remarks': '',
+        'remarks': remarks,
       });
     }
 
@@ -1497,6 +1497,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         setState(() {
           for (final work in works) {
             _level1WeightInputs.remove(work.setupItem.id);
+            _level1RemarksInputs.remove(work.setupItem.id);
           }
           _level1InputResetVersion++;
         });
@@ -1988,7 +1989,9 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                             SizedBox(height: layout.sectionGap),
                                             _buildAssignedWorkHeader(
                                                 assignedWorks),
-                                            _buildPlanningSummaryBanner(),
+                                            if (_dprLevel !=
+                                                PebDprLevel.basicProgress)
+                                              _buildPlanningSummaryBanner(),
                                             SizedBox(height: layout.cardGap),
                                             if (assignedWorks.isEmpty)
                                               _boqs.isEmpty
@@ -2778,6 +2781,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   Widget _buildAssignedWorkHeader(List<_VisibleWork> assignedWorks) {
     final cs = Theme.of(context).colorScheme;
     final layout = _PebDprResponsive.of(context);
+    final isLevel1 = _dprLevel == PebDprLevel.basicProgress;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -2786,7 +2790,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Assigned Work",
+                isLevel1 ? 'Daily Stage Progress' : 'Assigned Work',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
@@ -2807,53 +2811,57 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
             ],
           ),
         ),
-        Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: layout.compact ? 10 : 12,
-            vertical: layout.compact ? 7 : 8,
-          ),
-          decoration: BoxDecoration(
-            color: assignedWorks.isEmpty
-                ? cs.surfaceContainerHighest
-                : cs.primaryContainer.withOpacity(0.6),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
+        if (!isLevel1)
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: layout.compact ? 10 : 12,
+              vertical: layout.compact ? 7 : 8,
+            ),
+            decoration: BoxDecoration(
               color: assignedWorks.isEmpty
-                  ? cs.outlineVariant
-                  : cs.primary.withOpacity(0.2),
+                  ? cs.surfaceContainerHighest
+                  : cs.primaryContainer.withOpacity(0.6),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: assignedWorks.isEmpty
+                    ? cs.outlineVariant
+                    : cs.primary.withOpacity(0.2),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.assignment_rounded,
+                  size: 14,
+                  color:
+                      assignedWorks.isEmpty ? cs.onSurfaceVariant : cs.primary,
+                ),
+                SizedBox(width: layout.compact ? 4 : 5),
+                Text(
+                  '${assignedWorks.length}',
+                  style: TextStyle(
+                    color: assignedWorks.isEmpty
+                        ? cs.onSurfaceVariant
+                        : cs.primary,
+                    fontSize: layout.compact ? 15 : 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                SizedBox(width: layout.compact ? 3 : 4),
+                Text(
+                  'items',
+                  style: TextStyle(
+                    color: assignedWorks.isEmpty
+                        ? cs.onSurfaceVariant
+                        : cs.primary,
+                    fontSize: layout.compact ? 10 : 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.assignment_rounded,
-                size: 14,
-                color: assignedWorks.isEmpty ? cs.onSurfaceVariant : cs.primary,
-              ),
-              SizedBox(width: layout.compact ? 4 : 5),
-              Text(
-                '${assignedWorks.length}',
-                style: TextStyle(
-                  color:
-                      assignedWorks.isEmpty ? cs.onSurfaceVariant : cs.primary,
-                  fontSize: layout.compact ? 15 : 16,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              SizedBox(width: layout.compact ? 3 : 4),
-              Text(
-                'items',
-                style: TextStyle(
-                  color:
-                      assignedWorks.isEmpty ? cs.onSurfaceVariant : cs.primary,
-                  fontSize: layout.compact ? 10 : 11,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }
@@ -3365,7 +3373,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              _level1RemarkPill(cs, layout),
+              _level1RemarkPill(work, cs, layout),
             ],
           ),
           SizedBox(height: layout.compact ? 10 : 12),
@@ -3407,31 +3415,108 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     );
   }
 
-  Widget _level1RemarkPill(ColorScheme cs, _PebDprResponsive layout) {
-    return Container(
-      constraints: BoxConstraints(
-        minWidth: layout.compact ? 74 : 86,
-        minHeight: layout.compact ? 32 : 36,
-      ),
-      alignment: Alignment.center,
-      padding: EdgeInsets.symmetric(
-        horizontal: layout.compact ? 10 : 12,
-        vertical: layout.compact ? 7 : 8,
-      ),
-      decoration: BoxDecoration(
-        color: const Color(0xFFC9FAF7),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.36)),
-      ),
-      child: Text(
-        'Remark',
-        style: TextStyle(
-          color: Colors.black,
-          fontSize: layout.compact ? 12 : 13,
-          fontWeight: FontWeight.w900,
+  Widget _level1RemarkPill(
+    _VisibleWork work,
+    ColorScheme cs,
+    _PebDprResponsive layout,
+  ) {
+    final hasRemark =
+        (_level1RemarksInputs[work.setupItem.id] ?? '').trim().isNotEmpty;
+    return InkWell(
+      onTap: () => _editLevel1Remark(work),
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        constraints: BoxConstraints(
+          minWidth: layout.compact ? 74 : 86,
+          minHeight: layout.compact ? 30 : 34,
+        ),
+        alignment: Alignment.center,
+        padding: EdgeInsets.symmetric(
+          horizontal: layout.compact ? 10 : 12,
+          vertical: layout.compact ? 6 : 7,
+        ),
+        decoration: BoxDecoration(
+          color: hasRemark
+              ? cs.primary.withValues(alpha: 0.10)
+              : cs.surfaceContainerHighest.withValues(alpha: 0.45),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: hasRemark
+                ? cs.primary.withValues(alpha: 0.45)
+                : cs.outlineVariant,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              hasRemark ? Icons.notes_rounded : Icons.add_comment_outlined,
+              size: layout.compact ? 13 : 14,
+              color: hasRemark ? cs.primary : cs.onSurfaceVariant,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              'Remark',
+              style: TextStyle(
+                color: hasRemark ? cs.primary : cs.onSurfaceVariant,
+                fontSize: layout.compact ? 11 : 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  Future<void> _editLevel1Remark(_VisibleWork work) async {
+    final controller = TextEditingController(
+      text: _level1RemarksInputs[work.setupItem.id] ?? '',
+    );
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        final cs = Theme.of(context).colorScheme;
+        return AlertDialog(
+          title: Text('${work.stageName} remark'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            minLines: 3,
+            maxLines: 5,
+            textInputAction: TextInputAction.newline,
+            decoration: InputDecoration(
+              hintText: 'Optional remark',
+              filled: true,
+              fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.35),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(null),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(controller.text),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+    controller.dispose();
+    if (result == null || !mounted) return;
+    setState(() {
+      final value = result.trim();
+      if (value.isEmpty) {
+        _level1RemarksInputs.remove(work.setupItem.id);
+      } else {
+        _level1RemarksInputs[work.setupItem.id] = value;
+      }
+    });
   }
 
   Widget _level1ImagePanel(
@@ -3440,7 +3525,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     _PebDprResponsive layout,
   ) {
     return Container(
-      height: layout.compact ? 148 : 166,
+      height: layout.compact ? 112 : 128,
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(10),
@@ -3581,7 +3666,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
             ],
           ),
         ),
-        SizedBox(height: layout.compact ? 8 : 10),
+        SizedBox(height: layout.compact ? 6 : 8),
         TextFormField(
           key: ValueKey(
               'level1-weight-${work.setupItem.id}-$_level1InputResetVersion'),
@@ -3605,7 +3690,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
             fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.20),
             contentPadding: EdgeInsets.symmetric(
               horizontal: 12,
-              vertical: layout.compact ? 10 : 12,
+              vertical: layout.compact ? 8 : 10,
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
@@ -3671,12 +3756,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     final cs = Theme.of(context).colorScheme;
     final layout = _PebDprResponsive.of(context);
     final enteredWorks = _level1EnteredWorks(works);
-    final totalWeight = enteredWorks.fold<double>(0, (sum, work) {
-      return sum +
-          (double.tryParse(
-                  _level1WeightInputs[work.setupItem.id]?.trim() ?? '') ??
-              0);
-    });
     final canSave = enteredWorks.isNotEmpty && !_submitting;
 
     return Positioned(
@@ -3689,9 +3768,9 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
           padding: EdgeInsets.fromLTRB(
             layout.cardPadding,
-            layout.compact ? 10 : 12,
+            layout.compact ? 8 : 10,
             layout.cardPadding,
-            layout.compact ? 10 : 12,
+            layout.compact ? 8 : 10,
           ),
           decoration: BoxDecoration(
             color: cs.surface,
@@ -3713,7 +3792,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${enteredWorks.length} stage${enteredWorks.length == 1 ? '' : 's'} ready',
+                      'Save entered progress',
                       style: TextStyle(
                         color: canSave ? cs.onSurface : cs.onSurfaceVariant,
                         fontSize: layout.compact ? 13 : 14,
@@ -3723,8 +3802,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                     const SizedBox(height: 2),
                     Text(
                       canSave
-                          ? 'Total entered: ${_prettyNumber(totalWeight)}'
-                          : 'Enter weight in any stage to save.',
+                          ? '${enteredWorks.length} stage${enteredWorks.length == 1 ? '' : 's'} selected'
+                          : 'Enter all required stage values, then save once.',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -3749,7 +3828,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                     : const Icon(Icons.save_rounded),
                 label: const Text('Save'),
                 style: FilledButton.styleFrom(
-                  minimumSize: const Size(112, 46),
+                  minimumSize: const Size(108, 42),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
