@@ -15,6 +15,7 @@ import '../models/peb_execution_models.dart';
 import '../services/dpr_bulk_task_manager.dart';
 import '../services/peb_execution_service.dart';
 import '../utils/peb_work_images.dart';
+import '../widgets/peb_dpr_level_selector.dart';
 
 class PebDprEntryScreen extends StatefulWidget {
   final String siteId;
@@ -272,7 +273,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (context) => _DprLevelPickerSheet(
+      builder: (context) => const PebDprLevelPickerSheet(
         title: 'Select DPR Entry Level',
         subtitle:
             'This site does not have a DPR level configured yet. Select one to continue.',
@@ -5738,114 +5739,6 @@ class _ManualItemWiseInput {
     required this.weight,
     required this.remarks,
   });
-}
-
-class _DprLevelPickerSheet extends StatelessWidget {
-  final String title;
-  final String subtitle;
-
-  const _DprLevelPickerSheet({
-    required this.title,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                color: cs.onSurface,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: cs.onSurfaceVariant,
-                fontSize: 12,
-                height: 1.35,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 14),
-            ...PebDprLevel.values.map(
-              (level) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: InkWell(
-                  onTap: () => context.pop(level),
-                  borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    padding: const EdgeInsets.all(13),
-                    decoration: BoxDecoration(
-                      color: cs.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: cs.outlineVariant),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: cs.primaryContainer,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(
-                            level == PebDprLevel.basicProgress
-                                ? Icons.edit_note_rounded
-                                : level == PebDprLevel.itemWiseProgress
-                                    ? Icons.manage_search_rounded
-                                    : Icons.assignment_turned_in_rounded,
-                            color: cs.primary,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                level.title,
-                                style: TextStyle(
-                                  color: cs.onSurface,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                level.description,
-                                style: TextStyle(
-                                  color: cs.onSurfaceVariant,
-                                  fontSize: 11,
-                                  height: 1.25,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(Icons.chevron_right_rounded, color: cs.primary),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _WorkCounts {

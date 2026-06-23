@@ -19,6 +19,7 @@ import 'package:untitled2/features/tour/providers/tour_providers.dart';
 import '../models/peb_execution_models.dart';
 import '../services/peb_execution_service.dart';
 import '../utils/peb_work_images.dart';
+import '../widgets/peb_dpr_level_selector.dart';
 
 class PebSetupScreen extends ConsumerStatefulWidget {
   final String siteId;
@@ -633,58 +634,11 @@ class _PebSetupScreenState extends ConsumerState<PebSetupScreen>
             final active = selected == level;
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: InkWell(
-                onTap: _saving ? null : () => _saveDprLevel(level),
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: active
-                        ? cs.primaryContainer.withValues(alpha: 0.62)
-                        : cs.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: active ? cs.primary : cs.outlineVariant,
-                      width: active ? 1.4 : 1,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        active
-                            ? Icons.radio_button_checked_rounded
-                            : Icons.radio_button_unchecked_rounded,
-                        color: active ? cs.primary : cs.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              level.title,
-                              style: TextStyle(
-                                color: cs.onSurface,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              level.description,
-                              style: TextStyle(
-                                color: cs.onSurfaceVariant,
-                                fontSize: 11,
-                                height: 1.25,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              child: PebDprLevelOptionCard(
+                level: level,
+                selected: active,
+                enabled: !_saving,
+                onSelected: () => _saveDprLevel(level),
               ),
             );
           }),
