@@ -50,7 +50,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    final logoWidth = (width * 0.72).clamp(240.0, 340.0);
+    final logoWidth = (width * 0.88).clamp(300.0, 460.0);
 
     return Scaffold(
       backgroundColor: Colors.white,
