@@ -14,8 +14,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _animationController;
   late final Animation<double> _logoAnimation;
-  late final Animation<double> _wordmarkAnimation;
-  late final Animation<double> _taglineAnimation;
   late final Animation<double> _badgeAnimation;
 
   @override
@@ -30,17 +28,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       parent: _animationController,
       curve: const Interval(0, 0.55, curve: Curves.easeOutCubic),
     );
-    _wordmarkAnimation = CurvedAnimation(
-      parent: _animationController,
-      curve: const Interval(0.22, 0.78, curve: Curves.easeOutCubic),
-    );
-    _taglineAnimation = CurvedAnimation(
-      parent: _animationController,
-      curve: const Interval(0.48, 0.92, curve: Curves.easeOutCubic),
-    );
     _badgeAnimation = CurvedAnimation(
       parent: _animationController,
-      curve: const Interval(0.62, 1, curve: Curves.easeOutCubic),
+      curve: const Interval(0.48, 1, curve: Curves.easeOutCubic),
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -60,7 +50,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    final logoSize = (width * 0.4).clamp(145.0, 190.0);
+    final logoWidth = (width * 0.72).clamp(240.0, 340.0);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -71,47 +61,26 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  AnimatedBuilder(
-                    animation: _logoAnimation,
-                    builder: (context, child) {
-                      return Opacity(
-                        opacity: _logoAnimation.value,
-                        child: Transform.translate(
-                          offset: Offset(0, 14 * (1 - _logoAnimation.value)),
-                          child: Transform.scale(
-                            scale: 0.94 + (_logoAnimation.value * 0.06),
-                            child: child,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 28),
+                    child: AnimatedBuilder(
+                      animation: _logoAnimation,
+                      builder: (context, child) {
+                        return Opacity(
+                          opacity: _logoAnimation.value,
+                          child: Transform.translate(
+                            offset: Offset(0, 14 * (1 - _logoAnimation.value)),
+                            child: Transform.scale(
+                              scale: 0.96 + (_logoAnimation.value * 0.04),
+                              child: child,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                    child: Image.asset(
-                      'assets/images/splash-logo.png',
-                      width: logoSize,
-                      height: logoSize,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  _AnimatedWordmark(animation: _wordmarkAnimation),
-                  const SizedBox(height: 10),
-                  FadeTransition(
-                    opacity: _taglineAnimation,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0, 0.35),
-                        end: Offset.zero,
-                      ).animate(_taglineAnimation),
-                      child: const Text(
-                        'Every Great Work Deserves a Better System',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Color(0xFF6B7280),
-                          fontSize: 12,
-                          height: 1.25,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.2,
-                        ),
+                        );
+                      },
+                      child: Image.asset(
+                        'assets/images/master_logo.png',
+                        width: logoWidth,
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ),
@@ -138,38 +107,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           ],
         ),
       ),
-    );
-  }
-}
-
-class _AnimatedWordmark extends StatelessWidget {
-  const _AnimatedWordmark({required this.animation});
-
-  final Animation<double> animation;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (context, child) {
-        final value = animation.value;
-        return Opacity(
-          opacity: value,
-          child: Transform.translate(
-            offset: Offset(0, 8 * (1 - value)),
-            child: Text(
-              'VAYUXI',
-              style: TextStyle(
-                color: const Color(0xFF111827),
-                fontSize: 30,
-                height: 1,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 12 - (4 * value),
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }
