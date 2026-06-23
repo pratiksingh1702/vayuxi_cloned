@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -84,8 +86,12 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
   DateTime? _draftLoadedForDate;
 
   bool isLoading = false;
+  bool _entryModeLoaded = false;
   bool _isMultipleEntry = false;
   Set<DateTime> _completedDates = {};
+  final Map<String, List<AttendanceModel>> _multiEntryDrafts = {};
+  final Set<String> _dirtyMultiEntryDates = {};
+  String? _activeMultiEntryDateKey;
 
   // ✅ Always normalize to midnight to avoid provider cache misses
   DateTime _selectedDate = DateTime(
@@ -128,6 +134,14 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final multi = await ModulePreferences.isMultipleEntry();
+      if (!mounted) return;
+
+      setState(() {
+        _isMultipleEntry = multi;
+        _entryModeLoaded = true;
+      });
+
       final type = ref.read(typeProvider);
       final siteId = ref.read(selectedSiteIdProvider);
 
@@ -136,26 +150,22 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
         await ref
             .read(teamProvider.notifier)
             .fetchTeams(type: type, siteId: siteId);
-        _loadManpower();
+        if (multi) {
+          await _initializeMultiEntrySession(type: type, siteId: siteId);
+        } else {
+          _loadManpower();
+        }
       }
 
-      _initMultiMode();
+      if (multi) {
+        _fetchCompletedDates();
+      }
     });
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text;
       });
     });
-  }
-
-  Future<void> _initMultiMode() async {
-    final multi = await ModulePreferences.isMultipleEntry();
-    if (mounted) {
-      setState(() => _isMultipleEntry = multi);
-      if (multi) {
-        _fetchCompletedDates();
-      }
-    }
   }
 
   Future<void> _fetchCompletedDates() async {
@@ -184,6 +194,142 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
           return DateTime(d.year, d.month, d.day);
         }).toSet();
       });
+    }
+  }
+
+  String _attendanceDateKey(DateTime date) {
+    return "${date.year.toString().padLeft(4, '0')}-"
+        "${date.month.toString().padLeft(2, '0')}-"
+        "${date.day.toString().padLeft(2, '0')}";
+  }
+
+  String _displayDateFromKey(String dateKey) {
+    final date = DateTime.parse(dateKey);
+    return "${date.day.toString().padLeft(2, '0')}/"
+        "${date.month.toString().padLeft(2, '0')}/"
+        "${date.year}";
+  }
+
+  List<AttendanceModel> _cloneAttendanceList(List<AttendanceModel> list) {
+    return list.map((e) => e.copyWith()).toList();
+  }
+
+  Future<void> _initializeMultiEntrySession({
+    required String type,
+    required String siteId,
+  }) async {
+    setState(() => isLoading = true);
+    final repo = ref.read(attendanceRepositoryProvider);
+
+    try {
+      if (await repo.isOnline()) {
+        await repo.syncManpowerBySite(siteId: siteId, type: type);
+      }
+    } catch (e) {
+      print("⚠️ Multi-entry manpower sync failed, using cached data: $e");
+    }
+
+    await _loadMultiEntryDate(_selectedDate, preserveCurrent: false);
+
+    if (mounted) {
+      setState(() => isLoading = false);
+    }
+  }
+
+  Future<void> _loadMultiEntryDate(
+    DateTime date, {
+    bool preserveCurrent = true,
+  }) async {
+    if (preserveCurrent) {
+      _cacheCurrentMultiEntryDraft(persistLocal: true);
+    }
+
+    final siteId = ref.read(selectedSiteIdProvider);
+    final type = ref.read(typeProvider);
+    if (siteId == null || type == null) return;
+
+    final normalizedDate = DateTime(date.year, date.month, date.day);
+    final dateKey = _attendanceDateKey(normalizedDate);
+    final repo = ref.read(attendanceRepositoryProvider);
+
+    List<AttendanceModel>? rows = _multiEntryDrafts[dateKey];
+
+    if (rows == null) {
+      await repo.ensureAttendanceForSite(
+        siteId: siteId,
+        type: type,
+        dateKey: dateKey,
+      );
+      rows = await repo
+          .watchAttendance(
+            siteId: siteId,
+            type: type,
+            dateKey: dateKey,
+          )
+          .first;
+      _multiEntryDrafts[dateKey] = _cloneAttendanceList(rows);
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _selectedDate = normalizedDate;
+      _activeMultiEntryDateKey = dateKey;
+      _draftLoadedForDate = normalizedDate;
+    });
+    ref.read(attendanceDraftProvider.notifier).state =
+        _cloneAttendanceList(_multiEntryDrafts[dateKey] ?? const []);
+  }
+
+  void _cacheCurrentMultiEntryDraft({bool persistLocal = false}) {
+    if (!_isMultipleEntry) return;
+    final dateKey =
+        _activeMultiEntryDateKey ?? _attendanceDateKey(_selectedDate);
+    final draft = ref.read(attendanceDraftProvider);
+    if (draft.isEmpty) return;
+
+    final cloned = _cloneAttendanceList(draft);
+    _multiEntryDrafts[dateKey] = cloned;
+
+    if (persistLocal && _dirtyMultiEntryDates.contains(dateKey)) {
+      unawaited(_persistMultiEntryDraftLocally(dateKey, cloned));
+    }
+  }
+
+  void _markCurrentMultiEntryDateDirty() {
+    if (!_isMultipleEntry) return;
+    final dateKey =
+        _activeMultiEntryDateKey ?? _attendanceDateKey(_selectedDate);
+    _dirtyMultiEntryDates.add(dateKey);
+    _cacheCurrentMultiEntryDraft();
+    setState(() {
+      _completedDates.add(
+        DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day),
+      );
+    });
+  }
+
+  Future<void> _persistMultiEntryDraftLocally(
+    String dateKey,
+    List<AttendanceModel> rows,
+  ) async {
+    final siteId = ref.read(selectedSiteIdProvider);
+    final type = ref.read(typeProvider);
+    if (siteId == null || type == null) return;
+
+    final repo = ref.read(attendanceRepositoryProvider);
+    for (final row in rows) {
+      final manpowerId = row.manpower.id;
+      if (manpowerId == null || manpowerId.isEmpty) continue;
+      await repo.upsertLocalAttendance(
+        siteId: siteId,
+        type: type,
+        dateKey: dateKey,
+        manpowerId: manpowerId,
+        status: row.status,
+        totalHours: row.totalHours,
+        ot: row.ot,
+        company: row.company,
+      );
     }
   }
 
@@ -590,7 +736,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
         date.day == now.day;
   }
 
-  bool get _isEditable => _isToday(_selectedDate) || _isEditMode;
+  bool get _isEditable =>
+      _isMultipleEntry || _isToday(_selectedDate) || _isEditMode;
 
   Future<void> _selectDate(BuildContext context) async {
     if (!_isToday(_selectedDate) && !_isEditMode) {
@@ -626,6 +773,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
 
   void _onTimelineDateSelected(DateTime date) {
     if (_isSameDay(date, _selectedDate)) return;
+
+    if (_isMultipleEntry) {
+      _loadMultiEntryDate(date);
+      return;
+    }
 
     setState(() {
       _selectedDate = DateTime(date.year, date.month, date.day);
@@ -664,6 +816,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
         else
           emp
     ];
+    _markCurrentMultiEntryDateDirty();
   }
 
   Future<void> _toggleAllAbsent(List<AttendanceModel> listToUpdate) async {
@@ -688,6 +841,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
         else
           emp
     ];
+    _markCurrentMultiEntryDateDirty();
   }
 
   void _showEditRequiredMessage() {
@@ -771,6 +925,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
         else
           item
     ];
+    _markCurrentMultiEntryDateDirty();
   }
 
   void _showOTConfirmationDialogForId(double otValue, String manpowerId) {
@@ -888,6 +1043,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
         else
           item
     ];
+    _markCurrentMultiEntryDateDirty();
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -899,6 +1055,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
   }
 
   Future<void> _submitAttendance() async {
+    if (_isMultipleEntry) {
+      await _submitMultiEntryAttendance();
+      return;
+    }
+
     if (!_isEditable) {
       if (!_isToday(_selectedDate)) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1059,6 +1220,117 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _submitMultiEntryAttendance() async {
+    _cacheCurrentMultiEntryDraft(persistLocal: true);
+
+    if (_dirtyMultiEntryDates.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("No pending attendance drafts to save"),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    try {
+      setState(() => isLoading = true);
+
+      final type = ref.read(typeProvider);
+      final siteId = ref.read(selectedSiteIdProvider);
+      if (type == null || siteId == null) return;
+
+      final repo = ref.read(attendanceRepositoryProvider);
+      final datesToSave = _dirtyMultiEntryDates.toList()..sort();
+
+      for (final dateKey in datesToSave) {
+        final attendanceList = _multiEntryDrafts[dateKey] ?? const [];
+        if (attendanceList.isEmpty) continue;
+
+        final date = DateTime.parse(dateKey);
+        final isoDate =
+            DateTime.utc(date.year, date.month, date.day).toIso8601String();
+
+        final payload = attendanceList.map((emp) {
+          return {
+            "manpowerId": emp.manpower.id,
+            "date": isoDate,
+            "status": emp.status,
+            "totalHours": emp.totalHours,
+            "ot": emp.ot,
+          };
+        }).toList();
+
+        final displayDate = _displayDateFromKey(dateKey);
+
+        try {
+          await ref
+              .read(attendanceNotifierProvider.notifier)
+              .updateMultipleAttendance(
+                payload: payload,
+                type: type,
+                siteId: siteId,
+                date: displayDate,
+              );
+        } catch (updateError) {
+          final msg = updateError.toString().toLowerCase();
+          if (msg.contains("internet") ||
+              msg.contains("connection") ||
+              msg.contains("timeout")) {
+            rethrow;
+          }
+
+          await ref
+              .read(attendanceNotifierProvider.notifier)
+              .postMultipleAttendance(
+                payload: payload,
+                type: type,
+                siteId: siteId,
+              );
+        }
+
+        try {
+          await repo.syncAttendanceForDate(
+            siteId: siteId,
+            type: type,
+            dateKey: dateKey,
+          );
+        } catch (syncError) {
+          print(
+              "⚠️ Multi-entry post-save sync failed for $dateKey: $syncError");
+        }
+      }
+
+      _dirtyMultiEntryDates.clear();
+      await _fetchCompletedDates();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Attendance saved for ${datesToSave.length} date${datesToSave.length == 1 ? '' : 's'}",
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      print('❌ Multi-entry submission error: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error saving multi-entry attendance"),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -1368,13 +1640,19 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
     final type = ref.watch(typeProvider)!;
     final siteId = ref.watch(selectedSiteIdProvider)!;
 
-    final attendanceState = ref.watch(
-      attendanceOfflineProvider((
-        siteId: siteId,
-        type: type,
-        date: _selectedDate,
-      )),
-    );
+    final attendanceState = !_entryModeLoaded
+        ? const AsyncValue<List<AttendanceModel>>.loading()
+        : _isMultipleEntry
+            ? AsyncValue<List<AttendanceModel>>.data(
+                ref.watch(attendanceDraftProvider),
+              )
+            : ref.watch(
+                attendanceOfflineProvider((
+                  siteId: siteId,
+                  type: type,
+                  date: _selectedDate,
+                )),
+              );
 
     final site = ref.read(currentSiteProvider);
     final lang = ref.watch(dailyEntryTranslationHelperProvider);
@@ -1395,7 +1673,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
                   targetPadding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   child: RoundedButton(
-                    text: "Save",
+                    text: _isMultipleEntry ? "Save All" : "Save",
                     color: _isEditable
                         ? colorScheme.primary
                         : colorScheme.onSurfaceVariant,
@@ -1410,8 +1688,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
                 ? const Center(child: CircularProgressIndicator())
                 : attendanceState.when(
                     data: (attendanceList) {
-                      // ✅ Only initialize draft when date changes, not on every stream emit
-                      if (_draftLoadedForDate != _selectedDate &&
+                      // ✅ Only initialize single-entry draft when date changes.
+                      // Multi-entry owns its date-wise draft cache separately.
+                      if (!_isMultipleEntry &&
+                          _draftLoadedForDate != _selectedDate &&
                           attendanceList.isNotEmpty) {
                         _draftLoadedForDate = _selectedDate;
                         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1758,20 +2038,29 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                // Edit Button
-                                _buildAttendanceTourTarget(
-                                  key: _editTourKey,
-                                  targetPadding: const EdgeInsets.all(6),
-                                  child: _buildCompactActionChip(
-                                    label: _isEditMode ? 'Editing' : 'Edit',
-                                    icon: _isEditMode
-                                        ? Icons.edit_off_rounded
-                                        : Icons.edit_rounded,
-                                    accent: colorScheme.primary,
-                                    selected: _isEditMode,
-                                    onTap: _toggleEditMode,
+                                if (!_isMultipleEntry)
+                                  _buildAttendanceTourTarget(
+                                    key: _editTourKey,
+                                    targetPadding: const EdgeInsets.all(6),
+                                    child: _buildCompactActionChip(
+                                      label: _isEditMode ? 'Editing' : 'Edit',
+                                      icon: _isEditMode
+                                          ? Icons.edit_off_rounded
+                                          : Icons.edit_rounded,
+                                      accent: colorScheme.primary,
+                                      selected: _isEditMode,
+                                      onTap: _toggleEditMode,
+                                    ),
+                                  )
+                                else
+                                  Text(
+                                    '${_dirtyMultiEntryDates.length} draft date${_dirtyMultiEntryDates.length == 1 ? '' : 's'}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
                                   ),
-                                ),
 
                                 // All Present / All Absent
                                 _buildAttendanceTourTarget(
@@ -1871,6 +2160,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
                                             else
                                               item
                                         ];
+                                        _markCurrentMultiEntryDateDirty();
                                       },
                                       onOtChange: (v) {
                                         if (!_isEditable) {
@@ -1910,6 +2200,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
                                             else
                                               item
                                         ];
+                                        _markCurrentMultiEntryDateDirty();
                                       },
                                     );
                                   },

@@ -21,7 +21,7 @@ class TimelineDatePicker extends StatefulWidget {
 
 class _TimelineDatePickerState extends State<TimelineDatePicker> {
   late ScrollController _scrollController;
-  final double _itemWidth = 34.0; // Ultra compact
+  final double _itemWidth = 44.0;
   final int _itemCount = 20000; // Large enough for "infinite" feel
   late final DateTime _baseDate;
   late final int _centerIndex;
@@ -29,10 +29,11 @@ class _TimelineDatePickerState extends State<TimelineDatePicker> {
   @override
   void initState() {
     super.initState();
-    _baseDate = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    _baseDate =
+        DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     _centerIndex = _itemCount ~/ 2;
     _scrollController = ScrollController();
-    
+
     // Auto-scroll to selected date after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -56,14 +57,15 @@ class _TimelineDatePickerState extends State<TimelineDatePicker> {
     if (_scrollController.hasClients) {
       final screenWidth = MediaQuery.of(context).size.width;
       // List has a left padding of 10
-      final offset = (index * _itemWidth) + 10.0 - (screenWidth / 2) + (_itemWidth / 2);
-      
+      final offset =
+          (index * _itemWidth) + 10.0 - (screenWidth / 2) + (_itemWidth / 2);
+
       final maxScroll = _scrollController.position.hasContentDimensions
           ? _scrollController.position.maxScrollExtent
           : (_itemCount * _itemWidth) + 20.0 - screenWidth;
-          
+
       final safeOffset = offset.clamp(0.0, maxScroll);
-      
+
       if (animate) {
         _scrollController.animateTo(
           safeOffset,
@@ -104,12 +106,13 @@ class _TimelineDatePickerState extends State<TimelineDatePicker> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      height: 48, // Ultra compact
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      height: 58,
+      padding: const EdgeInsets.symmetric(vertical: 5),
       decoration: BoxDecoration(
         color: isDark ? cs.surfaceContainerLow : Colors.grey.shade50,
         border: Border(
-          bottom: BorderSide(color: cs.outlineVariant.withOpacity(0.5), width: 0.5),
+          bottom:
+              BorderSide(color: cs.outlineVariant.withOpacity(0.5), width: 0.5),
         ),
       ),
       child: Column(
@@ -125,24 +128,34 @@ class _TimelineDatePickerState extends State<TimelineDatePicker> {
                 final date = _getDateForIndex(index);
                 final isSelected = _isSameDay(date, widget.selectedDate);
                 final isToday = _isSameDay(date, DateTime.now());
-                final isCompleted = widget.completedDates.any((d) => _isSameDay(d, date));
-                
+                final isCompleted =
+                    widget.completedDates.any((d) => _isSameDay(d, date));
+
                 final dayName = DateFormat('E').format(date);
-                final shortDay = dayName.length >= 2 ? dayName.substring(0, 2) : dayName;
+                final shortDay =
+                    dayName.length >= 2 ? dayName.substring(0, 2) : dayName;
+                final month = DateFormat('MMM').format(date);
 
                 return GestureDetector(
                   onTap: () => widget.onDateSelected(date),
                   child: Container(
                     width: _itemWidth - 8,
-                    margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                     decoration: BoxDecoration(
                       color: isSelected ? cs.primary : Colors.transparent,
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(8),
                       border: isToday && !isSelected
-                          ? Border.all(color: cs.primary.withOpacity(0.3), width: 1)
-                          : isSelected 
-                            ? null 
-                            : Border.all(color: cs.outlineVariant.withOpacity(0.1), width: 0.5),
+                          ? Border.all(
+                              color: cs.primary.withOpacity(0.3),
+                              width: 1,
+                            )
+                          : isSelected
+                              ? null
+                              : Border.all(
+                                  color: cs.outlineVariant.withOpacity(0.1),
+                                  width: 0.5,
+                                ),
                     ),
                     child: Stack(
                       alignment: Alignment.center,
@@ -155,20 +168,32 @@ class _TimelineDatePickerState extends State<TimelineDatePicker> {
                               style: TextStyle(
                                 fontSize: 7,
                                 fontWeight: FontWeight.w700,
-                                color: isSelected ? Colors.white70 : cs.onSurfaceVariant,
+                                color: isSelected
+                                    ? Colors.white70
+                                    : cs.onSurfaceVariant,
                               ),
                             ),
                             Text(
                               date.day.toString(),
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w900,
                                 color: isSelected ? Colors.white : cs.onSurface,
                               ),
                             ),
+                            Text(
+                              month,
+                              style: TextStyle(
+                                fontSize: 7,
+                                fontWeight: FontWeight.w700,
+                                color: isSelected
+                                    ? Colors.white70
+                                    : cs.onSurfaceVariant,
+                              ),
+                            ),
                           ],
                         ),
-                        
+
                         // Green checkmark for completion
                         if (isCompleted)
                           Positioned(
