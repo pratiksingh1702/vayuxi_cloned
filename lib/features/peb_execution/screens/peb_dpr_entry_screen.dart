@@ -869,12 +869,12 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     final allValidAssignments = _assignments
         .where((assignment) => assignment.status != 'cancelled')
         .toList();
+    final applicableAssignments =
+        (_isDefaultTeamSelected || _teamId.trim().isEmpty)
+            ? allValidAssignments
+            : teamAssignments;
     final noBoqMarks = _allMarks.every((mark) => mark.assemblyMark.isEmpty);
-    final noRelevantAssignment = _isDefaultTeamSelected
-        ? allValidAssignments.isEmpty
-        : _teamId.isNotEmpty
-            ? teamAssignments.isEmpty
-            : allValidAssignments.isEmpty;
+    final noRelevantAssignment = applicableAssignments.isEmpty;
     final fallbackAllowed =
         (setup.allowUnassignedDprFallback && noRelevantAssignment) ||
             (noBoqMarks && noRelevantAssignment);
@@ -909,7 +909,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     final activeBySetupId = <String, List<_VisibleWork>>{};
     final orphanActiveWorks = <_VisibleWork>[];
 
-    for (final assignment in teamAssignments) {
+    for (final assignment in applicableAssignments) {
       for (final item in assignment.assignments) {
         final setupItem = _findSetupItem(item.setupItemId) ??
             PebSetupItem(
@@ -958,7 +958,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           isActive: false,
           isFallback: false,
           inactiveReason: _isDefaultTeamSelected
-              ? 'No work assignment found. Showing BOQ fallback.'
+              ? 'No work assignment found for this stage.'
               : _teamId.isEmpty
                   ? 'Select team to activate work'
                   : 'Not assigned to selected team',
