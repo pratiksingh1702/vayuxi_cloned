@@ -289,16 +289,12 @@ class _SiteImportCsvScreenState extends ConsumerState<SiteImportCsvScreen>
                 children: [
                   _tourTarget(
                     _downloadTourKey,
-                    RoundedButton(
-                      width: double.infinity,
-                      text: downloadState.isLoading
-                          ? "Downloading..."
-                          : "Download Sample Template",
-                      color: isDark ? cs.surfaceContainerHigh : cs.surface,
-                      textColor: cs.onSurface,
-                      isOutlined: true,
+                    ImportActionButton(
+                      label: "Download Sample Template",
+                      icon: Icons.download_rounded,
+                      isLoading: downloadState.isLoading,
                       onPressed: downloadState.isLoading
-                          ? () {}
+                          ? null
                           : () async {
                               // Mark download step completed first, then open preview.
                               await ref

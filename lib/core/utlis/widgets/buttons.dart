@@ -97,3 +97,82 @@ class RoundedButton extends StatelessWidget {
     );
   }
 }
+
+class ImportActionButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final bool isLoading;
+  final bool isPrimary;
+
+  const ImportActionButton({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+    this.isLoading = false,
+    this.isPrimary = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final foreground = isPrimary ? cs.onPrimary : cs.primary;
+
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: isPrimary
+          ? FilledButton.icon(
+              onPressed: isLoading ? null : onPressed,
+              style: FilledButton.styleFrom(
+                backgroundColor: cs.primary,
+                foregroundColor: cs.onPrimary,
+                disabledBackgroundColor:
+                    cs.primary.withValues(alpha: 0.55),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              icon: _buttonIcon(foreground),
+              label: Text(isLoading ? 'Please wait...' : label),
+            )
+          : OutlinedButton.icon(
+              onPressed: isLoading ? null : onPressed,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: cs.primary,
+                backgroundColor: cs.primaryContainer.withValues(alpha: 0.18),
+                side: BorderSide(
+                  color: cs.primary.withValues(alpha: 0.55),
+                  width: 1.4,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              icon: _buttonIcon(foreground),
+              label: Text(isLoading ? 'Please wait...' : label),
+            ),
+    );
+  }
+
+  Widget _buttonIcon(Color color) {
+    if (!isLoading) return Icon(icon, size: 20);
+    return SizedBox(
+      width: 18,
+      height: 18,
+      child: CircularProgressIndicator(
+        strokeWidth: 2,
+        color: color,
+      ),
+    );
+  }
+}

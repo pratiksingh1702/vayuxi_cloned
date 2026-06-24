@@ -14,6 +14,7 @@ import 'package:untitled2/features/tour/core/tour_package_adapter.dart';
 import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import 'package:untitled2/features/tour/definitions/setup_module_tours.dart';
 import 'package:untitled2/features/tour/providers/tour_providers.dart';
+import 'boq_import_sheet.dart';
 
 class BoqItemDetailsScreen extends ConsumerStatefulWidget {
   final String siteId;
@@ -34,7 +35,8 @@ class BoqItemDetailsScreen extends ConsumerStatefulWidget {
       _BoqItemDetailsScreenState();
 }
 
-class _BoqItemDetailsScreenState extends ConsumerState<BoqItemDetailsScreen> with ScreenOwnedTourMixin<BoqItemDetailsScreen> {
+class _BoqItemDetailsScreenState extends ConsumerState<BoqItemDetailsScreen>
+    with ScreenOwnedTourMixin<BoqItemDetailsScreen> {
   static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
   final GlobalKey _boqNameTourKey = GlobalKey(debugLabel: 'structure_boq_name');
   final GlobalKey _identityTourKey =
@@ -188,8 +190,7 @@ class _BoqItemDetailsScreenState extends ConsumerState<BoqItemDetailsScreen> wit
   void _syncTour(BuildContext showcaseContext) {
     final isEdit = widget.item != null;
     final definition = AppTourDefinition(
-      id:
-          '${SetupModuleTours.boqUploadId}_${widget.siteId}_structure_item_${isEdit ? 'edit' : 'add'}',
+      id: '${SetupModuleTours.boqUploadId}_${widget.siteId}_structure_item_${isEdit ? 'edit' : 'add'}',
       title: isEdit ? 'Edit BOQ Item' : 'Add BOQ Item',
       description: 'Add or update one structural BOQ item.',
       icon: Icons.inventory_2_outlined,
@@ -207,8 +208,7 @@ class _BoqItemDetailsScreenState extends ConsumerState<BoqItemDetailsScreen> wit
           AppTourStep(
             id: 'structure_boq_name',
             title: 'BOQ Name',
-            body:
-                'Give this BOQ a clear name so it is easy to identify later.',
+            body: 'Give this BOQ a clear name so it is easy to identify later.',
             targetKey: _boqNameTourKey,
             progressLabel: 'BOQ',
             autoScrollToTarget: true,
@@ -216,8 +216,7 @@ class _BoqItemDetailsScreenState extends ConsumerState<BoqItemDetailsScreen> wit
         AppTourStep(
           id: 'structure_boq_identity',
           title: 'Item Identity',
-          body:
-              'Enter the assembly mark and item type, like BR1 and Column.',
+          body: 'Enter the assembly mark and item type, like BR1 and Column.',
           targetKey: _identityTourKey,
           progressLabel: 'Identity',
           autoScrollToTarget: true,
@@ -243,8 +242,8 @@ class _BoqItemDetailsScreenState extends ConsumerState<BoqItemDetailsScreen> wit
       ],
     );
 
-    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
-
+    bindScreenOwnedTour(
+        tourId: definition.id, showcaseContext: showcaseContext);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
@@ -405,6 +404,51 @@ class _BoqItemDetailsScreenState extends ConsumerState<BoqItemDetailsScreen> wit
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (!isEdit) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      height: 46,
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          final saved = await Navigator.push<bool>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => BoqImportSheetScreen(
+                                siteId: widget.siteId,
+                                siteName: widget.siteName,
+                              ),
+                            ),
+                          );
+                          if (saved == true && mounted) {
+                            Navigator.pop(context, true);
+                          }
+                        },
+                        icon: const Icon(Icons.upload_file_rounded),
+                        label: const Text("Import BOQ Sheet"),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                            child: Divider(color: colorScheme.outlineVariant)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            'OR ADD MANUALLY',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                            child: Divider(color: colorScheme.outlineVariant)),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                  ],
                   if (!isEdit) ...[
                     _tourTarget(
                       _boqNameTourKey,

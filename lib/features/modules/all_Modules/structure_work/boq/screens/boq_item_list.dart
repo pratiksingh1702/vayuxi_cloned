@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom.dart';
@@ -8,7 +12,6 @@ import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import '../models/boq_structure_model.dart';
 import '../providers/boq_structure_provider.dart';
-import 'boq_entry_select.dart';
 import 'boq_detail_screen.dart';
 import 'boq_item_details.dart';
 
@@ -41,6 +44,15 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
   String? _selectedDescription;
   double? _minWeight;
   double? _maxWeight;
+  final TextEditingController _searchController = TextEditingController();
+  final Set<String> _selectedItemIds = {};
+  bool _isSelectionMode = false;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -77,9 +89,10 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
                   final saved = await Navigator.push<bool>(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => BoqEntrySelectScreen(
+                      builder: (context) => BoqItemDetailsScreen(
                         siteId: widget.siteId,
                         siteName: widget.siteName,
+                        item: null,
                       ),
                     ),
                   );
@@ -159,6 +172,28 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
               "There are no items uploaded for this site.",
               textAlign: TextAlign.center,
             ),
+            const SizedBox(height: 18),
+            FilledButton.icon(
+              onPressed: () async {
+                final saved = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BoqItemDetailsScreen(
+                      siteId: widget.siteId,
+                      siteName: widget.siteName,
+                      item: null,
+                    ),
+                  ),
+                );
+                if (saved == true && mounted) {
+                  ref
+                      .read(boqStructureProvider.notifier)
+                      .fetchBOQs(widget.siteId);
+                }
+              },
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Add BOQ'),
+            ),
           ],
         ),
       );
@@ -192,6 +227,28 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
             const Text(
               "The uploaded BOQs do not contain any items.",
               textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 18),
+            FilledButton.icon(
+              onPressed: () async {
+                final saved = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BoqItemDetailsScreen(
+                      siteId: widget.siteId,
+                      siteName: widget.siteName,
+                      item: null,
+                    ),
+                  ),
+                );
+                if (saved == true && mounted) {
+                  ref
+                      .read(boqStructureProvider.notifier)
+                      .fetchBOQs(widget.siteId);
+                }
+              },
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Add BOQ'),
             ),
           ],
         ),
@@ -245,6 +302,9 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
       }
     });
 
+    final allSelected = filteredList.isNotEmpty &&
+        filteredList.every((item) => _selectedItemIds.contains(item.id));
+
     return Column(
       children: [
         // Search & Filter Bar
@@ -253,31 +313,86 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
           child: Row(
             children: [
               Expanded(
-                child: TextField(
-                  onChanged: (val) => setState(() => _searchQuery = val),
-                  decoration: InputDecoration(
-                    hintText: 'Search by mark or description...',
-                    prefixIcon: const Icon(Icons.search, size: 20),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.close, size: 18),
-                            onPressed: () => setState(() => _searchQuery = ''),
-                          )
-                        : null,
-                    isDense: true,
-                    filled: true,
-                    fillColor: colorScheme.surface,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide.none,
+                child: SizedBox(
+                  height: 40,
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (val) => setState(() => _searchQuery = val),
+                    decoration: InputDecoration(
+                      hintText: 'Search BOQ...',
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.close, size: 18),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _searchQuery = '');
+                              },
+                            )
+                          : null,
+                      isDense: true,
+                      filled: true,
+                      fillColor: colorScheme.surface,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               _buildFilterButton(colorScheme),
+              const SizedBox(width: 6),
+              _toolbarButton(
+                colorScheme,
+                tooltip: 'Download Sheet',
+                icon: Icons.download_rounded,
+                onPressed: () => _downloadItems(filteredList),
+              ),
+              const SizedBox(width: 6),
+              if (!_isSelectionMode)
+                _toolbarButton(
+                  colorScheme,
+                  tooltip: 'Select BOQ Items',
+                  icon: Icons.checklist_rounded,
+                  onPressed: filteredList.isEmpty ? null : _toggleSelectionMode,
+                )
+              else ...[
+                SizedBox(
+                  height: 40,
+                  child: TextButton(
+                    onPressed: () => setState(() {
+                      if (allSelected) {
+                        _selectedItemIds
+                            .removeAll(filteredList.map((item) => item.id));
+                      } else {
+                        _selectedItemIds
+                            .addAll(filteredList.map((item) => item.id));
+                      }
+                    }),
+                    child: Text(allSelected ? 'Deselect' : 'Select All'),
+                  ),
+                ),
+                _toolbarButton(
+                  colorScheme,
+                  tooltip: 'Delete Selected',
+                  icon: Icons.delete_sweep_rounded,
+                  active: _selectedItemIds.isNotEmpty,
+                  onPressed: _selectedItemIds.isEmpty
+                      ? null
+                      : () => _deleteSelectedItems(boqIdByItemId),
+                ),
+                const SizedBox(width: 4),
+                _toolbarButton(
+                  colorScheme,
+                  tooltip: 'Cancel',
+                  icon: Icons.close_rounded,
+                  onPressed: _toggleSelectionMode,
+                ),
+              ],
             ],
           ),
         ),
@@ -314,62 +429,228 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
                   itemCount: filteredList.length,
                   itemBuilder: (context, index) {
                     final item = filteredList[index];
-                    return _BoqItemCard(
-                      item: item,
-                      onView: () {
-                        final boq = boqByItemId[item.id];
-                        if (boq == null) return;
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => BOQDetailScreen(
-                              boq: boq,
-                              siteId: widget.siteId,
-                            ),
+                    final isSelected = _selectedItemIds.contains(item.id);
+                    return Opacity(
+                      opacity: _isSelectionMode && !isSelected ? 0.55 : 1,
+                      child: Stack(
+                        children: [
+                          _BoqItemCard(
+                            item: item,
+                            onView: _isSelectionMode
+                                ? () => _toggleItemSelection(item.id)
+                                : () {
+                                    final boq = boqByItemId[item.id];
+                                    if (boq == null) return;
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => BOQDetailScreen(
+                                          boq: boq,
+                                          siteId: widget.siteId,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                            onEdit: _isSelectionMode
+                                ? () => _toggleItemSelection(item.id)
+                                : () async {
+                                    final result = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            BoqItemDetailsScreen(
+                                          siteId: widget.siteId,
+                                          siteName: widget.siteName,
+                                          boqId: boqIdByItemId[item.id],
+                                          item: item,
+                                        ),
+                                      ),
+                                    );
+                                    if (result == true && mounted) {
+                                      ref
+                                          .read(boqStructureProvider.notifier)
+                                          .fetchBOQs(widget.siteId);
+                                    }
+                                  },
+                            onDelete: _isSelectionMode
+                                ? () => _toggleItemSelection(item.id)
+                                : () {
+                                    final boqId = boqIdByItemId[item.id];
+                                    if (boqId == null) return;
+                                    _confirmDeleteItem(item, boqId);
+                                  },
+                            onTap: _isSelectionMode
+                                ? () => _toggleItemSelection(item.id)
+                                : () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            BoqItemDetailsScreen(
+                                          siteId: widget.siteId,
+                                          siteName: widget.siteName,
+                                          boqId: boqIdByItemId[item.id],
+                                          item: item,
+                                        ),
+                                      ),
+                                    );
+                                  },
                           ),
-                        );
-                      },
-                      onEdit: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => BoqItemDetailsScreen(
-                              siteId: widget.siteId,
-                              siteName: widget.siteName,
-                              boqId: boqIdByItemId[item.id],
-                              item: item,
+                          if (_isSelectionMode)
+                            Positioned(
+                              top: 12,
+                              right: 12,
+                              child: Checkbox(
+                                value: isSelected,
+                                onChanged: (_) => _toggleItemSelection(item.id),
+                              ),
                             ),
-                          ),
-                        );
-                        if (result == true && mounted) {
-                          ref
-                              .read(boqStructureProvider.notifier)
-                              .fetchBOQs(widget.siteId);
-                        }
-                      },
-                      onDelete: () {
-                        final boqId = boqIdByItemId[item.id];
-                        if (boqId == null) return;
-                        _confirmDeleteItem(item, boqId);
-                      },
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => BoqItemDetailsScreen(
-                              siteId: widget.siteId,
-                              siteName: widget.siteName,
-                              boqId: boqIdByItemId[item.id],
-                              item: item,
-                            ),
-                          ),
-                        );
-                      },
+                        ],
+                      ),
                     );
                   },
                 ),
         ),
       ],
+    );
+  }
+
+  void _toggleSelectionMode() {
+    setState(() {
+      _isSelectionMode = !_isSelectionMode;
+      if (!_isSelectionMode) _selectedItemIds.clear();
+    });
+  }
+
+  void _toggleItemSelection(String itemId) {
+    setState(() {
+      if (!_selectedItemIds.add(itemId)) {
+        _selectedItemIds.remove(itemId);
+      }
+    });
+  }
+
+  String _csvCell(Object? value) =>
+      '"${(value ?? '').toString().replaceAll('"', '""')}"';
+
+  Future<void> _downloadItems(List<BOQStructureItem> items) async {
+    if (items.isEmpty) {
+      AppToast.info('No BOQ records to download');
+      return;
+    }
+    try {
+      final rows = <List<Object?>>[
+        [
+          'Mark No',
+          'Description',
+          'Quantity',
+          'Weight per Unit',
+          'Total Weight'
+        ],
+        ...items.map((item) => [
+              item.assemblyMark,
+              item.typeDescription,
+              item.quantity,
+              item.netWeightPerUnit ?? 0,
+              item.totalNetWeight ?? 0,
+            ]),
+      ];
+      final csv = rows.map((row) => row.map(_csvCell).join(',')).join('\n');
+      final directory = await getTemporaryDirectory();
+      final file = File(
+        '${directory.path}/boq-list-${DateTime.now().millisecondsSinceEpoch}.csv',
+      );
+      await file.writeAsString(csv);
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'text/csv')],
+        text: 'BOQ list export',
+      );
+    } catch (e) {
+      debugPrint('BOQ export failed: $e');
+      AppToast.error('Failed to export BOQ list');
+    }
+  }
+
+  Future<void> _deleteSelectedItems(Map<String, String> boqIdByItemId) async {
+    if (_selectedItemIds.isEmpty) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Selected BOQ Items'),
+        content: Text(
+          'Delete ${_selectedItemIds.length} selected BOQ item(s)?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    var failed = 0;
+    for (final itemId in _selectedItemIds.toList()) {
+      final boqId = boqIdByItemId[itemId];
+      if (boqId == null) {
+        failed++;
+        continue;
+      }
+      final success = await ref
+          .read(boqStructureProvider.notifier)
+          .deleteBOQItem(widget.siteId, boqId, itemId);
+      if (!success) failed++;
+    }
+    if (!mounted) return;
+    setState(() {
+      _selectedItemIds.clear();
+      _isSelectionMode = false;
+    });
+    if (failed == 0) {
+      AppToast.success('Selected BOQ items deleted');
+    } else {
+      AppToast.error('$failed BOQ item(s) could not be deleted');
+    }
+  }
+
+  Widget _toolbarButton(
+    ColorScheme colorScheme, {
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback? onPressed,
+    bool active = false,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: active ? colorScheme.primary : colorScheme.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: active ? colorScheme.primary : colorScheme.outlineVariant,
+            ),
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: onPressed == null
+                ? colorScheme.onSurfaceVariant
+                : active
+                    ? colorScheme.onPrimary
+                    : colorScheme.primary,
+          ),
+        ),
+      ),
     );
   }
 

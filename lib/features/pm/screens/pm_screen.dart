@@ -1,9 +1,14 @@
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/custom_dropdown.dart';
 import 'package:untitled2/core/utlis/widgets/fields/custom_textField.dart';
@@ -375,6 +380,62 @@ class _SetupTabState extends ConsumerState<_SetupTab>
   final GlobalKey _workListTourKey = GlobalKey(debugLabel: 'pm_setup_work_list');
   String? _lastShowcasedTourStepId;
   String? _categoryId;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<PmEquipment> _visibleEquipment(PmCategory category) {
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isEmpty) return category.equipment;
+    return category.equipment.where((equipment) {
+      return [
+        equipment.equipmentName,
+        equipment.categoryName,
+        equipment.capacity,
+        equipment.unit,
+      ].join(' ').toLowerCase().contains(query);
+    }).toList();
+  }
+
+  String _csvCell(Object? value) =>
+      '"${(value ?? '').toString().replaceAll('"', '""')}"';
+
+  Future<void> _downloadEquipment(PmCategory category) async {
+    final equipment = _visibleEquipment(category);
+    if (equipment.isEmpty) {
+      AppToast.info('No P&M work records to download');
+      return;
+    }
+    try {
+      final rows = <List<Object?>>[
+        ['Category', 'Work / Equipment', 'Capacity', 'Unit', 'Source'],
+        ...equipment.map((item) => [
+              item.categoryName,
+              item.equipmentName,
+              item.capacity,
+              item.unit,
+              item.source,
+            ]),
+      ];
+      final csv = rows.map((row) => row.map(_csvCell).join(',')).join('\n');
+      final directory = await getTemporaryDirectory();
+      final file = File(
+        '${directory.path}/pm-setup-${DateTime.now().millisecondsSinceEpoch}.csv',
+      );
+      await file.writeAsString(csv);
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'text/csv')],
+        text: '${category.categoryName} P&M setup',
+      );
+    } catch (error) {
+      AppToast.error('Failed to export P&M setup');
+    }
+  }
 
   void _syncPmSetupTour(
     BuildContext showcaseContext, {
@@ -536,14 +597,22 @@ class _SetupTabState extends ConsumerState<_SetupTab>
                 _categoryTourKey,
                 _PmCategoryGrid(
                   categories: state.categories,
-                  onSelected: _openCategoryActions,
+                  onSelected: (category) => setState(() {
+                    _categoryId = _pmCategoryIdentity(category);
+                    _searchQuery = '';
+                    _searchController.clear();
+                  }),
                 ),
               ),
             ] else ...[
               Row(
                 children: [
                   OutlinedButton.icon(
-                    onPressed: () => setState(() => _categoryId = null),
+                    onPressed: () => setState(() {
+                      _categoryId = null;
+                      _searchQuery = '';
+                      _searchController.clear();
+                    }),
                     icon: const Icon(Icons.arrow_back_rounded, size: 18),
                     label: const Text('Categories'),
                   ),
@@ -561,10 +630,57 @@ class _SetupTabState extends ConsumerState<_SetupTab>
                 ],
               ),
               const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 40,
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (value) =>
+                            setState(() => _searchQuery = value),
+                        style: const TextStyle(fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: 'Search P&M works...',
+                          prefixIcon:
+                              const Icon(Icons.search_rounded, size: 20),
+                          suffixIcon: _searchQuery.isEmpty
+                              ? null
+                              : IconButton(
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() => _searchQuery = '');
+                                  },
+                                  icon: const Icon(Icons.close_rounded,
+                                      size: 18),
+                                ),
+                          filled: true,
+                          isDense: true,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  _PmToolbarButton(
+                    tooltip: 'Download Sheet',
+                    icon: Icons.download_rounded,
+                    onPressed: () => _downloadEquipment(selectedCategory),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
               _tourTarget(
                 _workListTourKey,
                 _PmEquipmentList(
                   category: selectedCategory,
+                  equipment: _visibleEquipment(selectedCategory),
+                  emptyTitle: _searchQuery.trim().isEmpty
+                      ? 'No works found in this category'
+                      : 'No works match your search',
                   onEdit: (equipment) => _openEquipmentSheet(equipment),
                   onDelete: _deleteEquipment,
                 ),
@@ -575,23 +691,6 @@ class _SetupTabState extends ConsumerState<_SetupTab>
         );
       },
     );
-  }
-
-  Future<void> _openCategoryActions(PmCategory category) async {
-    final action = await Navigator.of(context).push<_PmSetupCategoryAction>(
-      MaterialPageRoute(
-        builder: (_) => _PmSetupCategoryActionScreen(category: category),
-      ),
-    );
-    if (!mounted || action == null) return;
-    switch (action) {
-      case _PmSetupCategoryAction.view:
-        setState(() => _categoryId = _pmCategoryIdentity(category));
-        break;
-      case _PmSetupCategoryAction.add:
-        await _openAddWorkScreen(category);
-        break;
-    }
   }
 
   Future<void> _openAddWorkScreen(PmCategory category) async {
@@ -693,6 +792,40 @@ class _PmSetupSiteCard extends StatelessWidget {
           ),
           Icon(Icons.check_circle_rounded, color: cs.primary, size: 20),
         ],
+      ),
+    );
+  }
+}
+
+class _PmToolbarButton extends StatelessWidget {
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  const _PmToolbarButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: cs.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: cs.outlineVariant),
+          ),
+          child: Icon(icon, size: 20, color: cs.primary),
+        ),
       ),
     );
   }

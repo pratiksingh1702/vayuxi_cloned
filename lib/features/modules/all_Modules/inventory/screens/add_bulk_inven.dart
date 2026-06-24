@@ -45,13 +45,12 @@ class _BulkUploadScreenState extends ConsumerState<BulkUploadScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              RoundedButton(
-                width: double.infinity,
-                text: downloadState.isLoading ? "Downloading..." : "Download Sample Template",
-                color: Colors.white,
-                textColor: Colors.black45,
+              ImportActionButton(
+                label: "Download Sample Template",
+                icon: Icons.download_rounded,
+                isLoading: downloadState.isLoading,
                 onPressed: downloadState.isLoading
-                    ? (){}
+                    ? null
                     : () async {
                   Navigator.push(
                     context,
@@ -210,34 +209,14 @@ class _BulkUploadScreenState extends ConsumerState<BulkUploadScreen> {
               ),
 
               const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: _isUploading
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
-                            ),
-                          ),
-                        )
-                      : const Icon(Icons.upload),
-                  label: Text(
-                    _isUploading ? 'Uploading...' : 'Upload Inventory',
-                  ),
-                  onPressed: _isUploading || _selectedFile == null
-                      ? null
-                      : _uploadInventory,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green.shade600,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    textStyle: const TextStyle(fontSize: 16),
-                  ),
-                ),
+              ImportActionButton(
+                label: 'Upload Inventory',
+                icon: Icons.cloud_upload_rounded,
+                isLoading: _isUploading,
+                isPrimary: true,
+                onPressed: _isUploading || _selectedFile == null
+                    ? null
+                    : _uploadInventory,
               ),
 
               if (_uploadStatus.isNotEmpty) _buildStatus(),

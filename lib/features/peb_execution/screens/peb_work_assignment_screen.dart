@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/common_functions.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
@@ -16,12 +19,14 @@ class PebWorkAssignmentScreen extends StatefulWidget {
   final String siteId;
   final String siteName;
   final PebExecutionType executionType;
+  final bool openListDirectly;
 
   const PebWorkAssignmentScreen({
     super.key,
     required this.siteId,
     required this.siteName,
     required this.executionType,
+    this.openListDirectly = false,
   });
 
   @override
@@ -41,6 +46,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
   final _planQtyController = TextEditingController();
   final _planRemarksController = TextEditingController();
   final _markSearchController = TextEditingController();
+  final _assignmentSearchController = TextEditingController();
   Timer? _markSearchDebounce;
   bool _loading = true;
   bool _saving = false;
@@ -71,6 +77,10 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
   Set<String> _selectedMarks = {};
   Map<String, Set<String>> _completedBySetupItem = {};
   String _markSearchText = '';
+  String _assignmentSearchText = '';
+  String? _assignmentStageFilter;
+  String? _assignmentTeamFilter;
+  _AssignmentSortOption _assignmentSort = _AssignmentSortOption.latestFirst;
 
   bool get _isDefaultTeamSelected => _teamId == _defaultTeamId;
 
@@ -79,6 +89,9 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.openListDirectly) {
+      _mode = _WorkAssignmentMode.view;
+    }
     _load();
   }
 
@@ -91,8 +104,234 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
     _planQtyController.dispose();
     _planRemarksController.dispose();
     _markSearchController.dispose();
+    _assignmentSearchController.dispose();
     _markSearchDebounce?.cancel();
     super.dispose();
+  }
+
+  List<PebWorkAssignment> get _visibleAssignments {
+    final query = _assignmentSearchText.trim().toLowerCase();
+    final visible = _assignments.where((assignment) {
+      final items = assignment.assignments;
+      final teamName = assignment.team?.name ?? '';
+      final matchesSearch = query.isEmpty ||
+          teamName.toLowerCase().contains(query) ||
+          items.any((item) =>
+              item.stageName.toLowerCase().contains(query) ||
+              item.workDescription.toLowerCase().contains(query) ||
+              item.assemblyMarks
+                  .any((mark) => mark.toLowerCase().contains(query)));
+      final matchesStage = _assignmentStageFilter == null ||
+          items.any((item) => item.stageName == _assignmentStageFilter);
+      final matchesTeam = _assignmentTeamFilter == null ||
+          assignment.teamId == _assignmentTeamFilter;
+      return matchesSearch && matchesStage && matchesTeam;
+    }).toList();
+
+    visible.sort((a, b) {
+      switch (_assignmentSort) {
+        case _AssignmentSortOption.oldestFirst:
+          return (a.assignmentDate ?? DateTime(1970))
+              .compareTo(b.assignmentDate ?? DateTime(1970));
+        case _AssignmentSortOption.stageAsc:
+          final aStage =
+              a.assignments.isEmpty ? '' : a.assignments.first.stageName;
+          final bStage =
+              b.assignments.isEmpty ? '' : b.assignments.first.stageName;
+          return aStage.toLowerCase().compareTo(bStage.toLowerCase());
+        case _AssignmentSortOption.latestFirst:
+          return (b.assignmentDate ?? DateTime(1970))
+              .compareTo(a.assignmentDate ?? DateTime(1970));
+      }
+    });
+    return visible;
+  }
+
+  bool get _hasAssignmentFilters =>
+      _assignmentStageFilter != null ||
+      _assignmentTeamFilter != null ||
+      _assignmentSort != _AssignmentSortOption.latestFirst;
+
+  String _csvCell(Object? value) =>
+      '"${(value ?? '').toString().replaceAll('"', '""')}"';
+
+  Future<void> _downloadAssignments() async {
+    final assignments = _visibleAssignments;
+    if (assignments.isEmpty) {
+      AppToast.info('No work assignments to download');
+      return;
+    }
+    try {
+      final rows = <List<Object?>>[
+        [
+          'Stage',
+          'Team',
+          'Assigned Quantity',
+          'UOM',
+          'Mark Numbers',
+          'Description',
+          'Assignment Date',
+          'Expected Completion',
+          'Status',
+        ],
+        ...assignments.expand(
+          (assignment) => assignment.assignments.map(
+            (item) => [
+              item.stageName,
+              assignment.team?.name ?? '',
+              item.assignedQty,
+              item.uom,
+              item.assemblyMarks.join(', '),
+              item.workDescription,
+              _formatDate(assignment.assignmentDate),
+              _formatDate(assignment.expectedCompletionDate),
+              assignment.status,
+            ],
+          ),
+        ),
+      ];
+      final csv = rows.map((row) => row.map(_csvCell).join(',')).join('\n');
+      final directory = await getTemporaryDirectory();
+      final file = File(
+        '${directory.path}/work-assignments-${DateTime.now().millisecondsSinceEpoch}.csv',
+      );
+      await file.writeAsString(csv);
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'text/csv')],
+        text: 'Work assignment list',
+      );
+    } catch (error) {
+      AppToast.error('Failed to export work assignments');
+    }
+  }
+
+  void _showAssignmentFilters() {
+    final stages = _assignments
+        .expand((assignment) => assignment.assignments)
+        .map((item) => item.stageName)
+        .where((name) => name.trim().isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    final teams = <String, String>{};
+    for (final assignment in _assignments) {
+      final name = assignment.team?.name.trim() ?? '';
+      if (assignment.teamId.isNotEmpty && name.isNotEmpty) {
+        teams[assignment.teamId] = name;
+      }
+    }
+
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Filter & Sort',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setSheetState(() {
+                          _assignmentStageFilter = null;
+                          _assignmentTeamFilter = null;
+                          _assignmentSort = _AssignmentSortOption.latestFirst;
+                        });
+                        setState(() {});
+                      },
+                      child: const Text('Reset'),
+                    ),
+                  ],
+                ),
+                DropdownButtonFormField<_AssignmentSortOption>(
+                  initialValue: _assignmentSort,
+                  decoration: const InputDecoration(labelText: 'Sort by'),
+                  items: const [
+                    DropdownMenuItem(
+                      value: _AssignmentSortOption.latestFirst,
+                      child: Text('Latest first'),
+                    ),
+                    DropdownMenuItem(
+                      value: _AssignmentSortOption.oldestFirst,
+                      child: Text('Oldest first'),
+                    ),
+                    DropdownMenuItem(
+                      value: _AssignmentSortOption.stageAsc,
+                      child: Text('Stage A-Z'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setSheetState(() => _assignmentSort = value);
+                    setState(() {});
+                  },
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String?>(
+                  initialValue: _assignmentStageFilter,
+                  decoration: const InputDecoration(labelText: 'Stage'),
+                  items: [
+                    const DropdownMenuItem(
+                      value: null,
+                      child: Text('All stages'),
+                    ),
+                    ...stages.map(
+                      (stage) =>
+                          DropdownMenuItem(value: stage, child: Text(stage)),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setSheetState(() => _assignmentStageFilter = value);
+                    setState(() {});
+                  },
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String?>(
+                  initialValue: _assignmentTeamFilter,
+                  decoration: const InputDecoration(labelText: 'Team'),
+                  items: [
+                    const DropdownMenuItem(
+                      value: null,
+                      child: Text('All teams'),
+                    ),
+                    ...teams.entries.map(
+                      (entry) => DropdownMenuItem(
+                        value: entry.key,
+                        child: Text(entry.value),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setSheetState(() => _assignmentTeamFilter = value);
+                    setState(() {});
+                  },
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Apply'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _load() async {
@@ -863,6 +1102,42 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
     return Scaffold(
       drawer: const CustomDrawer(),
       appBar: CustomAppBar(title: '${widget.executionType.title} $titleSuffix'),
+      bottomNavigationBar: !_loading && _mode == _WorkAssignmentMode.view
+          ? SafeArea(
+              top: false,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+                decoration: BoxDecoration(
+                  color: cs.surface,
+                  border: Border(
+                    top: BorderSide(color: cs.outlineVariant),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => context.pop(),
+                        icon: const Icon(Icons.arrow_back_rounded),
+                        label: const Text('Back'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () => setState(() {
+                          _mode = _WorkAssignmentMode.add;
+                          _showForm = false;
+                        }),
+                        icon: const Icon(Icons.add_rounded),
+                        label: const Text('Add'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : null,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : isMarkSelectionPage
@@ -872,7 +1147,9 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
                   child: ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      if (_mode != _WorkAssignmentMode.home)
+                      if (_mode != _WorkAssignmentMode.home &&
+                          !(widget.openListDirectly &&
+                              _mode == _WorkAssignmentMode.view))
                         Align(
                           alignment: Alignment.centerLeft,
                           child: TextButton.icon(
@@ -884,6 +1161,8 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
                                       _WorkAssignmentMode.quantityAdd &&
                                   _showForm) {
                                 _showForm = false;
+                              } else if (widget.openListDirectly) {
+                                _mode = _WorkAssignmentMode.view;
                               } else {
                                 _mode = _WorkAssignmentMode.home;
                               }
@@ -2584,68 +2863,238 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
   }
 
   Widget _buildAssignmentList(ColorScheme cs) {
+    final assignments = _visibleAssignments;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Work Assignment View',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 8),
-        if (_assignments.isEmpty)
-          const Card(
-              child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: Text('No active assignments.'))),
-        ..._assignments.map((assignment) {
-          final item = assignment.assignments.isNotEmpty
-              ? assignment.assignments.first
-              : null;
-          final description = item?.workDescription.trim() ?? '';
-          return Container(
-            margin: const EdgeInsets.symmetric(vertical: 2),
-            decoration: BoxDecoration(
-              color: cs.surface,
-              border: Border.all(color: cs.outlineVariant),
-              borderRadius: BorderRadius.circular(8),
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Work Assignments',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              ),
             ),
-            child: ListTile(
-              onTap: () => _showAssignmentDetails(assignment),
-              leading: Icon(Icons.assignment_ind_outlined, color: cs.primary),
-              title: Text(
-                item?.stageName ?? 'Work',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: cs.onSurface,
+            TextButton.icon(
+              onPressed: () =>
+                  setState(() => _mode = _WorkAssignmentMode.quantityView),
+              icon: const Icon(Icons.stacked_line_chart_rounded, size: 18),
+              label: const Text('Quantity Plans'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (_assignments.isNotEmpty) ...[
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 40,
+                  child: TextField(
+                    controller: _assignmentSearchController,
+                    onChanged: (value) =>
+                        setState(() => _assignmentSearchText = value),
+                    style: const TextStyle(fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: 'Search assignments...',
+                      prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                      suffixIcon: _assignmentSearchText.isEmpty
+                          ? null
+                          : IconButton(
+                              onPressed: () {
+                                _assignmentSearchController.clear();
+                                setState(() => _assignmentSearchText = '');
+                              },
+                              icon: const Icon(Icons.close_rounded, size: 18),
+                            ),
+                      isDense: true,
+                      filled: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              subtitle: Text(
-                '${(assignment.team?.name.trim().isNotEmpty ?? false) ? '${assignment.team!.name} · ' : ''}${item?.assignedQty ?? 0} ${item?.uom ?? ''}\n'
-                '${description.isEmpty ? '' : '$description\n'}'
-                'Start: ${_formatDate(assignment.assignmentDate)} · Expected: ${_formatDate(assignment.expectedCompletionDate)}',
-                style: TextStyle(color: cs.onSurfaceVariant),
+              const SizedBox(width: 6),
+              _assignmentToolbarButton(
+                cs,
+                tooltip: 'Filter and sort',
+                icon: Icons.tune_rounded,
+                active: _hasAssignmentFilters,
+                onPressed: _showAssignmentFilters,
               ),
-              isThreeLine: true,
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.visibility_outlined, color: cs.tertiary),
-                    onPressed: () => _showAssignmentDetails(assignment),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.edit, color: cs.primary),
-                    onPressed: () => _openEdit(assignment),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.delete_outline, color: cs.error),
-                    onPressed: () => _delete(assignment),
-                  ),
-                ],
+              const SizedBox(width: 6),
+              _assignmentToolbarButton(
+                cs,
+                tooltip: 'Download Sheet',
+                icon: Icons.download_rounded,
+                onPressed: _downloadAssignments,
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (_assignments.isEmpty)
+          _emptyAssignmentState(cs)
+        else if (assignments.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: cs.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: cs.outlineVariant),
             ),
-          );
-        }),
+            child: Column(
+              children: [
+                Icon(Icons.search_off_rounded,
+                    size: 40, color: cs.onSurfaceVariant),
+                const SizedBox(height: 10),
+                const Text(
+                  'No assignments found',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Try adjusting your search or filters.',
+                  style: TextStyle(color: cs.onSurfaceVariant),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => setState(() {
+                    _assignmentSearchController.clear();
+                    _assignmentSearchText = '';
+                    _assignmentStageFilter = null;
+                    _assignmentTeamFilter = null;
+                    _assignmentSort = _AssignmentSortOption.latestFirst;
+                  }),
+                  child: const Text('Clear Filters'),
+                ),
+              ],
+            ),
+          )
+        else
+          ...assignments.map((assignment) {
+            final item = assignment.assignments.isNotEmpty
+                ? assignment.assignments.first
+                : null;
+            final description = item?.workDescription.trim() ?? '';
+            return Container(
+              margin: const EdgeInsets.symmetric(vertical: 2),
+              decoration: BoxDecoration(
+                color: cs.surface,
+                border: Border.all(color: cs.outlineVariant),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: ListTile(
+                onTap: () => _showAssignmentDetails(assignment),
+                leading: Icon(Icons.assignment_ind_outlined, color: cs.primary),
+                title: Text(
+                  item?.stageName ?? 'Work',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: cs.onSurface,
+                  ),
+                ),
+                subtitle: Text(
+                  '${(assignment.team?.name.trim().isNotEmpty ?? false) ? '${assignment.team!.name} · ' : ''}${item?.assignedQty ?? 0} ${item?.uom ?? ''}\n'
+                  '${description.isEmpty ? '' : '$description\n'}'
+                  'Start: ${_formatDate(assignment.assignmentDate)} · Expected: ${_formatDate(assignment.expectedCompletionDate)}',
+                  style: TextStyle(color: cs.onSurfaceVariant),
+                ),
+                isThreeLine: true,
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.visibility_outlined, color: cs.tertiary),
+                      onPressed: () => _showAssignmentDetails(assignment),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.edit, color: cs.primary),
+                      onPressed: () => _openEdit(assignment),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.delete_outline, color: cs.error),
+                      onPressed: () => _delete(assignment),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
       ],
+    );
+  }
+
+  Widget _emptyAssignmentState(ColorScheme cs) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.assignment_ind_outlined, size: 44, color: cs.primary),
+          const SizedBox(height: 10),
+          const Text(
+            'No Work Assignments',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            'Create the first assignment for this site.',
+            style: TextStyle(color: cs.onSurfaceVariant),
+          ),
+          const SizedBox(height: 14),
+          FilledButton.icon(
+            onPressed: () => setState(() {
+              _mode = _WorkAssignmentMode.add;
+              _showForm = false;
+            }),
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('Add Assignment'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _assignmentToolbarButton(
+    ColorScheme cs, {
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback? onPressed,
+    bool active = false,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: active ? cs.primary : cs.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: active ? cs.primary : cs.outlineVariant,
+            ),
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: active ? cs.onPrimary : cs.primary,
+          ),
+        ),
+      ),
     );
   }
 
@@ -2961,6 +3410,8 @@ class _AssignmentStepperBottomBar extends StatelessWidget {
 }
 
 enum _WorkAssignmentMode { home, view, add, quantityView, quantityAdd }
+
+enum _AssignmentSortOption { latestFirst, oldestFirst, stageAsc }
 
 class _BulkWeightDialog extends StatefulWidget {
   const _BulkWeightDialog();

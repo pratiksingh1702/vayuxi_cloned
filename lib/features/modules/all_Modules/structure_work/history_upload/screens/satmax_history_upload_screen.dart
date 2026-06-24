@@ -1,8 +1,14 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
+import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/select_card.dart';
@@ -10,6 +16,8 @@ import 'package:untitled2/features/modules/all_Modules/structure_work/history_up
 import 'package:untitled2/features/profile_page/provider/userProvider.dart';
 
 enum SatmaxHistoryScreenMode { view, add }
+
+enum HistorySortOption { latestFirst, oldestFirst, rowsHighToLow }
 
 class ViewAddSatmaxHistoryScreen extends StatelessWidget {
   final String siteId;
@@ -163,6 +171,9 @@ class _SatmaxHistoryUploadScreenState
   bool _isUploading = false;
   String? _error;
   List<SatmaxHistoryRecord> _history = [];
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  HistorySortOption _sortOption = HistorySortOption.latestFirst;
 
   bool get _isSatmaxUser {
     return ref.watch(currentUserProvider)?.hasSatmaxMainFrameAccess ?? false;
@@ -174,6 +185,130 @@ class _SatmaxHistoryUploadScreenState
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_isSatmaxUser) _loadHistory();
     });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<SatmaxHistoryRecord> get _visibleHistory {
+    final query = _searchQuery.trim().toLowerCase();
+    final visible = _history
+        .where((item) =>
+            query.isEmpty || item.fileName.toLowerCase().contains(query))
+        .toList();
+    visible.sort((a, b) {
+      switch (_sortOption) {
+        case HistorySortOption.oldestFirst:
+          return (a.uploadedAt ?? DateTime(1970))
+              .compareTo(b.uploadedAt ?? DateTime(1970));
+        case HistorySortOption.rowsHighToLow:
+          return b.importedRows.compareTo(a.importedRows);
+        case HistorySortOption.latestFirst:
+          return (b.uploadedAt ?? DateTime(1970))
+              .compareTo(a.uploadedAt ?? DateTime(1970));
+      }
+    });
+    return visible;
+  }
+
+  String _csvCell(Object? value) =>
+      '"${(value ?? '').toString().replaceAll('"', '""')}"';
+
+  Future<void> _downloadHistory() async {
+    final items = _visibleHistory;
+    if (items.isEmpty) {
+      AppToast.info('No history records to download');
+      return;
+    }
+    try {
+      final rows = <List<Object?>>[
+        [
+          'File Name',
+          'Imported Rows',
+          'Skipped Rows',
+          'Quantity',
+          'Weight MT',
+          'Uploaded At',
+        ],
+        ...items.map((item) => [
+              item.fileName,
+              item.importedRows,
+              item.skippedRows,
+              item.totalQuantity,
+              item.totalNetWeightMT,
+              item.uploadedAt?.toLocal().toIso8601String() ?? '',
+            ]),
+      ];
+      final csv = rows.map((row) => row.map(_csvCell).join(',')).join('\n');
+      final directory = await getTemporaryDirectory();
+      final file = File(
+        '${directory.path}/history-upload-${DateTime.now().millisecondsSinceEpoch}.csv',
+      );
+      await file.writeAsString(csv);
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'text/csv')],
+        text: 'History upload records',
+      );
+    } catch (e) {
+      debugPrint('History export failed: $e');
+      AppToast.error('Failed to export history records');
+    }
+  }
+
+  void _showSortOptions() {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Sort History',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 12),
+              RadioListTile<HistorySortOption>(
+                value: HistorySortOption.latestFirst,
+                groupValue: _sortOption,
+                title: const Text('Latest first'),
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() => _sortOption = value);
+                  Navigator.pop(context);
+                },
+              ),
+              RadioListTile<HistorySortOption>(
+                value: HistorySortOption.oldestFirst,
+                groupValue: _sortOption,
+                title: const Text('Oldest first'),
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() => _sortOption = value);
+                  Navigator.pop(context);
+                },
+              ),
+              RadioListTile<HistorySortOption>(
+                value: HistorySortOption.rowsHighToLow,
+                groupValue: _sortOption,
+                title: const Text('Imported rows: high to low'),
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() => _sortOption = value);
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _loadHistory() async {
@@ -409,62 +544,112 @@ class _SatmaxHistoryUploadScreenState
     return Scaffold(
       appBar: CustomAppBar(title: 'History Upload'),
       backgroundColor: scheme.surface,
-      floatingActionButton: widget.mode == SatmaxHistoryScreenMode.view
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: _isUploading ? null : _showUploadSheet,
-              icon: _isUploading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.upload_file_rounded),
-              label: Text(_isUploading ? 'Uploading' : 'Upload Excel'),
+      body: BottomButtonWrapper(
+        customButtons: [
+          CustomButton(
+            button: RoundedButton(
+              text: _isUploading ? 'Uploading...' : 'Upload History',
+              color: scheme.primary,
+              textColor: scheme.onPrimary,
+              onPressed: () {
+                if (!_isUploading) _showUploadSheet();
+              },
             ),
-      body: RefreshIndicator(
-        onRefresh: _loadHistory,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-          children: [
-            _HeaderCard(
-              siteName: widget.siteName,
-              mode: widget.mode,
-              isUploading: _isUploading,
-              onUpload: null,
-            ),
-            const SizedBox(height: 16),
-            if (widget.mode == SatmaxHistoryScreenMode.add) ...[
-              _AddHistoryCard(
+          ),
+        ],
+        child: RefreshIndicator(
+          onRefresh: _loadHistory,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            children: [
+              _HeaderCard(
                 siteName: widget.siteName,
+                mode: SatmaxHistoryScreenMode.view,
                 isUploading: _isUploading,
-                onUpload: _isUploading ? null : _showUploadSheet,
+                onUpload: null,
               ),
               const SizedBox(height: 16),
-            ],
-            if (_error != null) _ErrorCard(message: _error!),
-            if (_error != null) const SizedBox(height: 16),
-            if (_isLoading)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32),
-                  child: CircularProgressIndicator(),
+              if (_history.isNotEmpty) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 40,
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (value) =>
+                              setState(() => _searchQuery = value),
+                          style: const TextStyle(fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: 'Search history files...',
+                            prefixIcon:
+                                const Icon(Icons.search_rounded, size: 20),
+                            suffixIcon: _searchQuery.isEmpty
+                                ? null
+                                : IconButton(
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      setState(() => _searchQuery = '');
+                                    },
+                                    icon: const Icon(Icons.close_rounded,
+                                        size: 18),
+                                  ),
+                            isDense: true,
+                            filled: true,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    _HistoryToolbarButton(
+                      tooltip: 'Sort history',
+                      icon: Icons.tune_rounded,
+                      active: _sortOption != HistorySortOption.latestFirst,
+                      onPressed: _showSortOptions,
+                    ),
+                    const SizedBox(width: 6),
+                    _HistoryToolbarButton(
+                      tooltip: 'Download Sheet',
+                      icon: Icons.download_rounded,
+                      onPressed: _downloadHistory,
+                    ),
+                  ],
                 ),
-              )
-            else if (_history.isEmpty)
-              const _EmptyHistoryCard()
-            else
-              ..._history.map(
-                (item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _HistoryCard(
-                    item: item,
-                    dateFormat: _dateFormat,
+                const SizedBox(height: 16),
+              ],
+              if (_error != null) _ErrorCard(message: _error!),
+              if (_error != null) const SizedBox(height: 16),
+              if (_isLoading)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else if (_history.isEmpty)
+                _EmptyHistoryCard(onUpload: _showUploadSheet)
+              else if (_visibleHistory.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Center(child: Text('No history files found')),
+                )
+              else
+                ..._visibleHistory.map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _HistoryCard(
+                      item: item,
+                      dateFormat: _dateFormat,
+                    ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -908,7 +1093,9 @@ class _ErrorCard extends StatelessWidget {
 }
 
 class _EmptyHistoryCard extends StatelessWidget {
-  const _EmptyHistoryCard();
+  final VoidCallback onUpload;
+
+  const _EmptyHistoryCard({required this.onUpload});
 
   @override
   Widget build(BuildContext context) {
@@ -943,7 +1130,55 @@ class _EmptyHistoryCard extends StatelessWidget {
                   color: scheme.onSurfaceVariant,
                 ),
           ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: onUpload,
+            icon: const Icon(Icons.upload_file_rounded),
+            label: const Text('Upload History'),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _HistoryToolbarButton extends StatelessWidget {
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final bool active;
+
+  const _HistoryToolbarButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+    this.active = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: active ? scheme.primary : scheme.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: active ? scheme.primary : scheme.outlineVariant,
+            ),
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: active ? scheme.onPrimary : scheme.primary,
+          ),
+        ),
       ),
     );
   }

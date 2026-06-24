@@ -10,7 +10,7 @@ import 'package:untitled2/features/modules/all_Modules/site_Details/repository/s
 import 'package:untitled2/features/modules/all_Modules/site_Details/screens/siteList.dart';
 import 'package:untitled2/features/modules/all_Modules/summary/screens/summaru_screen.dart';
 
-import '../../features/modules/all_Modules/structure_work/boq/screens/view_add_boq.dart';
+import '../../features/modules/all_Modules/structure_work/boq/screens/boq_item_list.dart';
 import '../../features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_list_screen.dart';
 import '../../features/modules/all_Modules/structure_work/reports/structure_sheet_download_page.dart';
 import '../../features/modules/all_Modules/structure_work/dpr_setup/screens/dpr_setup_list_screen.dart';
@@ -78,7 +78,6 @@ import '../../features/modules/all_Modules/inventory/screens/inv_usage/inv_usage
 import '../../features/modules/all_Modules/inventory/screens/inv_usage/inventory_cat.dart';
 import '../../features/modules/all_Modules/inventory/screens/inventory_list.dart';
 import '../../features/modules/all_Modules/inventory/screens/report/daily_usage.dart';
-import '../../features/modules/all_Modules/inventory/screens/view_add_inventory_setup.dart';
 import '../../features/modules/all_Modules/more/help.dart';
 import '../../features/modules/all_Modules/more/language.dart';
 import '../../features/modules/all_Modules/more/more.dart';
@@ -406,16 +405,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     siteId: site.id, siteName: site.siteName);
                 break;
               case 'structure-boq':
-                screen =
-                    ViewAddBoqScreen(siteId: site.id, siteName: site.siteName);
+                screen = BoqItemListScreen(
+                  siteId: site.id,
+                  siteName: site.siteName,
+                );
                 break;
               case 'structure-dpr-setup':
                 screen = DPRSetupListScreen(site: site);
                 break;
               case 'structure-history-upload':
-                screen = ViewAddSatmaxHistoryScreen(
+                screen = SatmaxHistoryUploadScreen(
                   siteId: site.id,
                   siteName: site.siteName,
+                  mode: SatmaxHistoryScreenMode.view,
                 );
                 break;
               case 'structure-pm-entry':
@@ -461,7 +463,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 screen = InventoryCategorySelectionScreen();
                 break;
               case 'inv-setup':
-                screen = ViewAddInventorySetup();
+                screen = const InventoryListScreen();
                 break;
               case 'att-sheet':
                 screen = GenerateAttendanceSheetScreen();
@@ -560,8 +562,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 screen = PebDprSetupScreen(siteId: site.id, workType: 'peb');
                 break;
               case 'boq-upload':
-                screen =
-                    ViewAddBoqScreen(siteId: site.id, siteName: site.siteName);
+                screen = BoqItemListScreen(
+                  siteId: site.id,
+                  siteName: site.siteName,
+                );
                 break;
               case 'work-assignment':
                 screen = PebWorkAssignmentScreen(
@@ -570,6 +574,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   executionType: type == 'fabrication_work'
                       ? PebExecutionType.fabrication
                       : PebExecutionType.erection,
+                  openListDirectly: true,
                 );
                 break;
               case 'cold-call':

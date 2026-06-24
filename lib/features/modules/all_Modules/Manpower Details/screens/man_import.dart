@@ -697,15 +697,12 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            RoundedButton(
-              width: double.infinity,
-              text: downloadState.isLoading
-                  ? "Downloading..."
-                  : "Download Sample Template",
-              color: Colors.white,
-              textColor: Colors.black45,
+            ImportActionButton(
+              label: "Download Sample Template",
+              icon: Icons.download_rounded,
+              isLoading: downloadState.isLoading,
               onPressed: downloadState.isLoading
-                  ? () {}
+                  ? null
                   : () async {
                       Navigator.push(
                         context,
@@ -755,42 +752,12 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
             const SizedBox(height: 24),
 
             // Upload Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _onUploadPressed,
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    disabledBackgroundColor: Colors.blue.withOpacity(0.5),
-                    elevation: 0),
-                child: _isLoading
-                    ? const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Text('Uploading...'),
-                        ],
-                      )
-                    : const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.cloud_upload),
-                          SizedBox(width: 8),
-                          Text('Upload Manpower'),
-                        ],
-                      ),
-              ),
+            ImportActionButton(
+              label: 'Upload Manpower',
+              icon: Icons.cloud_upload_rounded,
+              isLoading: _isLoading,
+              isPrimary: true,
+              onPressed: _isLoading ? null : _onUploadPressed,
             ),
 
             const SizedBox(height: 16),

@@ -11,6 +11,7 @@ import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../site_Details/providers/site_current_provider.dart';
 import '../models/inventory_model.dart';
 import '../provider/inventory_provider.dart';
+import 'add_bulk_inven.dart';
 
 class CreateInventoryScreen extends ConsumerStatefulWidget {
   const CreateInventoryScreen({Key? key}) : super(key: key);
@@ -125,7 +126,19 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
 
     return Scaffold(
       drawer: const CustomDrawer(),
-      appBar: CustomAppBar(title: "Create Inventory"),
+      appBar: CustomAppBar(
+        title: "Create Inventory",
+        actions: [
+          TextButton.icon(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const BulkUploadScreen()),
+            ),
+            icon: const Icon(Icons.upload_file_rounded, size: 18),
+            label: const Text("Import Sheet"),
+          ),
+        ],
+      ),
       backgroundColor: colorScheme.surfaceContainerLowest,
       body: BottomButtonWrapper(
         customButtons: [

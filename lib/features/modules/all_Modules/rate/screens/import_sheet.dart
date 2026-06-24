@@ -262,15 +262,12 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> with ScreenOw
             children: [
               _tourTarget(
                 _downloadTourKey,
-                RoundedButton(
-                width: double.infinity,
-                text: downloadState.isLoading
-                    ? "Downloading..."
-                    : "Download Sample Template",
-                color: colorScheme.surface,
-                textColor: colorScheme.onSurface,
+                ImportActionButton(
+                label: "Download Sample Template",
+                icon: Icons.download_rounded,
+                isLoading: downloadState.isLoading,
                 onPressed: downloadState.isLoading
-                    ? () {}
+                    ? null
                     : () async {
                         Navigator.push(
                           context,
