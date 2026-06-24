@@ -323,20 +323,7 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen>
           backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
           appBar: CustomAppBar(
             title: "Add Rate",
-            actions: [
-              IconButton(
-                tooltip: 'Import Sheet',
-                icon: const Icon(Icons.upload_file_rounded),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ImportCsvScreen(),
-                    ),
-                  );
-                },
-              ),
-            ],
+            actions: const [],
           ),
           body: BottomButtonWrapper(
             customButtons: [
@@ -356,6 +343,28 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ImportCsvScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.upload_file_rounded),
+                      label: const Text('Import Sheet'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   _tourTarget(
                     _productTourKey,
                     CustomTextField(

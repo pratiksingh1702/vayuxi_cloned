@@ -550,21 +550,7 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen>
               return [
                 CustomSliverAppBar(
                   title: site?.siteName ?? "New Site",
-                  actions: [
-                    if (widget.site == null)
-                      IconButton(
-                        tooltip: 'Import Sheet',
-                        icon: const Icon(Icons.upload_file_rounded),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const SiteImportCsvScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                  ],
+                  actions: const [],
                 ),
               ];
             },
@@ -591,6 +577,31 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen>
                   key: _formKey,
                   child: Column(
                     children: [
+                      if (widget.site == null) ...[
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const SiteImportCsvScreen(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.upload_file_rounded),
+                            label: const Text('Import Sheet'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                       if (widget.site != null) ...[
                         _tourTarget(
                           _deleteTourKey,

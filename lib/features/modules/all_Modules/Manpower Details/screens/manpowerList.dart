@@ -777,16 +777,6 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen>
                   title: _isSelectionMode
                       ? '${_selectedManpowerIds.length} Selected'
                       : "View Manpower Details",
-                  actions: [
-                    _tourTarget(
-                      _sheetTourKey,
-                      IconButton(
-                        tooltip: 'Download Sheet',
-                        icon: const Icon(Icons.download_rounded),
-                        onPressed: () => _showFormatSelectionDialog(context),
-                      ),
-                    ),
-                  ],
                 ),
               ];
             },
@@ -951,20 +941,27 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen>
                     return Center(
                       child: _tourTarget(
                         _emptyTourKey,
-                        const Column(
+                        Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.people_outline, size: 64),
-                            SizedBox(height: 16),
-                            Text(
+                            const Icon(Icons.people_outline, size: 64),
+                            const SizedBox(height: 16),
+                            const Text(
                               "Manpower data is empty",
                               style: TextStyle(
                                   fontSize: 18, fontWeight: FontWeight.w600),
                             ),
-                            SizedBox(height: 6),
-                            Text(
+                            const SizedBox(height: 6),
+                            const Text(
                               "No manpower records found. Please add manpower.",
                               textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            FilledButton.icon(
+                              onPressed: () =>
+                                  context.push(Routes.manpowerAddDetails),
+                              icon: const Icon(Icons.add_rounded),
+                              label: const Text('Add Manpower'),
                             ),
                           ],
                         ),
@@ -987,81 +984,64 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen>
                           child: Row(
                             children: [
                               Expanded(
-                                child: TextField(
-                                  onChanged: (val) =>
-                                      setState(() => _searchQuery = val),
-                                  decoration: InputDecoration(
-                                    hintText: 'Search by name or code...',
-                                    prefixIcon:
-                                        const Icon(Icons.search, size: 20),
-                                    suffixIcon: _searchQuery.isNotEmpty
-                                        ? IconButton(
-                                            icon: const Icon(Icons.close,
-                                                size: 18),
-                                            onPressed: () => setState(
-                                                () => _searchQuery = ''),
-                                          )
-                                        : null,
-                                    isDense: true,
-                                    filled: true,
-                                    fillColor: colorScheme.surface,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 10),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                      borderSide: BorderSide.none,
+                                child: SizedBox(
+                                  height: 40,
+                                  child: TextField(
+                                    onChanged: (val) =>
+                                        setState(() => _searchQuery = val),
+                                    decoration: InputDecoration(
+                                      hintText: 'Search by name or code...',
+                                      hintStyle: TextStyle(
+                                        fontSize: 14,
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
+                                      prefixIcon:
+                                          const Icon(Icons.search, size: 20),
+                                      suffixIcon: _searchQuery.isNotEmpty
+                                          ? IconButton(
+                                              icon: const Icon(Icons.close,
+                                                  size: 18),
+                                              onPressed: () => setState(
+                                                  () => _searchQuery = ''),
+                                            )
+                                          : null,
+                                      isDense: true,
+                                      filled: true,
+                                      fillColor: colorScheme.surface,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 12, vertical: 10),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: BorderSide.none,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 6),
                               _buildFilterButton(
                                 manpowerList,
                                 selectedSiteName: selectedSite?.siteName,
                               ),
+                              const SizedBox(width: 6),
+                              _tourTarget(
+                                _sheetTourKey,
+                                _manpowerToolbarButton(
+                                  tooltip: 'Download Sheet',
+                                  icon: Icons.download_rounded,
+                                  onPressed: () =>
+                                      _showFormatSelectionDialog(context),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              ..._manpowerSelectionControls(
+                                filteredList,
+                                colorScheme,
+                              ),
                             ],
                           ),
                         ),
-                      ),
-
-                      /// TOP BAR
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          if (_isSelectionMode) ...[
-                            IconButton(
-                              icon: const Icon(Icons.close),
-                              onPressed: _toggleSelectionMode,
-                            ),
-                            TextButton(
-                              onPressed: () => _selectAllManpower(manpowerList),
-                              child: const Text('Select All'),
-                            ),
-                            const SizedBox(width: 8),
-                            ElevatedButton.icon(
-                              icon: const Icon(Icons.delete_sweep, size: 18),
-                              label: const Text('Delete'),
-                              onPressed: _selectedManpowerIds.isEmpty
-                                  ? null
-                                  : _deleteSelectedManpower,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: colorScheme.error,
-                                foregroundColor: colorScheme.onError,
-                              ),
-                            ),
-                          ] else ...[
-                            _tourTarget(
-                              _deleteModeTourKey,
-                              IconButton(
-                                icon: Icon(Icons.delete_sweep,
-                                    color: colorScheme.error),
-                                onPressed: manpowerList.isEmpty
-                                    ? null
-                                    : _toggleSelectionMode,
-                              ),
-                            ),
-                          ],
-                        ],
                       ),
 
                       /// LIST
@@ -1106,6 +1086,103 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen>
         );
       },
     );
+  }
+
+  Widget _manpowerToolbarButton({
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback? onPressed,
+    bool active = false,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: active ? cs.primary : cs.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: active ? cs.primary : cs.outlineVariant,
+            ),
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: active ? cs.onPrimary : cs.primary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _manpowerSelectionControls(
+    List<ManpowerModel> visibleManpower,
+    ColorScheme cs,
+  ) {
+    final selectableIds = visibleManpower
+        .map((manpower) => manpower.id)
+        .whereType<String>()
+        .toList();
+    final allSelected = selectableIds.isNotEmpty &&
+        selectableIds.every(_selectedManpowerIds.contains);
+
+    if (!_isSelectionMode) {
+      return [
+        _tourTarget(
+          _deleteModeTourKey,
+          _manpowerToolbarButton(
+            tooltip: 'Select Manpower',
+            icon: Icons.checklist_rounded,
+            onPressed: selectableIds.isEmpty ? null : _toggleSelectionMode,
+          ),
+        ),
+      ];
+    }
+
+    return [
+      SizedBox(
+        height: 40,
+        child: TextButton(
+          style: TextButton.styleFrom(
+            minimumSize: const Size(76, 40),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            textStyle:
+                const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          ),
+          onPressed: selectableIds.isEmpty
+              ? null
+              : () {
+                  if (allSelected) {
+                    setState(() {
+                      _selectedManpowerIds.removeAll(selectableIds);
+                    });
+                  } else {
+                    _selectAllManpower(visibleManpower);
+                  }
+                },
+          child: Text(allSelected ? 'Deselect' : 'Select All'),
+        ),
+      ),
+      const SizedBox(width: 4),
+      _manpowerToolbarButton(
+        tooltip: 'Delete Selected',
+        icon: Icons.delete_sweep_rounded,
+        active: _selectedManpowerIds.isNotEmpty,
+        onPressed:
+            _selectedManpowerIds.isEmpty ? null : _deleteSelectedManpower,
+      ),
+      const SizedBox(width: 4),
+      _manpowerToolbarButton(
+        tooltip: 'Cancel',
+        icon: Icons.close_rounded,
+        onPressed: _toggleSelectionMode,
+      ),
+    ];
   }
 
   Widget _buildFilterButton(

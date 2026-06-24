@@ -97,6 +97,27 @@ class _RateScreenState extends ConsumerState<RateScreen>
       _filterRateMax != null ||
       _currentSort != RateSortOption.latestFirst;
 
+  List<Rate> _filteredRates(List<Rate> rates) {
+    return rates.where((rate) {
+      if (_searchQuery.isNotEmpty &&
+          !rate.serviceName
+              .toLowerCase()
+              .contains(_searchQuery.toLowerCase()) &&
+          !rate.hsnSacCode.toLowerCase().contains(_searchQuery.toLowerCase())) {
+        return false;
+      }
+      if (_filterUOM.isNotEmpty && !_filterUOM.contains(rate.uom)) {
+        return false;
+      }
+      if (_filterType.isNotEmpty && !_filterType.contains(rate.type)) {
+        return false;
+      }
+      if (_filterRateMin != null && rate.rate < _filterRateMin!) return false;
+      if (_filterRateMax != null && rate.rate > _filterRateMax!) return false;
+      return true;
+    }).toList();
+  }
+
   void _showFilterSortBottomSheet() {
     showModalBottomSheet(
       context: context,
@@ -644,21 +665,6 @@ class _RateScreenState extends ConsumerState<RateScreen>
                   title: _isSelectionMode
                       ? '${_selectedRateIds.length} Selected'
                       : "Rates",
-                  actions: [
-                    _tourTarget(
-                      _viewSheetTourKey,
-                      IconButton(
-                        tooltip: 'Download Sheet',
-                        icon: const Icon(Icons.download_rounded),
-                        onPressed: () {
-                          final type = ref.read(typeProvider);
-                          if (type != null && site != null) {
-                            saveCsvWithDialog(context, type, site.id);
-                          }
-                        },
-                      ),
-                    ),
-                  ],
                 ),
               ];
             },
@@ -693,10 +699,10 @@ class _RateScreenState extends ConsumerState<RateScreen>
                         children: [
                           Expanded(
                             child: Container(
-                              height: 48,
+                              height: 40,
                               decoration: BoxDecoration(
                                 color: colorScheme.surfaceContainerLow,
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(10),
                                 border: Border.all(
                                     color: colorScheme.outlineVariant
                                         .withOpacity(0.5)),
@@ -706,11 +712,15 @@ class _RateScreenState extends ConsumerState<RateScreen>
                                 style: const TextStyle(fontSize: 14),
                                 decoration: InputDecoration(
                                   hintText: 'Search service...',
+                                  hintStyle: TextStyle(
+                                    fontSize: 14,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
                                   prefixIcon: Icon(Icons.search,
                                       color: colorScheme.primary, size: 20),
                                   border: InputBorder.none,
                                   contentPadding:
-                                      const EdgeInsets.symmetric(vertical: 14),
+                                      const EdgeInsets.symmetric(vertical: 10),
                                   suffixIcon: _searchQuery.isNotEmpty
                                       ? IconButton(
                                           icon:
@@ -723,85 +733,38 @@ class _RateScreenState extends ConsumerState<RateScreen>
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          InkWell(
-                            onTap: _showFilterSortBottomSheet,
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: hasActiveFilters
-                                    ? colorScheme.primary
-                                    : colorScheme.surfaceContainerLow,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: hasActiveFilters
-                                      ? colorScheme.primary
-                                      : colorScheme.outlineVariant
-                                          .withOpacity(0.5),
-                                ),
-                              ),
-                              child: Icon(
-                                Icons.tune,
-                                color: hasActiveFilters
-                                    ? colorScheme.onPrimary
-                                    : colorScheme.primary,
-                                size: 22,
-                              ),
+                          const SizedBox(width: 6),
+                          _rateToolbarButton(
+                            tooltip: 'Filter and sort',
+                            icon: Icons.tune_rounded,
+                            active: hasActiveFilters,
+                            onPressed: _showFilterSortBottomSheet,
+                          ),
+                          const SizedBox(width: 6),
+                          _tourTarget(
+                            _viewSheetTourKey,
+                            _rateToolbarButton(
+                              tooltip: 'Download Sheet',
+                              icon: Icons.download_rounded,
+                              onPressed: () {
+                                final type = ref.read(typeProvider);
+                                if (type != null && site != null) {
+                                  saveCsvWithDialog(context, type, site.id);
+                                }
+                              },
                             ),
                           ),
+                          if (rates.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            ..._rateSelectionControls(
+                              _filteredRates(rates),
+                              colorScheme,
+                            ),
+                          ],
                         ],
                       ),
                     ),
                   ),
-
-                  // Top action bar with selection controls
-                  if (rates.isNotEmpty)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Row(
-                          children: [
-                            if (_isSelectionMode) ...[
-                              IconButton(
-                                icon: const Icon(Icons.close),
-                                onPressed: _toggleSelectionMode,
-                                tooltip: 'Cancel',
-                              ),
-                              TextButton(
-                                onPressed: () => _selectAllRates(rates),
-                                child: const Text('Select All'),
-                              ),
-                              const SizedBox(width: 8),
-                              ElevatedButton.icon(
-                                icon: const Icon(Icons.delete_sweep, size: 18),
-                                label: const Text('Delete'),
-                                onPressed: _selectedRateIds.isEmpty
-                                    ? null
-                                    : _deleteSelectedRates,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: colorScheme.error,
-                                  foregroundColor: colorScheme.onError,
-                                ),
-                              ),
-                            ] else ...[
-                              _tourTarget(
-                                _deleteModeTourKey,
-                                IconButton(
-                                  icon: Icon(Icons.delete_sweep,
-                                      color: colorScheme.error),
-                                  onPressed: rates.isEmpty
-                                      ? null
-                                      : _toggleSelectionMode,
-                                  tooltip: 'Select Rates to Delete',
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
-                    ),
 
                   // Rates list
                   Expanded(
@@ -1005,6 +968,100 @@ class _RateScreenState extends ConsumerState<RateScreen>
         );
       },
     );
+  }
+
+  Widget _rateToolbarButton({
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback? onPressed,
+    bool active = false,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: active ? cs.primary : cs.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: active ? cs.primary : cs.outlineVariant.withOpacity(0.5),
+            ),
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: onPressed == null
+                ? cs.onSurfaceVariant
+                : active
+                    ? cs.onPrimary
+                    : cs.primary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _rateSelectionControls(List<Rate> visibleRates, ColorScheme cs) {
+    final allSelected = visibleRates.isNotEmpty &&
+        visibleRates.every((rate) => _selectedRateIds.contains(rate.id));
+
+    if (!_isSelectionMode) {
+      return [
+        _tourTarget(
+          _deleteModeTourKey,
+          _rateToolbarButton(
+            tooltip: 'Select Rates',
+            icon: Icons.checklist_rounded,
+            onPressed: visibleRates.isEmpty ? null : _toggleSelectionMode,
+          ),
+        ),
+      ];
+    }
+
+    return [
+      SizedBox(
+        height: 40,
+        child: TextButton(
+          style: TextButton.styleFrom(
+            minimumSize: const Size(76, 40),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            textStyle:
+                const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          ),
+          onPressed: visibleRates.isEmpty
+              ? null
+              : () {
+                  if (allSelected) {
+                    setState(() {
+                      _selectedRateIds
+                          .removeAll(visibleRates.map((rate) => rate.id));
+                    });
+                  } else {
+                    _selectAllRates(visibleRates);
+                  }
+                },
+          child: Text(allSelected ? 'Deselect' : 'Select All'),
+        ),
+      ),
+      const SizedBox(width: 4),
+      _rateToolbarButton(
+        tooltip: 'Delete Selected',
+        icon: Icons.delete_sweep_rounded,
+        active: _selectedRateIds.isNotEmpty,
+        onPressed: _selectedRateIds.isEmpty ? null : _deleteSelectedRates,
+      ),
+      const SizedBox(width: 4),
+      _rateToolbarButton(
+        tooltip: 'Cancel',
+        icon: Icons.close_rounded,
+        onPressed: _toggleSelectionMode,
+      ),
+    ];
   }
 
   Widget _buildRateTile(

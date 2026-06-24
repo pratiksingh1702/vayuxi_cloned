@@ -9,6 +9,7 @@ class CompanyCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
   final bool show;
+  final bool minimalSiteCard;
 
   const CompanyCard({
     super.key,
@@ -19,6 +20,7 @@ class CompanyCard extends StatelessWidget {
     this.onTap,
     this.onDelete,
     this.show = false,
+    this.minimalSiteCard = false,
   });
 
   Widget _buildIconPlaceholder(BuildContext context) {
@@ -32,16 +34,16 @@ class CompanyCard extends StatelessWidget {
       ),
       alignment: Alignment.center,
       child: Container(
-        width: 44,
-        height: 44,
+        width: minimalSiteCard ? 72 : 44,
+        height: minimalSiteCard ? 72 : 44,
         decoration: BoxDecoration(
           color: cs.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(minimalSiteCard ? 18 : 12),
           border: Border.all(color: cs.outlineVariant),
         ),
         child: Icon(
           fallbackIcon,
-          size: 24,
+          size: minimalSiteCard ? 40 : 24,
           color: cs.onSurfaceVariant,
         ),
       ),
@@ -118,56 +120,97 @@ class CompanyCard extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                title,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  height: 1.15,
-                                  fontWeight: FontWeight.w800,
-                                  color: cs.onSurface,
+                              if (minimalSiteCard)
+                                Expanded(
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          title,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 13.5,
+                                            height: 1.1,
+                                            fontWeight: FontWeight.w800,
+                                            color: cs.onSurface,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        width: 24,
+                                        height: 24,
+                                        decoration: BoxDecoration(
+                                          color: cs.primaryContainer
+                                              .withValues(alpha: 0.55),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: Icon(
+                                          Icons.arrow_forward_ios_rounded,
+                                          size: 11,
+                                          color: cs.primary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else
+                                Text(
+                                  title,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    height: 1.15,
+                                    fontWeight: FontWeight.w800,
+                                    color: cs.onSurface,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 5),
-                              Text(
-                                'Site details',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: cs.onSurfaceVariant,
-                                ),
-                              ),
-                              const Spacer(),
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.location_on_outlined,
-                                    size: 14,
+                              if (!minimalSiteCard) ...[
+                                const SizedBox(height: 5),
+                                Text(
+                                  'Site details',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
                                     color: cs.onSurfaceVariant,
                                   ),
-                                  const SizedBox(width: 5),
-                                  Expanded(
-                                    child: Text(
-                                      'Open site',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 11.5,
-                                        fontWeight: FontWeight.w700,
-                                        color: cs.onSurfaceVariant,
+                                ),
+                                const Spacer(),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.location_on_outlined,
+                                      size: 14,
+                                      color: cs.onSurfaceVariant,
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Expanded(
+                                      child: Text(
+                                        'Open site',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: cs.onSurfaceVariant,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  Icon(
-                                    Icons.chevron_right_rounded,
-                                    size: 20,
-                                    color: cs.onSurfaceVariant,
-                                  ),
-                                ],
-                              ),
+                                    Icon(
+                                      Icons.chevron_right_rounded,
+                                      size: 20,
+                                      color: cs.onSurfaceVariant,
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ],
                           ),
                         ),

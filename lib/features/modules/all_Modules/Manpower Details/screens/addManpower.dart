@@ -719,20 +719,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen>
           backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
           appBar: CustomAppBar(
             title: "New Employee Details",
-            actions: [
-              IconButton(
-                tooltip: 'Import Sheet',
-                icon: const Icon(Icons.upload_file_rounded),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ManImportCsvScreen(),
-                    ),
-                  );
-                },
-              ),
-            ],
+            actions: const [],
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(12),
@@ -741,6 +728,28 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ManImportCsvScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.upload_file_rounded),
+                      label: const Text('Import Sheet'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   // ── Full Name ──
                   _tourTarget(
                     _basicTourKey,

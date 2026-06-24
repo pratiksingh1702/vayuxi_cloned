@@ -39,6 +39,8 @@ import '../repository/siteModel.dart';
 import '../../team/provider/teamProvider.dart';
 import '../../../../../typeProvider/type_provider.dart';
 
+enum SiteSortOption { latestFirst, nameAsc, nameDesc }
+
 class SiteListScreen extends ConsumerStatefulWidget {
   final Widget Function(SiteModel site) pageBuilder;
   final bool show;
@@ -57,6 +59,10 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
   bool _isSelectionMode = false;
   Set<String> _selectedSiteIds = {};
   final ScrollController _gridScrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  SiteSortOption _siteSort = SiteSortOption.latestFirst;
+  final Set<String> _workTypeFilters = {};
   static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
   String? _lastShowcasedTourStepId;
   final GlobalKey _addButtonTourKey =
@@ -70,7 +76,136 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
   @override
   void dispose() {
     _gridScrollController.dispose();
+    _searchController.dispose();
     super.dispose();
+  }
+
+  bool get _hasActiveSiteFilters =>
+      _workTypeFilters.isNotEmpty || _siteSort != SiteSortOption.latestFirst;
+
+  List<SiteModel> _visibleSites(List<SiteModel> sites) {
+    final query = _searchQuery.trim().toLowerCase();
+    final result = sites.where((site) {
+      final matchesSearch = query.isEmpty ||
+          site.siteName.toLowerCase().contains(query) ||
+          site.address.toLowerCase().contains(query) ||
+          site.contactPerson.toLowerCase().contains(query);
+      final matchesType = _workTypeFilters.isEmpty ||
+          site.workTypes.any(_workTypeFilters.contains);
+      return matchesSearch && matchesType;
+    }).toList();
+    result.sort((a, b) {
+      switch (_siteSort) {
+        case SiteSortOption.nameAsc:
+          return a.siteName.toLowerCase().compareTo(b.siteName.toLowerCase());
+        case SiteSortOption.nameDesc:
+          return b.siteName.toLowerCase().compareTo(a.siteName.toLowerCase());
+        case SiteSortOption.latestFirst:
+          return b.createdAt.compareTo(a.createdAt);
+      }
+    });
+    return result;
+  }
+
+  void _showSiteFilters(List<SiteModel> sites) {
+    final workTypes = sites.expand((site) => site.workTypes).toSet().toList()
+      ..sort();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Filter & Sort',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setSheetState(() {
+                          _siteSort = SiteSortOption.latestFirst;
+                          _workTypeFilters.clear();
+                        });
+                        setState(() {});
+                      },
+                      child: const Text('Reset'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Sort By',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 8),
+                SegmentedButton<SiteSortOption>(
+                  segments: const [
+                    ButtonSegment(
+                      value: SiteSortOption.latestFirst,
+                      label: Text('Latest'),
+                    ),
+                    ButtonSegment(
+                      value: SiteSortOption.nameAsc,
+                      label: Text('A-Z'),
+                    ),
+                    ButtonSegment(
+                      value: SiteSortOption.nameDesc,
+                      label: Text('Z-A'),
+                    ),
+                  ],
+                  selected: {_siteSort},
+                  onSelectionChanged: (value) {
+                    setSheetState(() => _siteSort = value.first);
+                    setState(() {});
+                  },
+                ),
+                if (workTypes.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Work Type',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: workTypes
+                        .map(
+                          (type) => FilterChip(
+                            label: Text(type.replaceAll('_', ' ')),
+                            selected: _workTypeFilters.contains(type),
+                            onSelected: (selected) {
+                              setSheetState(() {
+                                selected
+                                    ? _workTypeFilters.add(type)
+                                    : _workTypeFilters.remove(type);
+                              });
+                              setState(() {});
+                            },
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -305,15 +440,6 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
                   title: _isSelectionMode
                       ? '${_selectedSiteIds.length} Selected'
                       : lang.selectSiteTitle,
-                  actions: [
-                    IconButton(
-                      tooltip: 'Download Sheet',
-                      icon: const Icon(Icons.download_rounded),
-                      onPressed: () => _downloadSiteList(
-                        ref.read(siteProvider).sites,
-                      ),
-                    ),
-                  ],
                 ),
               ];
             },
@@ -328,6 +454,8 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
     final cs = Theme.of(context).colorScheme;
     final siteState = ref.watch(siteProvider);
     final sites = siteState.sites;
+    final visibleSites = _visibleSites(sites);
+    final showSiteDownload = widget.show && widget.module == 'site';
 
     return BottomButtonWrapper(
       customButtons: [
@@ -355,51 +483,72 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
       ],
       child: Column(
         children: [
-          // Top action bar with selection controls
-          if (sites.isNotEmpty)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Row(
-                  children: [
-                    if (_isSelectionMode) ...[
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: _toggleSelectionMode,
-                        tooltip: 'Cancel',
-                      ),
-                      TextButton(
-                        onPressed: () => _selectAllSites(sites),
-                        child: const Text('Select All'),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.delete_sweep, size: 18),
-                        label: const Text('Delete'),
-                        onPressed: _selectedSiteIds.isEmpty
-                            ? null
-                            : _deleteSelectedSites,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: cs.error,
-                          foregroundColor: cs.onError,
-                        ),
-                      ),
-                    ] else ...[
-                      if (widget.show)
-                        _tourTarget(
-                          _deleteModeTourKey,
-                          IconButton(
-                            icon: Icon(Icons.delete_sweep, color: cs.error),
-                            onPressed:
-                                sites.isEmpty ? null : _toggleSelectionMode,
-                            tooltip: 'Select Sites to Delete',
+          if (sites.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 40,
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (value) =>
+                            setState(() => _searchQuery = value),
+                        style: const TextStyle(fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: 'Search sites...',
+                          hintStyle: TextStyle(
+                            fontSize: 14,
+                            color: cs.onSurfaceVariant,
                           ),
+                          prefixIcon:
+                              Icon(Icons.search_rounded, color: cs.primary),
+                          suffixIcon: _searchQuery.isEmpty
+                              ? null
+                              : IconButton(
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() => _searchQuery = '');
+                                  },
+                                  icon:
+                                      const Icon(Icons.close_rounded, size: 18),
+                                ),
+                          filled: true,
+                          fillColor: cs.surface,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(color: cs.outlineVariant),
+                          ),
+                          contentPadding:
+                              const EdgeInsets.symmetric(vertical: 10),
                         ),
-                    ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  _siteToolbarButton(
+                    tooltip: 'Filter and sort',
+                    icon: Icons.tune_rounded,
+                    active: _hasActiveSiteFilters,
+                    onPressed: () => _showSiteFilters(sites),
+                  ),
+                  if (showSiteDownload) ...[
+                    const SizedBox(width: 6),
+                    _siteToolbarButton(
+                      tooltip: 'Download Sheet',
+                      icon: Icons.download_rounded,
+                      onPressed: () => _downloadSiteList(visibleSites),
+                    ),
                   ],
-                ),
-              ],
+                  if (widget.show) ...[
+                    const SizedBox(width: 6),
+                    ..._siteSelectionControls(visibleSites),
+                  ],
+                ],
+              ),
             ),
+          ],
 
           // Site grid
           Expanded(
@@ -408,7 +557,7 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
                 final siteState = ref.watch(siteProvider);
                 print("👀 Watching site state");
                 print(siteState);
-                return _buildBody(siteState);
+                return _buildBody(siteState, visibleSites);
               },
             ),
           ),
@@ -417,7 +566,114 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
     );
   }
 
-  Widget _buildBody(SiteState siteState) {
+  Widget _siteToolbarButton({
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback? onPressed,
+    bool active = false,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: active ? cs.primary : cs.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: active ? cs.primary : cs.outlineVariant,
+            ),
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: onPressed == null
+                ? cs.onSurfaceVariant
+                : active
+                    ? cs.onPrimary
+                    : cs.primary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _siteSelectionControls(List<SiteModel> visibleSites) {
+    final cs = Theme.of(context).colorScheme;
+    final allSelected = visibleSites.isNotEmpty &&
+        visibleSites.every((site) => _selectedSiteIds.contains(site.id));
+
+    if (!_isSelectionMode) {
+      return [
+        _tourTarget(
+          _deleteModeTourKey,
+          _siteToolbarButton(
+            tooltip: 'Select Sites',
+            icon: Icons.checklist_rounded,
+            onPressed: visibleSites.isEmpty ? null : _toggleSelectionMode,
+          ),
+        ),
+      ];
+    }
+
+    return [
+      SizedBox(
+        height: 40,
+        child: TextButton(
+          style: TextButton.styleFrom(
+            minimumSize: const Size(76, 40),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            textStyle:
+                const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          ),
+          onPressed: visibleSites.isEmpty
+              ? null
+              : () {
+                  if (allSelected) {
+                    setState(() {
+                      _selectedSiteIds
+                          .removeAll(visibleSites.map((site) => site.id));
+                    });
+                  } else {
+                    _selectAllSites(visibleSites);
+                  }
+                },
+          child: Text(allSelected ? 'Deselect' : 'Select All'),
+        ),
+      ),
+      const SizedBox(width: 4),
+      _siteToolbarButton(
+        tooltip: 'Delete Selected',
+        icon: Icons.delete_sweep_rounded,
+        active: _selectedSiteIds.isNotEmpty,
+        onPressed: _selectedSiteIds.isEmpty ? null : _deleteSelectedSites,
+      ),
+      const SizedBox(width: 4),
+      Tooltip(
+        message: 'Cancel',
+        child: InkWell(
+          onTap: _toggleSelectionMode,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: cs.surface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: cs.outlineVariant),
+            ),
+            child: Icon(Icons.close_rounded, size: 20, color: cs.primary),
+          ),
+        ),
+      ),
+    ];
+  }
+
+  Widget _buildBody(SiteState siteState, List<SiteModel> visibleSites) {
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -489,6 +745,41 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
               textAlign: TextAlign.center,
               style: TextStyle(color: cs.onSurfaceVariant),
             ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SiteDetailScreen()),
+              ),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Add Site'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (visibleSites.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search_off_rounded,
+                size: 56, color: cs.onSurfaceVariant),
+            const SizedBox(height: 12),
+            Text(
+              'No matching sites',
+              style: TextStyle(
+                color: cs.onSurface,
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Try changing your search or filters.',
+              style: TextStyle(color: cs.onSurfaceVariant),
+            ),
           ],
         ),
       );
@@ -508,11 +799,11 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
               crossAxisCount: 2,
               mainAxisSpacing: 14,
               crossAxisSpacing: 12,
-              childAspectRatio: 0.82,
+              childAspectRatio: 1.02,
             ),
-            itemCount: siteState.sites.length,
+            itemCount: visibleSites.length,
             itemBuilder: (context, index) {
-              final site = siteState.sites[index];
+              final site = visibleSites[index];
               final isSelected = _selectedSiteIds.contains(site.id);
 
               print(site.siteImage);
@@ -527,6 +818,7 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
                       imagePath: site.siteImage ?? '',
                       fallbackIcon: Icons.location_city_rounded,
                       companyName: site.siteName,
+                      minimalSiteCard: true,
                       onTap: _isSelectionMode
                           ? () => _toggleSiteSelection(site.id)
                           : () {
