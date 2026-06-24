@@ -10,6 +10,7 @@ import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
+import '../../../../../core/utlis/widgets/empty_module_state.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../../../../tour/domain/tour_controller.dart';
@@ -36,7 +37,8 @@ class AddTeamScreen extends ConsumerStatefulWidget {
   ConsumerState<AddTeamScreen> createState() => _AddTeamScreenState();
 }
 
-class _AddTeamScreenState extends ConsumerState<AddTeamScreen> with ScreenOwnedTourMixin<AddTeamScreen> {
+class _AddTeamScreenState extends ConsumerState<AddTeamScreen>
+    with ScreenOwnedTourMixin<AddTeamScreen> {
   final _formKey = GlobalKey<FormState>();
   final _teamNameController = TextEditingController();
 
@@ -503,7 +505,8 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> with ScreenOwnedT
         AppTourStep(
           id: 'team_form_name',
           title: 'Team Name',
-          body: 'Enter a clear team name so you can recognize this group later.',
+          body:
+              'Enter a clear team name so you can recognize this group later.',
           targetKey: _nameTourKey,
           progressLabel: 'Name',
           autoScrollToTarget: true,
@@ -543,7 +546,8 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> with ScreenOwnedT
         ),
       ],
     );
-    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+    bindScreenOwnedTour(
+        tourId: definition.id, showcaseContext: showcaseContext);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
@@ -597,338 +601,368 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> with ScreenOwnedT
       );
     }
 
+    if (manpowerState.manpowerList.isEmpty) {
+      return Scaffold(
+        drawer: const CustomDrawer(),
+        backgroundColor: colorScheme.surfaceContainerLowest,
+        appBar: CustomAppBar(title: 'Add Team'),
+        body: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Center(
+            child: EmptyModuleState(
+              title: 'Create Manpower First',
+              subtitle:
+                  'Please create manpower before creating a team. Team creation needs at least one manpower member.',
+              icon: Icons.engineering_rounded,
+              actionLabel: 'Back',
+              onAction: () => context.pop(),
+            ),
+          ),
+        ),
+      );
+    }
+
     ref.watch(appTourControllerProvider);
     return ShowCaseWidget(
       builder: (showcaseContext) {
         _syncTeamFormTour(showcaseContext);
         return Scaffold(
-      drawer: const CustomDrawer(),
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
-      appBar: CustomAppBar(title: 'Add Team'),
-      body: Padding(
-        padding: const EdgeInsets.all(5),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              Expanded(
-                child: ListView(
-                  children: [
-                    // --- Team Name Field ---
-                    _tourTarget(
-                      _nameTourKey,
-                      CustomTextField(
-                        label: "Team Name",
-                        isRequired: true,
-                        controller: _teamNameController,
-                        hint: "Add Team Name",
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // --- Upload Profile Section ---
-                    _tourTarget(
-                      _imageTourKey,
-                      Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+          drawer: const CustomDrawer(),
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+          appBar: CustomAppBar(title: 'Add Team'),
+          body: Padding(
+            padding: const EdgeInsets.all(5),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: ListView(
                       children: [
-                        Text(
-                          "Add Profile",
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: colorScheme.onSurface,
+                        // --- Team Name Field ---
+                        _tourTarget(
+                          _nameTourKey,
+                          CustomTextField(
+                            label: "Team Name",
+                            isRequired: true,
+                            controller: _teamNameController,
+                            hint: "Add Team Name",
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        GestureDetector(
-                          onTap: _showImageSourceDialog,
-                          child: Container(
-                            height: 130,
-                            width: 120,
-                            decoration: BoxDecoration(
-                              color: colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(12),
-                              border:
-                                  Border.all(color: colorScheme.outlineVariant),
-                            ),
-                            child: _selectedImage == null
-                                ? Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.person_add_alt_1,
-                                          size: 40,
-                                          color: colorScheme.onSurfaceVariant),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        "Upload Photo",
-                                        style: TextStyle(
-                                            color:
-                                                colorScheme.onSurfaceVariant),
-                                      ),
-                                    ],
-                                  )
-                                : Stack(
-                                    children: [
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(12),
-                                        child: Image.file(
-                                          _selectedImage!,
-                                          fit: BoxFit.cover,
-                                          width: double.infinity,
-                                          height: double.infinity,
-                                        ),
-                                      ),
-                                      Positioned(
-                                        top: 5,
-                                        right: 5,
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              _selectedImage = null;
-                                            });
-                                          },
-                                          child: Container(
-                                            padding: const EdgeInsets.all(4),
-                                            decoration: BoxDecoration(
-                                              color: colorScheme.error,
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Icon(
-                                              Icons.close,
-                                              size: 16,
-                                              color: colorScheme.onError,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                          ),
-                        ),
-                      ],
-                      ),
-                    ),
+                        const SizedBox(height: 20),
 
-                    const SizedBox(height: 30),
-
-                    // --- Team Lead Card ---
-                    _tourTarget(
-                      _leadTourKey,
-                      Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Team Leads",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        DropdownSearch<ManpowerModel>(
-                          selectedItem: _selectedLead,
-                          itemAsString: (m) => m.fullName ?? '',
-                          items: (String filter, LoadProps? props) {
-                            return manpowerState.manpowerList
-                                .where((m) => _memberName(m)
-                                    .toLowerCase()
-                                    .contains(filter.toLowerCase()))
-                                .toList();
-                          },
-                          compareFn: (a, b) => a.id == b.id,
-                          onChanged: (selected) {
-                            _setTeamLead(selected);
-                          },
-                          popupProps: PopupProps.modalBottomSheet(
-                            showSearchBox: true,
-                            modalBottomSheetProps: ModalBottomSheetProps(
-                              backgroundColor: colorScheme.surface,
-                            ),
-                            searchFieldProps: TextFieldProps(
-                              decoration: InputDecoration(
-                                hintText: 'Search Team Lead',
-                                hintStyle: TextStyle(
-                                    color: colorScheme.onSurfaceVariant),
-                                filled: true,
-                                fillColor: colorScheme.surfaceContainerHighest,
-                                contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 10),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide.none,
+                        // --- Upload Profile Section ---
+                        _tourTarget(
+                          _imageTourKey,
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Add Profile",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: colorScheme.onSurface,
                                 ),
                               ),
-                            ),
-                            itemBuilder:
-                                (context, item, isDisabled, isSelected) {
-                              return ListTile(
-                                dense: true,
-                                leading: Icon(
-                                  isSelected
-                                      ? Icons.radio_button_checked
-                                      : Icons.radio_button_unchecked,
-                                  color: isSelected
-                                      ? colorScheme.primary
-                                      : colorScheme.onSurfaceVariant,
+                              const SizedBox(height: 10),
+                              GestureDetector(
+                                onTap: _showImageSourceDialog,
+                                child: Container(
+                                  height: 130,
+                                  width: 120,
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.surfaceContainerHighest,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                        color: colorScheme.outlineVariant),
+                                  ),
+                                  child: _selectedImage == null
+                                      ? Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.person_add_alt_1,
+                                                size: 40,
+                                                color: colorScheme
+                                                    .onSurfaceVariant),
+                                            const SizedBox(height: 6),
+                                            Text(
+                                              "Upload Photo",
+                                              style: TextStyle(
+                                                  color: colorScheme
+                                                      .onSurfaceVariant),
+                                            ),
+                                          ],
+                                        )
+                                      : Stack(
+                                          children: [
+                                            ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              child: Image.file(
+                                                _selectedImage!,
+                                                fit: BoxFit.cover,
+                                                width: double.infinity,
+                                                height: double.infinity,
+                                              ),
+                                            ),
+                                            Positioned(
+                                              top: 5,
+                                              right: 5,
+                                              child: GestureDetector(
+                                                onTap: () {
+                                                  setState(() {
+                                                    _selectedImage = null;
+                                                  });
+                                                },
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.all(4),
+                                                  decoration: BoxDecoration(
+                                                    color: colorScheme.error,
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                  child: Icon(
+                                                    Icons.close,
+                                                    size: 16,
+                                                    color: colorScheme.onError,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                 ),
-                                title: Text(
-                                  item.fullName ?? '',
-                                  style: TextStyle(
-                                    color: colorScheme.onSurface,
-                                    fontWeight: isSelected
-                                        ? FontWeight.w600
-                                        : FontWeight.w400,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 30),
+
+                        // --- Team Lead Card ---
+                        _tourTarget(
+                          _leadTourKey,
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Team Leads",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              DropdownSearch<ManpowerModel>(
+                                selectedItem: _selectedLead,
+                                itemAsString: (m) => m.fullName ?? '',
+                                items: (String filter, LoadProps? props) {
+                                  return manpowerState.manpowerList
+                                      .where((m) => _memberName(m)
+                                          .toLowerCase()
+                                          .contains(filter.toLowerCase()))
+                                      .toList();
+                                },
+                                compareFn: (a, b) => a.id == b.id,
+                                onChanged: (selected) {
+                                  _setTeamLead(selected);
+                                },
+                                popupProps: PopupProps.modalBottomSheet(
+                                  showSearchBox: true,
+                                  modalBottomSheetProps: ModalBottomSheetProps(
+                                    backgroundColor: colorScheme.surface,
+                                  ),
+                                  searchFieldProps: TextFieldProps(
+                                    decoration: InputDecoration(
+                                      hintText: 'Search Team Lead',
+                                      hintStyle: TextStyle(
+                                          color: colorScheme.onSurfaceVariant),
+                                      filled: true,
+                                      fillColor:
+                                          colorScheme.surfaceContainerHighest,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 12, vertical: 10),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                    ),
+                                  ),
+                                  itemBuilder:
+                                      (context, item, isDisabled, isSelected) {
+                                    return ListTile(
+                                      dense: true,
+                                      leading: Icon(
+                                        isSelected
+                                            ? Icons.radio_button_checked
+                                            : Icons.radio_button_unchecked,
+                                        color: isSelected
+                                            ? colorScheme.primary
+                                            : colorScheme.onSurfaceVariant,
+                                      ),
+                                      title: Text(
+                                        item.fullName ?? '',
+                                        style: TextStyle(
+                                          color: colorScheme.onSurface,
+                                          fontWeight: isSelected
+                                              ? FontWeight.w600
+                                              : FontWeight.w400,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                dropdownBuilder: (context, selectedItem) {
+                                  return Text(
+                                    selectedItem?.fullName ?? '',
+                                    style: TextStyle(
+                                      color: colorScheme.onSurface,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  );
+                                },
+                                decoratorProps: DropDownDecoratorProps(
+                                  decoration: InputDecoration(
+                                    hintText: "Select Team Lead",
+                                    filled: true,
+                                    fillColor: colorScheme.surface,
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 14,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: const BorderRadius.all(
+                                          Radius.circular(8)),
+                                      borderSide: BorderSide(
+                                          color: colorScheme.outlineVariant
+                                              .withValues(alpha: 0)),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: const BorderRadius.all(
+                                          Radius.circular(8)),
+                                      borderSide: BorderSide(
+                                          color: colorScheme.outlineVariant),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: const BorderRadius.all(
+                                          Radius.circular(8)),
+                                      borderSide: BorderSide(
+                                          color: colorScheme.primary),
+                                    ),
                                   ),
                                 ),
-                              );
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // --- Team Members Card ---
+                        _tourTarget(
+                          _membersTourKey,
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Team Members",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              _buildMemberSelector(
+                                manpowerState.manpowerList,
+                                colorScheme,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 40),
+                      ],
+                    ),
+                  ),
+
+                  // --- Action Buttons ---
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10, top: 10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: RoundedButton(
+                            text: "Back",
+                            color: colorScheme.surface,
+                            textColor: colorScheme.onSurface,
+                            onPressed: () {
+                              context.pop();
                             },
                           ),
-                          dropdownBuilder: (context, selectedItem) {
-                            return Text(
-                              selectedItem?.fullName ?? '',
-                              style: TextStyle(
-                                color: colorScheme.onSurface,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            );
-                          },
-                          decoratorProps: DropDownDecoratorProps(
-                            decoration: InputDecoration(
-                              hintText: "Select Team Lead",
-                              filled: true,
-                              fillColor: colorScheme.surface,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 14,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius:
-                                    const BorderRadius.all(Radius.circular(8)),
-                                borderSide: BorderSide(
-                                    color: colorScheme.outlineVariant
-                                        .withValues(alpha: 0)),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius:
-                                    const BorderRadius.all(Radius.circular(8)),
-                                borderSide: BorderSide(
-                                    color: colorScheme.outlineVariant),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius:
-                                    const BorderRadius.all(Radius.circular(8)),
-                                borderSide:
-                                    BorderSide(color: colorScheme.primary),
-                              ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _tourTarget(
+                            _submitTourKey,
+                            RoundedButton(
+                              text: "Submit",
+                              color: colorScheme.primary,
+                              textColor: colorScheme.onPrimary,
+                              onPressed: () async {
+                                if (_formKey.currentState!.validate()) {
+                                  final formData = FormData.fromMap({
+                                    "teamName": _teamNameController.text,
+                                    "teamLead": _selectedLead?.id ?? "",
+                                    "teamMembers": _selectedMembers
+                                        .map((m) => m.id)
+                                        .toList(),
+                                    if (_selectedImage != null)
+                                      "file": await MultipartFile.fromFile(
+                                        _selectedImage!.path,
+                                        filename: "team_profile.jpg",
+                                      ),
+                                  });
+
+                                  await ref
+                                      .read(teamProvider.notifier)
+                                      .createTeam(
+                                        type: type!,
+                                        siteId: siteId!,
+                                        data: formData,
+                                      );
+                                  ref.invalidate(manpowerSyncControllerProvider(
+                                      (type: type)));
+                                  await ref
+                                      .read(tourPersistenceProvider)
+                                      .markTeamDone();
+
+                                  if (!mounted) return;
+                                  if (widget.returnResultOnSave) {
+                                    Navigator.pop(context, true);
+                                    return;
+                                  }
+                                  Navigator.of(context).pushReplacement(
+                                    MaterialPageRoute(
+                                      builder: (_) => const TeamListPage(),
+                                    ),
+                                  );
+                                }
+                              },
                             ),
                           ),
                         ),
                       ],
-                      ),
                     ),
-
-                    const SizedBox(height: 20),
-
-                    // --- Team Members Card ---
-                    _tourTarget(
-                      _membersTourKey,
-                      Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Team Members",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        _buildMemberSelector(
-                          manpowerState.manpowerList,
-                          colorScheme,
-                        ),
-                      ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 40),
-                  ],
-                ),
+                  ),
+                ],
               ),
-
-              // --- Action Buttons ---
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10, top: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: RoundedButton(
-                        text: "Back",
-                        color: colorScheme.surface,
-                        textColor: colorScheme.onSurface,
-                        onPressed: () {
-                          context.pop();
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _tourTarget(
-                        _submitTourKey,
-                        RoundedButton(
-                          text: "Submit",
-                          color: colorScheme.primary,
-                          textColor: colorScheme.onPrimary,
-                          onPressed: () async {
-                          if (_formKey.currentState!.validate()) {
-                            final formData = FormData.fromMap({
-                              "teamName": _teamNameController.text,
-                              "teamLead": _selectedLead?.id ?? "",
-                              "teamMembers":
-                                  _selectedMembers.map((m) => m.id).toList(),
-                              if (_selectedImage != null)
-                                "file": await MultipartFile.fromFile(
-                                  _selectedImage!.path,
-                                  filename: "team_profile.jpg",
-                                ),
-                            });
-
-                            await ref.read(teamProvider.notifier).createTeam(
-                                  type: type!,
-                                  siteId: siteId!,
-                                  data: formData,
-                                );
-                            ref.invalidate(
-                                manpowerSyncControllerProvider((type: type)));
-                            await ref
-                                .read(tourPersistenceProvider)
-                                .markTeamDone();
-
-                            if (!mounted) return;
-                            if (widget.returnResultOnSave) {
-                              Navigator.pop(context, true);
-                              return;
-                            }
-                            Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(
-                                builder: (_) => const TeamListPage(),
-                              ),
-                            );
-                          }
-                        },
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
+        );
       },
     );
   }
