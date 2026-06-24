@@ -54,43 +54,41 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 28),
-                    child: AnimatedBuilder(
-                      animation: _logoAnimation,
-                      builder: (context, child) {
-                        return Opacity(
-                          opacity: _logoAnimation.value,
-                          child: Transform.translate(
-                            offset: Offset(0, 14 * (1 - _logoAnimation.value)),
-                            child: Transform.scale(
-                              scale: 0.96 + (_logoAnimation.value * 0.04),
-                              child: child,
-                            ),
-                          ),
-                        );
-                      },
-                      child: Image.asset(
-                        'assets/images/master_logo.png',
-                        width: logoWidth,
-                        fit: BoxFit.contain,
+      body: Stack(
+        alignment: Alignment.center,
+        children: [
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: AnimatedBuilder(
+                animation: _logoAnimation,
+                builder: (context, child) {
+                  return Opacity(
+                    opacity: _logoAnimation.value,
+                    child: Transform.translate(
+                      offset: Offset(0, 14 * (1 - _logoAnimation.value)),
+                      child: Transform.scale(
+                        scale: 0.96 + (_logoAnimation.value * 0.04),
+                        child: child,
                       ),
                     ),
-                  ),
-                ],
+                  );
+                },
+                child: Image.asset(
+                  'assets/images/master_logo.png',
+                  width: logoWidth,
+                  alignment: Alignment.center,
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 28,
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 28,
+            child: SafeArea(
+              top: false,
               child: FadeTransition(
                 opacity: _badgeAnimation,
                 child: SlideTransition(
@@ -104,8 +102,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

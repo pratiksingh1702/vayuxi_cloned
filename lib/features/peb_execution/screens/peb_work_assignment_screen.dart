@@ -85,6 +85,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
   bool get _isDefaultTeamSelected => _teamId == _defaultTeamId;
 
   String get _submitTeamId => _isDefaultTeamSelected ? '' : _teamId;
+  DateTime get _effectiveExpectedDate => _expectedDate ?? _assignmentDate;
 
   @override
   void initState() {
@@ -978,7 +979,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
         teamId: _submitTeamId,
         sourceType: _sourceType,
         assignmentDate: _assignmentDate,
-        expectedCompletionDate: _expectedDate,
+        expectedCompletionDate: _effectiveExpectedDate,
         boqIds: _sourceType == 'boq_upload'
             ? _boqIdsForMarks(marks).toList()
             : const [],
@@ -2347,17 +2348,14 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
       children: [
         _buildDateTile(
           'Expected Completion',
-          _expectedDate,
+          _effectiveExpectedDate,
           () => _pickDate(expected: true),
         ),
-        if (_expectedDate != null) ...[
-          const SizedBox(height: 8),
-          TextButton.icon(
-            onPressed: () => setState(() => _expectedDate = null),
-            icon: const Icon(Icons.close_rounded, size: 18),
-            label: const Text('Clear expected date'),
-          ),
-        ],
+        const SizedBox(height: 10),
+        Text(
+          'Skip keeps the expected date same as the assignment date.',
+          style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+        ),
       ],
     );
   }
