@@ -382,6 +382,10 @@ class PebItemWiseDprItem {
   final String description;
   final double weight;
   final String uom;
+  final double actualQty;
+  final String remarks;
+  final String entryDate;
+  final bool hasSavedEntry;
 
   const PebItemWiseDprItem({
     required this.source,
@@ -391,6 +395,10 @@ class PebItemWiseDprItem {
     required this.description,
     required this.weight,
     required this.uom,
+    this.actualQty = 0,
+    this.remarks = '',
+    this.entryDate = '',
+    this.hasSavedEntry = false,
   });
 
   factory PebItemWiseDprItem.fromJson(Map<String, dynamic> json) {
@@ -407,6 +415,10 @@ class PebItemWiseDprItem {
       description: json['description']?.toString() ?? '',
       weight: parseNum(json['weight']),
       uom: json['uom']?.toString() ?? 'kg',
+      actualQty: parseNum(json['actualQty']),
+      remarks: json['remarks']?.toString() ?? '',
+      entryDate: json['entryDate']?.toString() ?? '',
+      hasSavedEntry: json['hasSavedEntry'] == true,
     );
   }
 }

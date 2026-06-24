@@ -56,6 +56,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   List<PebWorkAssignment> _assignments = [];
   List<PebAssignmentPlanDetail> _planDetails = [];
   List<PebItemWiseDprItem> _itemWiseItems = [];
+  final List<_ItemWiseDraftEntry> _itemWiseDrafts = [];
   final Map<String, String> _level1WeightInputs = {};
   final Map<String, String> _level1UomInputs = {};
   final Map<String, String> _level1RemarksInputs = {};
@@ -108,6 +109,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       _assignments = [];
       _planDetails = [];
       _itemWiseItems = [];
+      _itemWiseDrafts.clear();
       _itemWiseSearchCtrl.clear();
       _itemWiseDescriptionCtrl.clear();
       _itemWiseQtyCtrl.clear();
@@ -193,6 +195,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               widget.siteId,
               widget.executionType,
               search: _itemWiseSearchCtrl.text,
+              date: _dateText,
             )
           : <PebItemWiseDprItem>[];
       final itemWiseItems = dprLevel == PebDprLevel.itemWiseProgress
@@ -394,6 +397,10 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                       : rows[key]!.description,
                   weight: item.weight > 0 ? item.weight : rows[key]!.weight,
                   uom: item.uom.isNotEmpty ? item.uom : rows[key]!.uom,
+                  actualQty: item.actualQty,
+                  remarks: item.remarks,
+                  entryDate: item.entryDate,
+                  hasSavedEntry: item.hasSavedEntry,
                 );
     }
     final list = rows.values.toList()
@@ -817,6 +824,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     if (picked == null) return;
     setState(() {
       _selectedDate = picked;
+      _itemWiseDrafts.clear();
+      _itemWiseSearchCtrl.clear();
       _activeWorkKey = null;
       _markActionMode = _DprMarkActionMode.none;
       _isDprSelectionMode = false;
@@ -1628,6 +1637,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         widget.siteId,
         widget.executionType,
         search: _itemWiseSearchCtrl.text,
+        date: _dateText,
       );
       final items = _mergeItemWiseItems(
         apiItems,
@@ -1671,54 +1681,195 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     return _itemWiseDescriptionCtrl.text.trim();
   }
 
-  Future<void> _saveItemWiseEntryFromCard() async {
+  Future<void> _addItemWiseDraftFromSearch() async {
     final markNo = _itemWiseSearchCtrl.text.trim();
     final selected = _selectedItemWiseItem();
-    final qty = double.tryParse(_itemWiseQtyCtrl.text.trim()) ?? 0;
-    final description = _itemWiseDescriptionFor(selected);
     if (markNo.isEmpty) {
-      AppToast.error('Mark No is required');
+      AppToast.error('Search or enter a Mark No first');
       return;
     }
-    if (qty <= 0) {
-      AppToast.error('Enter a valid quantity');
+
+    if (_itemWiseDrafts.any(
+      (draft) => draft.item.markNo.toLowerCase() == markNo.toLowerCase(),
+    )) {
+      AppToast.info('$markNo is already added');
       return;
     }
-    if (selected != null && selected.source == 'boq' && selected.weight > 0) {
-      final allowed = selected.weight;
-      if (qty > allowed) {
+
+    if (selected == null) {
+      await _openManualItemWiseDraft();
+      return;
+    }
+
+    setState(() {
+      _itemWiseDrafts.add(_ItemWiseDraftEntry(item: selected));
+      _itemWiseSearchCtrl.clear();
+      _itemWiseDescriptionCtrl.clear();
+    });
+  }
+
+  Future<void> _openManualItemWiseDraft() async {
+    final markNo = TextEditingController(text: _itemWiseSearchCtrl.text.trim());
+    final description = TextEditingController();
+    final result = await showDialog<_ManualItemWiseInput>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Manual Item'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: markNo,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Mark Number',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: description,
+              decoration: const InputDecoration(
+                labelText: 'Description',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => context.pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final mark = markNo.text.trim();
+              if (mark.isEmpty) {
+                AppToast.error('Mark Number is required');
+                return;
+              }
+              context.pop(_ManualItemWiseInput(
+                markNo: mark,
+                description: description.text.trim(),
+                weight: 0,
+                remarks: '',
+              ));
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+    markNo.dispose();
+    description.dispose();
+    if (result == null || !mounted) return;
+    if (_itemWiseDrafts.any(
+      (draft) => draft.item.markNo.toLowerCase() == result.markNo.toLowerCase(),
+    )) {
+      AppToast.info('${result.markNo} is already added');
+      return;
+    }
+    setState(() {
+      _itemWiseDrafts.add(
+        _ItemWiseDraftEntry(
+          item: PebItemWiseDprItem(
+            source: 'manual',
+            boqId: '',
+            boqItemId: '',
+            markNo: result.markNo,
+            description:
+                result.description.isEmpty ? result.markNo : result.description,
+            weight: 0,
+            uom: 'kg',
+          ),
+        ),
+      );
+      _itemWiseSearchCtrl.clear();
+      _itemWiseDescriptionCtrl.clear();
+    });
+  }
+
+  void _updateItemWiseDraft(
+    int index, {
+    String? quantity,
+    String? remarks,
+  }) {
+    if (index < 0 || index >= _itemWiseDrafts.length) return;
+    setState(() {
+      _itemWiseDrafts[index] = _itemWiseDrafts[index].copyWith(
+        quantity: quantity,
+        remarks: remarks,
+      );
+    });
+  }
+
+  Future<void> _submitItemWiseDrafts() async {
+    if (_itemWiseDrafts.isEmpty) {
+      AppToast.error('Add at least one Mark No');
+      return;
+    }
+
+    for (final draft in _itemWiseDrafts) {
+      final quantity = double.tryParse(draft.quantity.trim()) ?? 0;
+      if (quantity <= 0) {
+        AppToast.error('Enter a valid quantity for ${draft.item.markNo}');
+        return;
+      }
+      if (draft.item.source == 'boq' &&
+          draft.item.weight > 0 &&
+          quantity > draft.item.weight) {
         AppToast.error(
-          'Quantity cannot exceed BOQ quantity ${_prettyNumber(allowed)} ${selected.uom}',
+          '${draft.item.markNo} cannot exceed BOQ quantity '
+          '${_prettyNumber(draft.item.weight)} ${draft.item.uom}',
         );
         return;
       }
     }
 
-    final item = selected ??
-        PebItemWiseDprItem(
-          source: 'manual',
-          boqId: '',
-          boqItemId: '',
-          markNo: markNo,
-          description: description.isEmpty ? markNo : description,
-          weight: 0,
-          uom: 'kg',
-        );
-    await _submitItemWiseProgress(
-      item,
-      _ItemWiseProgressInput(
-        weight: qty,
-        remarks: _itemWiseRemarksCtrl.text.trim(),
-      ),
-    );
-    if (!mounted) return;
-    _itemWiseQtyCtrl.clear();
-    _itemWiseRemarksCtrl.clear();
-    if (selected == null) {
-      _itemWiseSearchCtrl.clear();
-      _itemWiseDescriptionCtrl.clear();
+    setState(() => _submitting = true);
+    try {
+      await _service.submitItemWiseProgressBatch(
+        widget.siteId,
+        widget.executionType,
+        date: _dateText,
+        teamId: _submitTeamId,
+        items: _itemWiseDrafts.map((draft) {
+          final item = draft.item;
+          final quantity = double.parse(draft.quantity.trim());
+          return <String, dynamic>{
+            'sourceType': item.source == 'boq' ? 'level2_boq' : 'level2_manual',
+            'markNo': item.markNo,
+            'assemblyMark': item.markNo,
+            'description': item.description,
+            if (item.boqItemId.trim().isNotEmpty) 'boqItemId': item.boqItemId,
+            if (item.source != 'boq') 'isManualItem': true,
+            'name': item.description.isEmpty ? item.markNo : item.description,
+            'uom': item.uom.isEmpty ? 'kg' : item.uom,
+            'actualQty': quantity,
+            'targetQty': item.weight,
+            'progressPercentage': 0,
+            'trackingLevel': 'semi_structured',
+            'remarks': draft.remarks.trim(),
+            'weightMode': 'manual',
+            'manualWeightKg': quantity,
+            'totalWeightKg': quantity,
+          };
+        }).toList(),
+      );
+      if (!mounted) return;
+      setState(() {
+        _itemWiseDrafts.clear();
+        _itemWiseSearchCtrl.clear();
+      });
+      AppToast.success('Item wise DPR entries saved');
+      await _reloadItemWiseItems();
+    } on DioException catch (error) {
+      AppToast.error(extractBackendError(error));
+    } catch (error) {
+      AppToast.error(extractBackendError(error));
+    } finally {
+      if (mounted) setState(() => _submitting = false);
     }
-    setState(() {});
   }
 
   Future<void> _openItemWiseEntry(PebItemWiseDprItem item) async {
@@ -1909,32 +2060,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   ) async {
     setState(() => _submitting = true);
     try {
-      await _service.submitDprProgress(
-        widget.siteId,
-        widget.executionType,
-        dprLevel: PebDprLevel.itemWiseProgress,
-        date: _dateText,
-        teamId: _submitTeamId,
-        setupItemId: '',
-        assignmentId: '',
-        sourceType: item.source == 'boq' ? 'level2_boq' : 'level2_manual',
-        stageName: item.description.isEmpty ? item.markNo : item.description,
-        uom: item.uom.isEmpty ? 'kg' : item.uom,
-        marks: const [],
-        markNo: item.markNo,
-        description: item.description,
-        boqItemId: item.boqItemId,
-        isManualItem: item.source != 'boq',
-        actualQty: input.weight,
-        targetQty: item.weight,
-        progressPercentage: 0,
-        trackingLevel: 'semi_structured',
-        remarks: input.remarks,
-        weightMode: 'manual',
-        manualWeightKg: input.weight,
-        totalWeightKg: input.weight,
-        variationRemarks: input.remarks,
-      );
+      await _sendItemWiseProgress(item, input);
       AppToast.success('Item wise DPR saved');
       await _reloadItemWiseItems();
     } on DioException catch (error) {
@@ -1944,6 +2070,38 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  Future<void> _sendItemWiseProgress(
+    PebItemWiseDprItem item,
+    _ItemWiseProgressInput input,
+  ) {
+    return _service.submitDprProgress(
+      widget.siteId,
+      widget.executionType,
+      dprLevel: PebDprLevel.itemWiseProgress,
+      date: _dateText,
+      teamId: _submitTeamId,
+      setupItemId: '',
+      assignmentId: '',
+      sourceType: item.source == 'boq' ? 'level2_boq' : 'level2_manual',
+      stageName: item.description.isEmpty ? item.markNo : item.description,
+      uom: item.uom.isEmpty ? 'kg' : item.uom,
+      marks: const [],
+      markNo: item.markNo,
+      description: item.description,
+      boqItemId: item.boqItemId,
+      isManualItem: item.source != 'boq',
+      actualQty: input.weight,
+      targetQty: item.weight,
+      progressPercentage: 0,
+      trackingLevel: 'semi_structured',
+      remarks: input.remarks,
+      weightMode: 'manual',
+      manualWeightKg: input.weight,
+      totalWeightKg: input.weight,
+      variationRemarks: input.remarks,
+    );
   }
 
   Future<_VariationResponse?> _showVariationDialog(
@@ -2292,7 +2450,11 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   }
 
   Widget _buildItemWiseProgressBody() {
+    final cs = Theme.of(context).colorScheme;
     final layout = _PebDprResponsive.of(context);
+    final savedItems = _itemWiseItems
+        .where((item) => item.hasSavedEntry && item.actualQty > 0)
+        .toList();
     return Stack(
       children: [
         CustomScrollbar(
@@ -2312,8 +2474,71 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               children: [
                 _buildFilters(),
                 SizedBox(height: layout.sectionGap),
-                _buildItemWiseEntryCard(),
+                _buildItemWiseSearchRow(),
+                if (_itemWiseSearchCtrl.text.trim().isNotEmpty)
+                  _buildItemWiseSuggestions(),
+                SizedBox(height: layout.sectionGap),
+                if (_itemWiseDrafts.isNotEmpty)
+                  ...List.generate(
+                    _itemWiseDrafts.length,
+                    (index) => _buildItemWiseDraftCard(
+                      _itemWiseDrafts[index],
+                      index,
+                    ),
+                  ),
+                if (savedItems.isNotEmpty)
+                  ...savedItems.map(_buildItemWiseSavedCard),
               ],
+            ),
+          ),
+        ),
+        Positioned(
+          left: layout.pagePadding,
+          right: layout.pagePadding,
+          bottom: 12 + MediaQuery.paddingOf(context).bottom,
+          child: SafeArea(
+            top: false,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: cs.surface.withValues(alpha: 0.97),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: cs.outlineVariant.withValues(alpha: 0.65),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 18,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _submitting ? null : () => context.pop(),
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      label: const Text('Back'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 2,
+                    child: FilledButton.icon(
+                      onPressed: _submitting ? null : _submitItemWiseDrafts,
+                      icon: const Icon(Icons.check_circle_outline_rounded),
+                      label: Text(
+                        _itemWiseDrafts.isEmpty
+                            ? 'Submit DPR Entry'
+                            : 'Submit ${_itemWiseDrafts.length} '
+                                '${_itemWiseDrafts.length == 1 ? 'Entry' : 'Entries'}',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -2330,33 +2555,138 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     );
   }
 
-  Widget _buildItemWiseEntryCard() {
+  Widget _buildItemWiseSearchRow() {
     final cs = Theme.of(context).colorScheme;
-    final layout = _PebDprResponsive.of(context);
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _itemWiseSearchCtrl,
+            onChanged: (_) {
+              _itemWiseDescriptionCtrl.clear();
+              setState(() {});
+            },
+            onSubmitted: (_) => _addItemWiseDraftFromSearch(),
+            decoration: InputDecoration(
+              hintText: 'Search Mark No, Member or BOQ Item',
+              prefixIcon: Icon(Icons.search_rounded, color: cs.primary),
+              suffixIcon: _itemWiseSearchCtrl.text.trim().isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: 'Clear search',
+                      onPressed: () {
+                        _itemWiseSearchCtrl.clear();
+                        _itemWiseDescriptionCtrl.clear();
+                        setState(() {});
+                      },
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+              filled: true,
+              fillColor: cs.surface,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        SizedBox(
+          width: 56,
+          height: 56,
+          child: FilledButton(
+            onPressed: _submitting ? null : _addItemWiseDraftFromSearch,
+            style: FilledButton.styleFrom(
+              padding: EdgeInsets.zero,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: const Icon(Icons.add_rounded, size: 28),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildItemWiseSuggestions() {
+    final cs = Theme.of(context).colorScheme;
     final selected = _selectedItemWiseItem();
-    final filtered = _itemWiseFilteredItems()
+    if (selected != null) return const SizedBox(height: 8);
+    final items = _itemWiseFilteredItems()
         .where((item) => item.markNo.trim().isNotEmpty)
         .take(5)
         .toList();
-    final query = _itemWiseSearchCtrl.text.trim();
-    final hasExactSelection = selected != null;
-    final description = _itemWiseDescriptionFor(selected);
-    final uom = selected?.uom.trim().isNotEmpty == true ? selected!.uom : 'kg';
-    final isBoqItem = selected?.source == 'boq';
-    final isSavedManual =
-        selected?.source == 'manual' && (selected?.weight ?? 0) > 0;
+    if (items.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Text(
+          'No BOQ match. Tap + to add this Mark No manually.',
+          style: TextStyle(
+            color: cs.onSurfaceVariant,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.72)),
+      ),
+      child: Column(
+        children: items
+            .map(
+              (item) => ListTile(
+                dense: true,
+                onTap: () => _selectItemWiseItem(item),
+                leading: Icon(Icons.tag_rounded, color: cs.primary),
+                title: Text(
+                  item.markNo,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                subtitle: Text(
+                  item.description,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: Text(
+                  '${_prettyNumber(item.weight)} ${item.uom}',
+                  style: TextStyle(
+                    color: cs.primary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+
+  Widget _buildItemWiseDraftCard(_ItemWiseDraftEntry draft, int index) {
+    final cs = Theme.of(context).colorScheme;
+    final item = draft.item;
+    final isBoq = item.source == 'boq';
+    final uom = item.uom.trim().isEmpty ? 'kg' : item.uom;
+    final imageAsset = widget.executionType == PebExecutionType.erection
+        ? 'assets/images/structural_erection_work_card.png'
+        : 'assets/images/fabrication_work_card.png';
 
     return Container(
-      padding: EdgeInsets.all(layout.cardPadding),
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.72)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.045),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -2364,36 +2694,134 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: cs.primaryContainer.withValues(alpha: 0.62),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(Icons.view_in_ar_rounded, color: cs.primary),
-              ),
-              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Item Wise Daily Entry',
+                      item.description.isEmpty
+                          ? 'Description'
+                          : item.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: cs.onSurface,
-                        fontSize: 17,
+                        fontSize: 16,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Text(
-                      'Select Mark No and enter today\'s quantity.',
+                      isBoq ? 'BOQ Item' : 'Manual Item',
                       style: TextStyle(
                         color: cs.onSurfaceVariant,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 92,
+                height: 40,
+                child: TextFormField(
+                  key: ValueKey('remarks-${item.markNo}-$index'),
+                  initialValue: draft.remarks,
+                  onChanged: (value) =>
+                      _updateItemWiseDraft(index, remarks: value),
+                  maxLines: 1,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Remark',
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 10,
+                    ),
+                    filled: true,
+                    fillColor: cs.primaryContainer.withValues(alpha: 0.35),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 138,
+                height: 150,
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: cs.outlineVariant.withValues(alpha: 0.55),
+                  ),
+                ),
+                padding: const EdgeInsets.all(8),
+                child: Image.asset(
+                  imageAsset,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => Icon(
+                    Icons.construction_rounded,
+                    size: 52,
+                    color: cs.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildItemWiseValueTile(
+                            'Mark No.',
+                            item.markNo,
+                            cs,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildItemWiseValueTile(
+                            'BOQ Qty',
+                            isBoq ? '${_prettyNumber(item.weight)} $uom' : '-',
+                            cs,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      key: ValueKey('quantity-${item.markNo}-$index'),
+                      initialValue: draft.quantity,
+                      onChanged: (value) =>
+                          _updateItemWiseDraft(index, quantity: value),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        labelText: 'Progress Weight',
+                        suffixText: uom,
+                        helperText: isBoq && item.weight > 0
+                            ? 'Max ${_prettyNumber(item.weight)} $uom'
+                            : null,
+                        filled: true,
+                        fillColor: cs.surfaceContainerLowest,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ],
@@ -2401,195 +2829,171 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               ),
             ],
           ),
-          SizedBox(height: layout.cardGap),
-          TextField(
-            controller: _itemWiseSearchCtrl,
-            onChanged: (_) {
-              _itemWiseDescriptionCtrl.clear();
-              setState(() {});
-              _reloadItemWiseItems();
-            },
-            decoration: InputDecoration(
-              labelText: 'Mark No',
-              hintText: 'Search or enter mark number',
-              prefixIcon: const Icon(Icons.search_rounded),
-              suffixIcon: query.isEmpty
-                  ? null
-                  : IconButton(
-                      onPressed: () {
-                        _itemWiseSearchCtrl.clear();
-                        _itemWiseDescriptionCtrl.clear();
-                        _itemWiseQtyCtrl.clear();
-                        setState(() {});
-                        _reloadItemWiseItems();
-                      },
-                      icon: const Icon(Icons.close_rounded),
-                    ),
-              filled: true,
-              fillColor: cs.surfaceContainerLowest,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-          ),
-          if (query.isNotEmpty &&
-              !hasExactSelection &&
-              filtered.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Container(
-              decoration: BoxDecoration(
-                color: cs.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(14),
-                border:
-                    Border.all(color: cs.outlineVariant.withValues(alpha: 0.7)),
-              ),
-              child: Column(
-                children: filtered
-                    .map(
-                      (item) => ListTile(
-                        dense: true,
-                        onTap: () => _selectItemWiseItem(item),
-                        title: Text(
-                          item.markNo,
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                        subtitle: Text(
-                          item.description.trim().isEmpty
-                              ? 'Description'
-                              : item.description,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: Text(
-                          '${_prettyNumber(item.weight)} ${item.uom}',
-                          style: TextStyle(
-                            color: cs.primary,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-          ],
-          SizedBox(height: layout.cardGap),
-          if (hasExactSelection)
-            _buildReadonlyInfoField(
-              label: 'Description',
-              value: description.isEmpty ? '-' : description,
-            )
-          else
-            TextField(
-              controller: _itemWiseDescriptionCtrl,
-              decoration: InputDecoration(
-                labelText: 'Description',
-                hintText: 'Enter description if BOQ is not available',
-                filled: true,
-                fillColor: cs.surfaceContainerLowest,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-            ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildReadonlyInfoField(
-                  label: isBoqItem ? 'BOQ Weight' : 'Reference Weight',
-                  value: hasExactSelection
-                      ? '${_prettyNumber(selected.weight)} $uom'
-                      : '-',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildReadonlyInfoField(
-                  label: 'UOM',
-                  value: uom,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _itemWiseQtyCtrl,
-            enabled: !isSavedManual,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: 'Quantity',
-              suffixText: uom,
-              helperText: isBoqItem && selected!.weight > 0
-                  ? 'Maximum allowed: ${_prettyNumber(selected.weight)} $uom'
-                  : null,
-              filled: true,
-              fillColor: cs.surfaceContainerLowest,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _itemWiseRemarksCtrl,
-            enabled: !isSavedManual,
-            maxLines: 2,
-            decoration: InputDecoration(
-              labelText: 'Remarks',
-              filled: true,
-              fillColor: cs.surfaceContainerLowest,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-          ),
-          if (isSavedManual) ...[
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.green.withValues(alpha: 0.25)),
-              ),
-              child: Text(
-                'Progress is already saved for this manual item.',
-                style: TextStyle(
-                  color: Colors.green.shade800,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-          SizedBox(height: layout.cardGap),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: _submitting || isSavedManual
-                  ? null
-                  : _saveItemWiseEntryFromCard,
-              icon: const Icon(Icons.save_rounded),
-              label: const Text('Save Entry'),
-            ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildReadonlyInfoField({
-    required String label,
-    required String value,
-  }) {
+  Widget _buildItemWiseSavedCard(PebItemWiseDprItem item) {
     final cs = Theme.of(context).colorScheme;
+    final isBoq = item.source == 'boq';
+    final uom = item.uom.trim().isEmpty ? 'kg' : item.uom;
+    final imageAsset = widget.executionType == PebExecutionType.erection
+        ? 'assets/images/structural_erection_work_card.png'
+        : 'assets/images/fabrication_work_card.png';
+
     return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.045),
+            blurRadius: 16,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.description.isEmpty
+                          ? 'Description'
+                          : item.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: cs.onSurface,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      isBoq ? 'BOQ Item' : 'Manual Item',
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  'Saved',
+                  style: TextStyle(
+                    color: Colors.green.shade800,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 138,
+                height: 150,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: cs.outlineVariant.withValues(alpha: 0.55),
+                  ),
+                ),
+                child: Image.asset(
+                  imageAsset,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => Icon(
+                    Icons.construction_rounded,
+                    size: 52,
+                    color: cs.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildItemWiseValueTile(
+                            'Mark No.',
+                            item.markNo,
+                            cs,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildItemWiseValueTile(
+                            isBoq ? 'BOQ Qty' : 'Source',
+                            isBoq
+                                ? '${_prettyNumber(item.weight)} $uom'
+                                : 'Manual',
+                            cs,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    _buildItemWiseSavedValue(
+                      'Entered Weight',
+                      '${_prettyNumber(item.actualQty)} $uom',
+                      cs,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (item.remarks.trim().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildItemWiseSavedValue('Remark', item.remarks, cs),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItemWiseSavedValue(
+    String label,
+    String value,
+    ColorScheme cs,
+  ) {
+    return Container(
+      width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
       decoration: BoxDecoration(
         color: cs.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.72)),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: cs.outlineVariant.withValues(alpha: 0.65),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2602,19 +3006,57 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 4),
           Text(
             value,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: cs.onSurface,
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: FontWeight.w900,
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildItemWiseValueTile(
+    String label,
+    String value,
+    ColorScheme cs,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: cs.onSurfaceVariant,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          decoration: BoxDecoration(
+            color: cs.primaryContainer.withValues(alpha: 0.38),
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: cs.onSurface,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -6170,6 +6612,29 @@ class _ItemWiseProgressInput {
     required this.weight,
     required this.remarks,
   });
+}
+
+class _ItemWiseDraftEntry {
+  final PebItemWiseDprItem item;
+  final String quantity;
+  final String remarks;
+
+  const _ItemWiseDraftEntry({
+    required this.item,
+    this.quantity = '',
+    this.remarks = '',
+  });
+
+  _ItemWiseDraftEntry copyWith({
+    String? quantity,
+    String? remarks,
+  }) {
+    return _ItemWiseDraftEntry(
+      item: item,
+      quantity: quantity ?? this.quantity,
+      remarks: remarks ?? this.remarks,
+    );
+  }
 }
 
 class _ManualItemWiseInput {

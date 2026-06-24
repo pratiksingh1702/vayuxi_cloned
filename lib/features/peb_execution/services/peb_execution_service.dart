@@ -724,12 +724,14 @@ class PebExecutionService {
     String siteId,
     PebExecutionType type, {
     String search = '',
+    String date = '',
   }) async {
     final response = await _dio.get(
       '/site/$siteId/dpr-peb/item-wise-items',
       queryParameters: {
         'type': type.apiType,
         if (search.trim().isNotEmpty) 'search': search.trim(),
+        if (date.trim().isNotEmpty) 'date': date.trim(),
       },
     );
     final data = response.data;
@@ -839,6 +841,26 @@ class PebExecutionService {
       }
       rethrow;
     }
+  }
+
+  Future<void> submitItemWiseProgressBatch(
+    String siteId,
+    PebExecutionType type, {
+    required String date,
+    required String teamId,
+    required List<Map<String, dynamic>> items,
+  }) async {
+    final payload = {
+      'date': date,
+      'section': type.section,
+      'type': type.apiType,
+      'dprLevel': PebDprLevel.itemWiseProgress.apiValue,
+      if (teamId.trim().isNotEmpty) 'teamId': teamId,
+      'trackingLevel': 'semi_structured',
+      'status': 'submitted',
+      'items': items,
+    };
+    await _dio.post('/site/$siteId/dpr-peb', data: payload);
   }
 
   Future<void> submitLevel1ProgressBatch(
