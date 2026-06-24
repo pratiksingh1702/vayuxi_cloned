@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -112,25 +111,14 @@ class ModuleScreenV2 extends ConsumerStatefulWidget {
 }
 
 class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
-    with ScreenOwnedTourMixin<ModuleScreenV2>, SingleTickerProviderStateMixin {
+    with ScreenOwnedTourMixin<ModuleScreenV2> {
   late int _currentIndex;
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
   final Map<String, bool> _pressedMap = {};
-
-  bool _showQuickSettings = false;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-    _pulseAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
     _loadPreferences();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(workflowControllerProvider.notifier).tryRestoreSession();
@@ -138,13 +126,9 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   }
 
   Future<void> _loadPreferences() async {
-    // We ignore the saved attachment preference to always start in "deattach" mode
-    const isAttached = false;
     final isMultiple = await ModulePreferences.isMultipleEntry();
     if (mounted) {
       setState(() {
-        _moduleCardAttached = isAttached;
-        _moduleCardVisible = !isAttached;
         _multipleEntryMode = isMultiple;
       });
     }
@@ -152,9 +136,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
 
   @override
   void dispose() {
-    _pulseController.dispose();
     _scrollController.dispose();
-    _toastTimer?.cancel();
     super.dispose();
   }
 
@@ -170,9 +152,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   GlobalKey? _moduleTourHighlightKey;
   Rect? _moduleTourHighlightRect;
 
-  // NEW — module card attach/detach
-  bool _moduleCardAttached = false;
-  bool _moduleCardVisible = true;
   bool _multipleEntryMode = false;
   final ScrollController _scrollController = ScrollController();
   // ignore: unused_field
@@ -183,11 +162,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   );
   // ignore: unused_field
   Set<DateTime> _completedDates = {};
-
-  // NEW — toast system
-  String _toastMessage = '';
-  bool _toastVisible = false;
-  Timer? _toastTimer;
 
   @override
   void didChangeDependencies() {
@@ -621,6 +595,11 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   }
 
   final List<ModuleItem> _moreModules = [
+    ModuleItem(
+        labelKey: 'AI Audio Analysis',
+        icon: Icons.graphic_eq_rounded,
+        iconColor: Colors.deepPurple,
+        routeName: "/analysis"),
     ModuleItem(
         labelKey: 'profile_card',
         icon: Icons.account_circle_rounded,
@@ -1155,6 +1134,10 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   Future<void> _handleModuleTap(ModuleItem item) async {
     if (item.isEmpty) return;
     ref.read(moduleScreenSyncProvider.notifier).syncDropdownToGlobal();
+    if (item.routeName == '/analysis') {
+      await _handleAiAnalysisTap();
+      return;
+    }
     if (_currentIndex == 0 || _currentIndex == 3) {
       _navigateToModule(item);
       return;
@@ -1216,61 +1199,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
             offset: const Offset(0, 10))
       ];
 
-  // ── NEW Helpers ────────────────────────────────────────────────────────────
-  void _showToast(String msg) {
-    setState(() {
-      _toastMessage = msg;
-      _toastVisible = true;
-    });
-    _toastTimer?.cancel();
-    _toastTimer = Timer(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _toastVisible = false);
-    });
-  }
-
-  void _attachModuleCard(Translator t) {
-    setState(() {
-      _moduleCardAttached = true;
-      _moduleCardVisible = false;
-    });
-    ModulePreferences.setCardAttached(true);
-    Future.delayed(const Duration(milliseconds: 320), () {
-      if (mounted) setState(() {});
-      _showToast("Module card attached to nav");
-    });
-    Future.delayed(const Duration(milliseconds: 150), () {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeOutCubic,
-        );
-      }
-    });
-  }
-
-  void _detachModuleCard() {
-    setState(() {
-      _moduleCardAttached = false;
-    });
-    ModulePreferences.setCardAttached(false);
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted) {
-        setState(() => _moduleCardVisible = true);
-        _showToast("Module card moved to page");
-      }
-      Future.delayed(const Duration(milliseconds: 200), () {
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            0,
-            duration: const Duration(milliseconds: 350),
-            curve: Curves.easeOutCubic,
-          );
-        }
-      });
-    });
-  }
-
   Widget _buildScrollBody(Translator t, ColorScheme cs, bool isDark) {
     ref.watch(workflowControllerProvider);
     final isSetupTab = _currentIndex == 1;
@@ -1289,13 +1217,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           if (isSetupTab)
             _buildSetupSectionBoard(t, cs, isDark)
           else ...[
-            AnimatedSize(
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.easeOutCubic,
-              child: _moduleCardAttached || !_moduleCardVisible
-                  ? const SizedBox.shrink()
-                  : _buildInlineModuleCard(t, cs, isDark),
-            ),
+            _buildInlineModuleCard(t, cs, isDark),
             const SizedBox(height: 16),
           ],
           if (_currentIndex == 0) ...[
@@ -1306,39 +1228,9 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           AnimatedContainer(
             duration: const Duration(milliseconds: 450),
             curve: Curves.easeOutCubic,
-            height: isSetupTab ? 90 : _getDockSpacerHeight(_currentModules),
+            height: 90,
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildToastOverlay() {
-    return AnimatedPositioned(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOutBack,
-      top: _toastVisible ? 20 : -50,
-      left: 0,
-      right: 0,
-      child: Center(
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 220),
-          opacity: _toastVisible ? 1.0 : 0.0,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.80),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              _toastMessage,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600),
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -1380,15 +1272,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
         extra: {'workflowId': WorkflowRegistry.dailyEntryId});
   }
 
-  double _getDockSpacerHeight(List<ModuleItem> currentModules) {
-    double base = 62 + 16 + 24;
-    if (_moduleCardAttached) {
-      int rows = (currentModules.length / 4).ceil();
-      base += 58 + (rows * 78.0) + 30;
-    }
-    return base;
-  }
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -1417,50 +1300,36 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
               _syncModuleTour(screenContext, t);
               return KeyedSubtree(
                 key: ModuleScreenTourTargets.screenKey,
-                child: GestureDetector(
-                  onTap: () {
-                    if (_showQuickSettings) {
-                      setState(() => _showQuickSettings = false);
-                    }
-                  },
-                  child: Stack(
-                    key: _moduleTourStackKey,
-                    fit: StackFit.expand,
-                    children: [
-                      SafeArea(
-                        child: _buildScrollBody(t, cs, isDark),
+                child: Stack(
+                  key: _moduleTourStackKey,
+                  fit: StackFit.expand,
+                  children: [
+                    SafeArea(
+                      child: _buildScrollBody(t, cs, isDark),
+                    ),
+                    _buildFloatingDock(t, cs, isDark),
+                    if (_overlayLoading)
+                      Positioned.fill(
+                        child: Container(
+                          color: Colors.black26,
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        ),
                       ),
-                      _buildFloatingDock(t, cs, isDark),
-                      if (_showQuickSettings)
-                        Positioned(
-                          bottom: 84 + MediaQuery.of(context).padding.bottom,
-                          left: 20,
-                          child: _buildQuickSettingsMenu(t, cs, isDark),
+                    if (!_overlayLoading &&
+                        _overlayType != null &&
+                        _overlayType != AccessState.noSubscription)
+                      Positioned.fill(
+                        child: AccessOverlay(
+                          type: _overlayType!,
+                          onUnlocked: _onUnlocked,
+                          onDismiss: _hideOverlay,
                         ),
-                      _buildToastOverlay(),
-                      if (_overlayLoading)
-                        Positioned.fill(
-                          child: Container(
-                            color: Colors.black26,
-                            child: const Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                          ),
-                        ),
-                      if (!_overlayLoading &&
-                          _overlayType != null &&
-                          _overlayType != AccessState.noSubscription)
-                        Positioned.fill(
-                          child: AccessOverlay(
-                            type: _overlayType!,
-                            onUnlocked: _onUnlocked,
-                            onDismiss: _hideOverlay,
-                          ),
-                        ),
-                      if (_currentIndex == 0) _buildWorkflowFab(cs, isDark),
-                      _buildModuleTourOverlay(t),
-                    ],
-                  ),
+                      ),
+                    if (_currentIndex == 0) _buildWorkflowFab(cs, isDark),
+                    _buildModuleTourOverlay(t),
+                  ],
                 ),
               );
             },
@@ -2151,96 +2020,40 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
 
   // ── Part 5: Module Card ─────────────────────────────────────────────────────
   Widget _buildInlineModuleCard(Translator t, ColorScheme cs, bool isDark) {
-    return AnimatedOpacity(
-      duration: const Duration(milliseconds: 350),
-      opacity: _moduleCardVisible ? 1.0 : 0.0,
-      child: AnimatedSlide(
-        duration: const Duration(milliseconds: 420),
-        offset: _moduleCardVisible ? Offset.zero : const Offset(0, 0.15),
-        curve: Curves.easeOutCubic,
-        child: Padding(
-          padding:
-              const EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 32),
-          child: GestureDetector(
-            onHorizontalDragEnd: (details) {
-              if (details.primaryVelocity! > 500) {
-                // Swipe Right -> Previous Tab
-                if (_currentIndex > 0) _handleSwipe(_currentIndex - 1);
-              } else if (details.primaryVelocity! < -500) {
-                // Swipe Left -> Next Tab
-                if (_currentIndex < 3) _handleSwipe(_currentIndex + 1);
-              }
-            },
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-              decoration: BoxDecoration(
-                color: _cardBg(cs, isDark),
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: _borderColor(cs, isDark), width: 0.8),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(isDark ? 0.4 : 0.18),
-                    blurRadius: 36,
-                    spreadRadius: 6,
-                    offset: const Offset(0, 12),
-                  )
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // TOP BAR: drag hint + attach button
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Center(
-                          child: Container(
-                            width: 36,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: cs.onSurface.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                        ),
-                      ),
-                      // GestureDetector(
-                      //   onTap: () => _attachModuleCard(t),
-                      //   child: Container(
-                      //     padding: const EdgeInsets.symmetric(
-                      //         horizontal: 10, vertical: 5),
-                      //     decoration: BoxDecoration(
-                      //       color: cs.primary.withOpacity(0.09),
-                      //       borderRadius: BorderRadius.circular(20),
-                      //       border:
-                      //           Border.all(color: cs.primary.withOpacity(0.2)),
-                      //     ),
-                      //     child: Row(
-                      //       mainAxisSize: MainAxisSize.min,
-                      //       children: [
-                      //         Icon(Icons.south_rounded,
-                      //             size: 11, color: cs.primary),
-                      //         const SizedBox(width: 4),
-                      //         Text("Attach to nav",
-                      //             style: TextStyle(
-                      //                 fontSize: 10,
-                      //                 fontWeight: FontWeight.w700,
-                      //                 color: cs.primary)),
-                      //       ],
-                      //     ),
-                      //   ),
-                      // ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  _buildCardTabLabel(t),
-                  const SizedBox(height: 14),
-                  _buildIconGrid(t),
-                ],
-              ),
-            ),
+    return Padding(
+      padding: const EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 32),
+      child: GestureDetector(
+        onHorizontalDragEnd: (details) {
+          if (details.primaryVelocity! > 500) {
+            if (_currentIndex > 0) _handleSwipe(_currentIndex - 1);
+          } else if (details.primaryVelocity! < -500) {
+            if (_currentIndex < 3) _handleSwipe(_currentIndex + 1);
+          }
+        },
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+          decoration: BoxDecoration(
+            color: _cardBg(cs, isDark),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: _borderColor(cs, isDark), width: 0.8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(isDark ? 0.4 : 0.18),
+                blurRadius: 36,
+                spreadRadius: 6,
+                offset: const Offset(0, 12),
+              )
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildCardTabLabel(t),
+              const SizedBox(height: 14),
+              _buildIconGrid(t),
+            ],
           ),
         ),
       ),
@@ -2429,108 +2242,12 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     );
   }
 
-  Widget _buildAttachedModulePanel(Translator t, ColorScheme cs, bool isDark) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark
-            ? cs.surfaceContainerHigh.withOpacity(0.96)
-            : Colors.white.withOpacity(0.97),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(28),
-          topRight: Radius.circular(28),
-          bottomLeft: Radius.zero,
-          bottomRight: Radius.zero,
-        ),
-        border: Border(
-          top: BorderSide(color: _borderColor(cs, isDark), width: 0.8),
-          left: BorderSide(color: _borderColor(cs, isDark), width: 0.8),
-          right: BorderSide(color: _borderColor(cs, isDark), width: 0.8),
-        ),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.35 : 0.18),
-              blurRadius: 36,
-              spreadRadius: 4,
-              offset: const Offset(0, -8))
-        ],
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // TOP BAR: drag pill + detach button
-          Row(
-            children: [
-              const SizedBox(width: 88), // balance spacer
-              Expanded(
-                child: Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: cs.onSurface.withOpacity(0.14),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-              ),
-              // Detach chip
-              GestureDetector(
-                onTap: _detachModuleCard,
-                child: Container(
-                  width: 88,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: cs.primary.withOpacity(0.09),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: cs.primary.withOpacity(0.2)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.north_rounded, size: 11, color: cs.primary),
-                      const SizedBox(width: 4),
-                      Text("Detach",
-                          style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: cs.primary)),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          _buildCardTabLabel(t),
-          const SizedBox(height: 14),
-          _buildIconGrid(t),
-        ],
-      ),
-    );
-  }
-
   Widget _buildFloatingDock(Translator t, ColorScheme cs, bool isDark) {
     return Positioned(
       bottom: 16 + MediaQuery.of(context).padding.bottom,
       left: 12,
       right: 12,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Attached panel — slides in/out with AnimatedSize
-          AnimatedSize(
-            duration: const Duration(milliseconds: 450),
-            curve: Curves.easeOutCubic,
-            child: _moduleCardAttached
-                ? _buildAttachedModulePanel(t, cs, isDark)
-                : const SizedBox.shrink(),
-          ),
-          // Nav bar — always visible
-          _buildNavBar(t, cs, isDark),
-        ],
-      ),
+      child: _buildNavBar(t, cs, isDark),
     );
   }
 
@@ -2543,18 +2260,10 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
         color: isDark
             ? cs.surfaceContainerHigh.withOpacity(0.88)
             : Colors.white.withOpacity(0.93),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(_moduleCardAttached ? 0 : 30),
-          topRight: Radius.circular(_moduleCardAttached ? 0 : 30),
-          bottomLeft: const Radius.circular(30),
-          bottomRight: const Radius.circular(30),
-        ),
+        borderRadius: BorderRadius.circular(30),
         border: Border(
-          // when attached, no top border (seamless join with panel)
-          top: _moduleCardAttached
-              ? BorderSide.none
-              : BorderSide(
-                  color: cs.outlineVariant.withOpacity(0.2), width: 0.8),
+          top:
+              BorderSide(color: cs.outlineVariant.withOpacity(0.2), width: 0.8),
           left:
               BorderSide(color: cs.outlineVariant.withOpacity(0.2), width: 0.8),
           right:
@@ -2565,25 +2274,12 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
         boxShadow: _dockShadow(),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(_moduleCardAttached ? 0 : 30),
-          topRight: Radius.circular(_moduleCardAttached ? 0 : 30),
-          bottomLeft: const Radius.circular(30),
-          bottomRight: const Radius.circular(30),
-        ),
+        borderRadius: BorderRadius.circular(30),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            child: Row(
-              children: [
-                _buildMenuButton(),
-                const SizedBox(width: 8),
-                Expanded(child: _buildTabPills()),
-                const SizedBox(width: 8),
-                _buildAiButton(t),
-              ],
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: _buildTabPills(),
           ),
         ),
       ),
@@ -2908,90 +2604,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
 
   // ── Part 6: Floating NavBar ────────────────────────────────────────────────
 
-  Widget _buildMenuButton() {
-    final cs = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: () => setState(() => _showQuickSettings = !_showQuickSettings),
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: cs.surfaceContainerHigh.withOpacity(0.5),
-          borderRadius: BorderRadius.circular(14),
-          border:
-              Border.all(color: cs.outlineVariant.withOpacity(0.3), width: 0.8),
-        ),
-        child:
-            Icon(Icons.more_vert_rounded, size: 20, color: cs.onSurfaceVariant),
-      ),
-    );
-  }
-
-  Widget _buildQuickSettingsMenu(Translator t, ColorScheme cs, bool isDark) {
-    return TweenAnimationBuilder<double>(
-      duration: const Duration(milliseconds: 200),
-      tween: Tween(begin: 0, end: 1),
-      builder: (context, value, child) {
-        return Transform.scale(
-          scale: 0.8 + (0.2 * value),
-          alignment: Alignment.bottomLeft,
-          child: Opacity(opacity: value, child: child),
-        );
-      },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-          child: Container(
-            width: 220,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? cs.surfaceContainerHigh.withOpacity(0.85)
-                  : cs.surface.withOpacity(0.9),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: cs.outlineVariant.withOpacity(0.2)),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildQuickSettingRow("Multiple Entry Mode", _multipleEntryMode,
-                    (val) {
-                  setState(() => _multipleEntryMode = val);
-                  ModulePreferences.setMultipleEntry(val);
-                }),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickSettingRow(
-      String label, bool value, ValueChanged<bool> onChanged) {
-    final cs = Theme.of(context).colorScheme;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-        SizedBox(
-          height: 24,
-          child: Switch.adaptive(
-            value: value,
-            onChanged: onChanged,
-            activeColor: cs.primary,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildTabPills() {
     final cs = Theme.of(context).colorScheme;
     return Container(
@@ -3047,6 +2659,12 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   Widget _buildTabPill({required String label, required int index}) {
     final cs = Theme.of(context).colorScheme;
     final isActive = _currentIndex == index;
+    final icons = <IconData>[
+      Icons.edit_calendar_rounded,
+      Icons.tune_rounded,
+      Icons.bar_chart_rounded,
+      Icons.more_horiz_rounded,
+    ];
     Widget pill = GestureDetector(
       onTap: () {
         if (index == 0 || index == 3) {
@@ -3060,15 +2678,29 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       child: Container(
         color: Colors.transparent,
         child: Center(
-          child: AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 250),
-            style: TextStyle(
-                fontSize: 11,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icons[index],
+                size: 15,
                 color: isActive
                     ? Colors.white
-                    : cs.onSurfaceVariant.withOpacity(0.65)),
-            child: Text(label),
+                    : cs.onSurfaceVariant.withOpacity(0.65),
+              ),
+              const SizedBox(width: 4),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 250),
+                style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+                    color: isActive
+                        ? Colors.white
+                        : cs.onSurfaceVariant.withOpacity(0.65)),
+                child: Text(label),
+              ),
+            ],
           ),
         ),
       ),
@@ -3096,54 +2728,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       default:
         return ModuleScreenTourTargets.dailyTabKey;
     }
-  }
-
-  Widget _buildAiButton(Translator t) {
-    final cs = Theme.of(context).colorScheme;
-    return AnimatedBuilder(
-      animation: _pulseAnimation,
-      builder: (context, child) {
-        return GestureDetector(
-          onTap: _overlayType != null
-              ? null
-              : () {
-                  if (!_moduleCardAttached) {
-                    _attachModuleCard(t);
-                  } else {
-                    _handleAiAnalysisTap();
-                  }
-                },
-          child: Padding(
-            padding: const EdgeInsets.all(8.0), // Space for shadow pulse
-            child: Container(
-              width: 44,
-              height: 44,
-              padding: const EdgeInsets.all(1),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                      color: cs.primary
-                          .withOpacity(0.12 + (_pulseAnimation.value * 0.1)),
-                      blurRadius: 8 + (_pulseAnimation.value * 6),
-                      spreadRadius: _pulseAnimation.value * 2)
-                ],
-              ),
-              child: Container(
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  image: DecorationImage(
-                    image: AssetImage('assets/images/adaptive-icon.png'),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
   }
 
   // ── Part 7: Loading State ──────────────────────────────────────────────────
