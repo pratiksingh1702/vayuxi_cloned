@@ -196,7 +196,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     debugLogDiagnostics: true,
     errorBuilder: (context, state) => const NotFoundScreen(),
     refreshListenable: ref.watch(routerRefreshProvider),
-    redirect: (context, state) {
+    redirect: (context, state) async {
       final access = ref.read(appAccessProvider);
       final loc = state.matchedLocation;
       final concretePath =
@@ -256,9 +256,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       };
 
       if (gatePages.contains(loc)) {
+        final savedType = await TypeNotifier.readSavedType();
+        if (savedType != null) {
+          await ref.read(typeProvider.notifier).setType(savedType);
+          debugPrint(
+              '🔀 [ROUTER REDIRECT] → ${Routes.selectModule}  (reason: restored saved work type: $savedType)');
+          return Routes.selectModule;
+        }
         debugPrint(
             '🔀 [ROUTER REDIRECT] → ${Routes.workCategory}  (reason: logged in, was at gate page: $loc)');
         return Routes.workCategory;
+      }
+
+      if (loc == Routes.workCategory) {
+        final savedType = await TypeNotifier.readSavedType();
+        if (savedType != null) {
+          await ref.read(typeProvider.notifier).setType(savedType);
+          debugPrint(
+              '🔀 [ROUTER REDIRECT] → ${Routes.selectModule}  (reason: work type already selected: $savedType)');
+          return Routes.selectModule;
+        }
       }
 
       // ── 3. Logged in + inside app → free navigation ─────────────────────

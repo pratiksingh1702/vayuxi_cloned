@@ -161,7 +161,7 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
         (e) => e.name == id,
         orElse: () => WorkType.mechanical,
       );
-      typeNotifier.setType(workType.apiValue);
+      await typeNotifier.setType(workType.apiValue);
 
       ref.read(siteProvider.notifier).fetchSites();
 

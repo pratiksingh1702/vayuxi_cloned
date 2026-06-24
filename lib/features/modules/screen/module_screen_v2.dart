@@ -1202,6 +1202,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   Widget _buildScrollBody(Translator t, ColorScheme cs, bool isDark) {
     ref.watch(workflowControllerProvider);
     final isSetupTab = _currentIndex == 1;
+    final isReportsTab = _currentIndex == 2;
     return SingleChildScrollView(
       controller: _scrollController,
       physics: isSetupTab
@@ -1213,9 +1214,10 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           SizedBox(height: isSetupTab ? 12 : 24),
           _buildDropdownRow(),
           SizedBox(height: isSetupTab ? 10 : 20),
-          // CONDITIONAL: inline module card (detached state)
           if (isSetupTab)
             _buildSetupSectionBoard(t, cs, isDark)
+          else if (isReportsTab)
+            _buildReportSectionBoard(t, cs, isDark)
           else ...[
             _buildInlineModuleCard(t, cs, isDark),
             const SizedBox(height: 16),
@@ -2126,6 +2128,66 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     );
   }
 
+  Widget _buildReportSectionBoard(Translator t, ColorScheme cs, bool isDark) {
+    final modules = _reportModules;
+    final projectReports = modules
+        .where((m) =>
+            m.labelKey == 'summary_analysis_card' ||
+            m.labelKey == 'dpr_sheets_card' ||
+            m.labelKey == 'P&M Reports')
+        .toList();
+    final workforceReports = modules
+        .where((m) =>
+            m.labelKey == 'salary_slip_card' ||
+            m.labelKey == 'attendance_sheet_card')
+        .toList();
+    final financialAndResourceReports = modules
+        .where((m) =>
+            m.labelKey == 'expense_sheet_card' ||
+            m.labelKey == 'inventory_summary_card')
+        .toList();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
+      child: Column(
+        children: [
+          _buildSetupSection(
+            title: 'Project Reports',
+            icon: Icons.analytics_rounded,
+            items: projectReports,
+            translator: t,
+            cs: cs,
+            isDark: isDark,
+            columns: 4,
+            accent: cs.primary,
+          ),
+          const SizedBox(height: 8),
+          _buildSetupSection(
+            title: 'Workforce Reports',
+            icon: Icons.groups_2_rounded,
+            items: workforceReports,
+            translator: t,
+            cs: cs,
+            isDark: isDark,
+            columns: 4,
+            accent: Colors.teal,
+          ),
+          const SizedBox(height: 8),
+          _buildSetupSection(
+            title: 'Financial & Resource Reports',
+            icon: Icons.account_balance_wallet_rounded,
+            items: financialAndResourceReports,
+            translator: t,
+            cs: cs,
+            isDark: isDark,
+            columns: 4,
+            accent: Colors.deepOrange,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSetupSection({
     required String title,
     required IconData icon,
@@ -2298,7 +2360,11 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
 
   Widget _buildCardTabLabel(Translator t) {
     final cs = Theme.of(context).colorScheme;
-    const currentTabName = "Quick Access";
+    final currentTabName = switch (_currentIndex) {
+      0 => 'Quick Access',
+      3 => 'More',
+      _ => _tabTourTitle(_currentIndex),
+    };
 
     return Stack(
       alignment: Alignment.center,
