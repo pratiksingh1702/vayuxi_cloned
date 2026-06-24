@@ -2074,7 +2074,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
             m.labelKey == 'site_details_card' ||
             m.labelKey == 'rate_card' ||
             m.labelKey == 'inventory_setup_card' ||
-            m.labelKey == 'BOQ' ||
             m.labelKey.contains('DPR Setup') ||
             m.labelKey.contains('Setup') && m.labelKey != 'P&M Setup' ||
             m.labelKey == 'P&M Setup')
@@ -2084,7 +2083,9 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
         .toList();
     final execution = modules
         .where((m) =>
-            m.labelKey == 'Work Assignment' || m.labelKey == 'History Upload')
+            m.labelKey == 'BOQ' ||
+            m.labelKey == 'Work Assignment' ||
+            m.labelKey == 'History Upload')
         .toList();
 
     return Padding(

@@ -1342,6 +1342,22 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
     }
   }
 
+  Future<void> _saveCurrentMultiEntryDraft() async {
+    if (!_isMultipleEntry) return;
+    final dateKey =
+        _activeMultiEntryDateKey ?? _attendanceDateKey(_selectedDate);
+    _dirtyMultiEntryDates.add(dateKey);
+    _cacheCurrentMultiEntryDraft(persistLocal: true);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Draft saved for ${_formatDate(_selectedDate)}"),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   String _formatDate(DateTime d) => "${d.day}/${d.month}/${d.year}";
   List<Map<String, dynamic>> buildOTOptions({
     required double? maxAllowedHours,
@@ -1531,68 +1547,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
     return NoCutoutTourTarget(targetKey: key, child: child);
   }
 
-  Widget _buildSummaryTile({
-    required String label,
-    required String value,
-    required IconData icon,
-    required Color accent,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(10),
-          border:
-              Border.all(color: colorScheme.outlineVariant.withOpacity(0.7)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: accent.withOpacity(0.10),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, size: 16, color: accent),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    value,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildCompactActionChip({
     required String label,
     required IconData icon,
@@ -1600,17 +1554,18 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
     required VoidCallback onTap,
     bool selected = false,
   }) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final backgroundOpacity = selected ? 0.18 : 0.10;
+    final borderOpacity = selected ? 0.90 : 0.34;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
         decoration: BoxDecoration(
-          color: selected ? accent.withOpacity(0.12) : colorScheme.surface,
+          color: accent.withOpacity(backgroundOpacity),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: selected ? accent : colorScheme.outlineVariant,
+            color: accent.withOpacity(borderOpacity),
             width: selected ? 1.4 : 1,
           ),
         ),
@@ -1618,15 +1573,14 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon,
-                size: 15,
-                color: selected ? accent : colorScheme.onSurfaceVariant),
+                size: 15, color: selected ? accent : accent.withOpacity(0.92)),
             const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: selected ? accent : colorScheme.onSurfaceVariant,
+                color: selected ? accent : accent.withOpacity(0.96),
               ),
             ),
           ],
@@ -1667,22 +1621,33 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
         builder: (showcaseContext) {
           return BottomButtonWrapper(
             customButtons: [
-              CustomButton(
-                button: _buildAttendanceTourTarget(
-                  key: _saveTourKey,
-                  targetPadding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  child: RoundedButton(
-                    text: _isMultipleEntry ? "Save All" : "Save",
-                    color: _isEditable
-                        ? colorScheme.primary
-                        : colorScheme.onSurfaceVariant,
-                    textColor: colorScheme.onPrimary,
-                    width: 200,
-                    onPressed: _submitAttendance,
+              if (_isMultipleEntry) ...[
+                CustomButton(
+                  button: RoundedButton(
+                    text: "Draft",
+                    color: colorScheme.primary,
+                    textColor: colorScheme.primary,
+                    isOutlined: true,
+                    onPressed: _saveCurrentMultiEntryDraft,
                   ),
                 ),
-              ),
+              ] else
+                CustomButton(
+                  button: _buildAttendanceTourTarget(
+                    key: _saveTourKey,
+                    targetPadding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    child: RoundedButton(
+                      text: "Save",
+                      color: _isEditable
+                          ? colorScheme.primary
+                          : colorScheme.onSurfaceVariant,
+                      textColor: colorScheme.onPrimary,
+                      width: 200,
+                      onPressed: _submitAttendance,
+                    ),
+                  ),
+                ),
             ],
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -1784,19 +1749,46 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
                         includeWorkerControls: filteredList.isNotEmpty,
                       );
 
-                      final presentCount =
-                          draft.where((e) => e.status == 'present').length;
-                      final absentCount =
-                          draft.where((e) => e.status != 'present').length;
-                      final otTotal =
-                          draft.fold<double>(0, (sum, e) => sum + e.ot);
-
                       return Padding(
                         padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             if (_isMultipleEntry) ...[
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: _buildAttendanceTourTarget(
+                                  key: _saveTourKey,
+                                  targetPadding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 8,
+                                  ),
+                                  child: FilledButton.icon(
+                                    onPressed: _submitAttendance,
+                                    icon: const Icon(
+                                      Icons.cloud_done_outlined,
+                                      size: 18,
+                                    ),
+                                    label: Text(
+                                      _dirtyMultiEntryDates.isEmpty
+                                          ? 'Save All'
+                                          : 'Save All (${_dirtyMultiEntryDates.length})',
+                                    ),
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: colorScheme.primary,
+                                      foregroundColor: colorScheme.onPrimary,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 18,
+                                        vertical: 12,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
                               _buildAttendanceTourTarget(
                                 key: _timelineTourKey,
                                 targetPadding: const EdgeInsets.all(8),
@@ -1816,12 +1808,21 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
                               child: Container(
                                 padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
-                                  color: colorScheme.surface,
+                                  color: colorScheme.primaryContainer
+                                      .withOpacity(0.22),
                                   borderRadius: BorderRadius.circular(14),
                                   border: Border.all(
-                                    color: colorScheme.outlineVariant
-                                        .withOpacity(0.7),
+                                    color:
+                                        colorScheme.primary.withOpacity(0.16),
                                   ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color:
+                                          colorScheme.primary.withOpacity(0.06),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
                                 ),
                                 child: Row(
                                   children: [
@@ -1830,7 +1831,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
                                       height: 38,
                                       decoration: BoxDecoration(
                                         color: colorScheme.primary
-                                            .withOpacity(0.10),
+                                            .withOpacity(0.12),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: Icon(
@@ -1845,6 +1846,17 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
+                                          Text(
+                                            'Site Details',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w800,
+                                              color: colorScheme.primary,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
                                           Text(
                                             site!.siteName,
                                             maxLines: 1,
@@ -1920,33 +1932,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
                                   ],
                                 ),
                               ),
-                            ),
-
-                            const SizedBox(height: 10),
-
-                            Row(
-                              children: [
-                                _buildSummaryTile(
-                                  label: 'Present',
-                                  value: '$presentCount',
-                                  icon: Icons.check_circle_outline_rounded,
-                                  accent: const Color(0xFF168A4A),
-                                ),
-                                const SizedBox(width: 8),
-                                _buildSummaryTile(
-                                  label: 'Absent',
-                                  value: '$absentCount',
-                                  icon: Icons.cancel_outlined,
-                                  accent: const Color(0xFFC2413A),
-                                ),
-                                const SizedBox(width: 8),
-                                _buildSummaryTile(
-                                  label: 'OT Hours',
-                                  value: otTotal.toStringAsFixed(1),
-                                  icon: Icons.access_time_rounded,
-                                  accent: colorScheme.primary,
-                                ),
-                              ],
                             ),
 
                             const SizedBox(height: 10),
