@@ -10,6 +10,7 @@ import 'package:untitled2/features/language/service/providers.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
 import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvider.dart';
+import 'package:untitled2/features/modules/screen/module_dashboard_service.dart';
 import 'package:untitled2/features/tour/core/tour_models.dart';
 import 'package:untitled2/features/tour/core/tour_package_adapter.dart';
 import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
@@ -1147,6 +1148,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
       }
 
       // ✅ API succeeded — show success first
+      ref.invalidate(dashboardSummaryProvider);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Attendance saved successfully"),
@@ -1313,6 +1315,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
       }
 
       _dirtyMultiEntryDates.clear();
+      ref.invalidate(dashboardSummaryProvider);
       await _fetchCompletedDates();
 
       if (!mounted) return;

@@ -70,6 +70,7 @@ class DashAttendance {
     // Try to get counts from today first, fallback to latestEntryDateStats if 0
     final today = json['today'] as Map<String, dynamic>?;
     final latest = json['latestEntryDateStats'] as Map<String, dynamic>?;
+    final todayEntry = today?['lastEntry'];
 
     int present = (today?['totalPresentWorkers'] as num?)?.toInt() ?? 0;
     int absent = (today?['totalAbsentWorkers'] as num?)?.toInt() ?? 0;
@@ -82,9 +83,12 @@ class DashAttendance {
     return DashAttendance(
       totalPresent: present,
       totalAbsent: absent,
-      lastEntry: json['lastEntry'] != null
-          ? DashLastEntry.fromJson(json['lastEntry'] as Map<String, dynamic>)
-          : null,
+      lastEntry: todayEntry is Map<String, dynamic>
+          ? DashLastEntry.fromJson(todayEntry)
+          : json['lastEntry'] != null
+              ? DashLastEntry.fromJson(
+                  json['lastEntry'] as Map<String, dynamic>)
+              : null,
     );
   }
 }
@@ -97,13 +101,17 @@ class DashDpr {
   const DashDpr({this.lastEntry, this.totalQty, this.remarks});
 
   factory DashDpr.fromJson(Map<String, dynamic> json) {
-    final raw = json['lastEntry'];
+    final today = json['today'];
+    final raw = today is Map<String, dynamic> && today['lastEntry'] != null
+        ? today['lastEntry']
+        : json['lastEntry'];
     DashLastEntry? entry;
     num? qty;
     String? rmk;
     if (raw is Map<String, dynamic>) {
       entry = DashLastEntry.fromJson(raw);
-      qty = raw['totalQty'] as num?;
+      final rawQty = raw['totalQty'] ?? raw['totalWeightMt'];
+      qty = rawQty is num ? rawQty : num.tryParse(rawQty?.toString() ?? '');
       rmk = raw['remarks']?.toString();
     }
     return DashDpr(lastEntry: entry, totalQty: qty, remarks: rmk);
@@ -124,7 +132,10 @@ class DashExpenses {
   });
 
   factory DashExpenses.fromJson(Map<String, dynamic> json) {
-    final raw = json['lastEntry'];
+    final today = json['today'];
+    final raw = today is Map<String, dynamic> && today['lastEntry'] != null
+        ? today['lastEntry']
+        : json['lastEntry'];
     DashLastEntry? entry;
     String? cat;
     num? amt;
@@ -133,8 +144,11 @@ class DashExpenses {
       cat = (raw['category'] ?? raw['expenseType'])?.toString();
       amt = raw['amount'] as num?;
     }
+    final todayTotal =
+        today is Map<String, dynamic> ? today['totalAmount'] : null;
     return DashExpenses(
-      totalAmount: (json['totalAmount'] as num?) ?? 0,
+      totalAmount:
+          (todayTotal is num ? todayTotal : json['totalAmount'] as num?) ?? 0,
       lastEntry: entry,
       category: cat,
       lastAmount: amt,
@@ -162,7 +176,10 @@ class DashInventory {
   });
 
   factory DashInventory.fromJson(Map<String, dynamic> json) {
-    final raw = json['lastEntry'];
+    final today = json['today'];
+    final raw = today is Map<String, dynamic> && today['lastEntry'] != null
+        ? today['lastEntry']
+        : json['lastEntry'];
     DashLastEntry? entry;
     String? mat, movType, uom;
     num? qty;
@@ -181,8 +198,12 @@ class DashInventory {
         qty = (raw['quantity'] ?? raw['totalQty']) as num?;
       }
     }
+    final todayTotalEntries =
+        today is Map<String, dynamic> ? today['totalEntries'] : null;
     return DashInventory(
-      totalItems: (json['totalItems'] as num?)?.toInt() ?? 0,
+      totalItems: (todayTotalEntries as num?)?.toInt() ??
+          (json['totalItems'] as num?)?.toInt() ??
+          0,
       lowStockItems: (json['lowStockItems'] as num?)?.toInt() ?? 0,
       lastEntry: entry,
       lastMaterial: mat,
