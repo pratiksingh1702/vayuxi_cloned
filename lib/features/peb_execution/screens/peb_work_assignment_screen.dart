@@ -508,7 +508,10 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
     final previousStage = _previousSetupItem(_setupItemId);
     final previousStageAssignedMarks = previousStage == null
         ? <String>{}
-        : _assignedMarksForSetupItem(previousStage.id);
+        : {
+            ..._assignedMarksForSetupItem(previousStage.id),
+            ...?_completedBySetupItem[previousStage.id],
+          };
     return marks
         .where(
           (mark) => _isAssignableMark(
@@ -2464,7 +2467,10 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
     final previousStage = _previousSetupItem(_setupItemId);
     final previousStageAssignedMarks = previousStage == null
         ? <String>{}
-        : _assignedMarksForSetupItem(previousStage.id);
+        : {
+            ..._assignedMarksForSetupItem(previousStage.id),
+            ...?_completedBySetupItem[previousStage.id],
+          };
     if (_allMarks.isEmpty) {
       return const Text('No BOQ marks found. Upload BOQ first.');
     }

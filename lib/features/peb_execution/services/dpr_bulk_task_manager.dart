@@ -117,7 +117,7 @@ class DprBulkTaskManager extends ChangeNotifier {
 
   static final DprBulkTaskManager instance = DprBulkTaskManager._();
 
-  static const int _batchSize = 4;
+  static const int _batchSize = 50;
   final PebExecutionService _service = PebExecutionService();
   final Queue<String> _queue = Queue<String>();
   final Map<String, DprBulkTask> _tasks = {};
@@ -213,37 +213,51 @@ class DprBulkTaskManager extends ChangeNotifier {
     try {
       for (var start = 0; start < task.items.length; start += _batchSize) {
         final batch = task.items.skip(start).take(_batchSize).toList();
-        await Future.wait(batch.map((item) async {
-          try {
-            await _service.submitDprProgress(
-              task.siteId,
-              task.type,
-              date: task.date,
-              teamId: task.teamId,
-              setupItemId: task.setupItemId,
-              assignmentId: task.assignmentId,
-              sourceType: task.sourceType,
-              stageName: task.stageName,
-              uom: task.uom,
-              marks: [item.mark],
-              actualQty: item.actualQty,
-              targetQty: item.targetQty,
-              progressPercentage: task.progressPercentage,
-              trackingLevel: 'advanced',
-              remarks: item.remarks,
-              variationReason: item.variationReason,
-              variationRemarks: item.variationRemarks,
-              weightMode: item.weightMode,
-              manualWeightKg: item.manualWeightKg,
-              totalWeightKg: item.totalWeightKg,
-            );
-          } catch (error) {
-            failed++;
-            failedDetails.add('${item.mark}: ${_friendlyError(error)}');
-          } finally {
-            processed++;
+        try {
+          final result = await _service.submitDprProgressBulk(
+            task.siteId,
+            task.type,
+            date: task.date,
+            teamId: task.teamId,
+            setupItemId: task.setupItemId,
+            assignmentId: task.assignmentId,
+            sourceType: task.sourceType,
+            stageName: task.stageName,
+            uom: task.uom,
+            progressPercentage: task.progressPercentage,
+            trackingLevel: 'advanced',
+            items: batch
+                .map((item) => DprBulkProgressItemPayload(
+                      mark: item.mark,
+                      actualQty: item.actualQty,
+                      targetQty: item.targetQty,
+                      weightMode: item.weightMode,
+                      manualWeightKg: item.manualWeightKg,
+                      totalWeightKg: item.totalWeightKg,
+                      remarks: item.remarks,
+                      variationReason: item.variationReason,
+                      variationRemarks: item.variationRemarks,
+                    ))
+                .toList(),
+          );
+          final failedItems = (result['failed'] as List? ?? const []);
+          failed += failedItems.length;
+          for (final raw in failedItems) {
+            if (raw is Map) {
+              final mark = raw['mark']?.toString() ?? 'Mark';
+              final reason = raw['reason']?.toString() ?? 'Unable to update';
+              failedDetails.add('$mark: $reason');
+            }
           }
-        }));
+        } catch (error) {
+          failed += batch.length;
+          final message = _friendlyError(error);
+          for (final item in batch) {
+            failedDetails.add('${item.mark}: $message');
+          }
+        } finally {
+          processed += batch.length;
+        }
         _tasks[task.id] = _tasks[task.id]!.copyWith(
           processed: processed,
           failed: failed,

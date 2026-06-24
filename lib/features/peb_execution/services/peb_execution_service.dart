@@ -17,6 +17,30 @@ class PebBoqVariationRequired implements Exception {
   PebBoqVariationRequired(this.variations);
 }
 
+class DprBulkProgressItemPayload {
+  final String mark;
+  final double actualQty;
+  final double targetQty;
+  final String weightMode;
+  final double manualWeightKg;
+  final double totalWeightKg;
+  final String remarks;
+  final String variationReason;
+  final String variationRemarks;
+
+  const DprBulkProgressItemPayload({
+    required this.mark,
+    required this.actualQty,
+    required this.targetQty,
+    required this.weightMode,
+    required this.manualWeightKg,
+    required this.totalWeightKg,
+    this.remarks = '',
+    this.variationReason = '',
+    this.variationRemarks = '',
+  });
+}
+
 class PebExecutionService {
   final Dio _dio = DioClient.dio;
 
@@ -841,6 +865,68 @@ class PebExecutionService {
       }
       rethrow;
     }
+  }
+
+  Future<Map<String, dynamic>> submitDprProgressBulk(
+    String siteId,
+    PebExecutionType type, {
+    required String date,
+    required String teamId,
+    required String setupItemId,
+    required String assignmentId,
+    required String sourceType,
+    required String stageName,
+    required String uom,
+    required int progressPercentage,
+    String trackingLevel = 'advanced',
+    required List<DprBulkProgressItemPayload> items,
+  }) async {
+    final payloadItems = items
+        .map((item) => {
+              'setupItemId': setupItemId,
+              'assignmentId': assignmentId,
+              'sourceType': sourceType,
+              'name': stageName,
+              'uom': uom,
+              'actualQty': item.actualQty,
+              'targetQty': item.targetQty,
+              'progressPercentage': progressPercentage,
+              'isCompleted': progressPercentage >= 100,
+              'completedDate': progressPercentage >= 100 ? date : null,
+              'assemblyMark': item.mark,
+              'markNo': item.mark,
+              'trackingLevel': trackingLevel,
+              'memberType': stageName,
+              'weightMode': item.weightMode,
+              'manualWeightKg': item.manualWeightKg,
+              'totalWeightKg': item.totalWeightKg,
+              'remarks': item.remarks.trim(),
+              'manpower': 0,
+              'assignedManpower': const [],
+              'manualManpower': const [],
+              'contractor': '',
+              'area': '',
+              if (item.variationReason.trim().isNotEmpty)
+                'variationReason': item.variationReason.trim(),
+              if (item.variationRemarks.trim().isNotEmpty)
+                'variationRemarks': item.variationRemarks.trim(),
+            })
+        .toList();
+
+    final response = await _dio.post(
+      '/site/$siteId/dpr-peb/bulk-progress',
+      data: {
+        'date': date,
+        'section': type.section,
+        'type': type.apiType,
+        'dprLevel': PebDprLevel.assignedWorkProgress.apiValue,
+        if (teamId.trim().isNotEmpty) 'teamId': teamId,
+        'trackingLevel': trackingLevel,
+        'status': 'submitted',
+        'items': payloadItems,
+      },
+    );
+    return Map<String, dynamic>.from(response.data as Map);
   }
 
   Future<void> submitItemWiseProgressBatch(

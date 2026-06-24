@@ -29,7 +29,7 @@ import '../../site_Details/repository/siteModel.dart';
 import '../service/manPowerProvider.dart';
 
 import 'dart:math';
-import 'man_import.dart';
+import 'ManFieldMappingScreen.dart';
 
 class NewManpowerScreen extends ConsumerStatefulWidget {
   const NewManpowerScreen({super.key});
@@ -735,7 +735,8 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen>
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const ManImportCsvScreen(),
+                            builder: (context) =>
+                                const ManFieldMappingScreen(),
                           ),
                         );
                       },

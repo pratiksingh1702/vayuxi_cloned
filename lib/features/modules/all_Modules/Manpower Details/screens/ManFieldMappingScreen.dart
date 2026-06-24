@@ -41,7 +41,11 @@ import 'dart:convert';
 
 import '../../../../../core/upload/manager/upload_manager.dart';
 import '../../../../../core/upload/models/upload_job.dart';
+import '../../../../../core/upload/models/upload_status.dart';
 
+import '../../attendance/offline/repo/att_sync.dart';
+import '../offline/repo/manpower_repo.dart';
+import '../service/manPowerProvider.dart';
 import '../service/manpowerService.dart';
 
 // ─────────────────────────────────────────────────────────────
@@ -286,25 +290,44 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
         fmState.confirmedMappings.map((m) => m.toJson()).toList(),
       );
 
-      ref.read(uploadManagerProvider.notifier).enqueue(
-            UploadJob.create(
-              moduleId: 'manpower',
-              filePath: fmState.selectedFile!.path,
-              metadata: {
-                'type': type,
-                if (siteId != null && siteId.isNotEmpty) 'siteId': siteId,
-                // JSON-encoded List<{csvColumn, modelField}> — read by ManpowerUploadHandler
-                'mappings': mappingsJson,
-              },
-              targetRoute: Routes.manpowerList,
-              maxRetries: 2,
-            ),
-          );
+      final uploadManager = ref.read(uploadManagerProvider.notifier);
+      final jobId = uploadManager.enqueue(
+        UploadJob.create(
+          moduleId: 'manpower',
+          filePath: fmState.selectedFile!.path,
+          metadata: {
+            'type': type,
+            if (siteId != null && siteId.isNotEmpty) 'siteId': siteId,
+            // JSON-encoded List<{csvColumn, modelField}> — read by ManpowerUploadHandler
+            'mappings': mappingsJson,
+          },
+          maxRetries: 2,
+        ),
+      );
+
+      _showSnack('Uploading manpower sheet...');
+      final completedJob = await uploadManager.waitForCompletion(
+        jobId,
+        timeout: const Duration(minutes: 8),
+      );
+      if (completedJob.status != UploadStatus.success) {
+        throw Exception(completedJob.response ?? completedJob.message);
+      }
+
+      ref.invalidate(manpowerSyncControllerProvider((type: type)));
+      ref.invalidate(manpowerOfflineProvider(type));
+      if (siteId != null && siteId.isNotEmpty) {
+        await ref
+            .read(manpowerProvider.notifier)
+            .fetchManpowerBySite(siteId: siteId, type: type);
+      } else {
+        await ref.read(manpowerProvider.notifier).fetchManpower(type);
+      }
 
       notifier.setImporting(false);
 
       if (!mounted) return;
-      _showSnack('Upload queued ✅ — you\'ll be notified when done.');
+      _showSnack('Manpower imported successfully ✅');
       context.go(Routes.manpowerList);
     } catch (e) {
       notifier.setImporting(false);
