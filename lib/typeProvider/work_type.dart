@@ -101,6 +101,7 @@ enum WorkType {
       this == WorkType.structure ||
       this == WorkType.fabrication;
   bool get hasBOQ =>
+      this == WorkType.mechanical ||
       this == WorkType.structure ||
       this == WorkType.civil ||
       this == WorkType.fabrication;

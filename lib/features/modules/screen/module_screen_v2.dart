@@ -526,9 +526,9 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
         iconColor: const Color(0xFF7B3F00),
         routeName: Routes.boqUpload);
 
-    if (type == 'mechanical_work' ||
-        type == WorkType.mechanical.apiValue ||
-        type == 'insulation_work' ||
+    if (type == 'mechanical_work' || type == WorkType.mechanical.apiValue) {
+      return [boqModule];
+    } else if (type == 'insulation_work' ||
         type == WorkType.insulation.apiValue ||
         type == 'roofing_work' ||
         type == WorkType.roofing.apiValue) {

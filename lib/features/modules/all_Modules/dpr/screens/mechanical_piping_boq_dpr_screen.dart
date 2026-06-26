@@ -9,9 +9,13 @@ import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/features/modules/all_Modules/boq/models/boq_model.dart';
 import 'package:untitled2/features/modules/all_Modules/boq/service/boq_service.dart';
-import 'package:untitled2/features/modules/all_Modules/dpr/models/data/equipment_material_data.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/models/data/piping_material_data.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/models/pipingModel.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/models/rate_file_models.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/providers/dprService.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/calculation/expand_wrapper.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/materila_card_wrapper.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/test_dynamic.dart';
 
 class MechanicalPipingBoqDprScreen extends StatefulWidget {
   const MechanicalPipingBoqDprScreen({
@@ -36,6 +40,9 @@ class _MechanicalPipingBoqDprScreenState
   final _searchController = TextEditingController();
   final Map<String, TextEditingController> _qtyControllers = {};
   final Map<String, TextEditingController> _remarkControllers = {};
+  final Map<String, PipingItem> _defaultMaterials = {
+    for (final material in PipingMaterialsData.materials) material.id: material,
+  };
 
   List<BoqDetail> _boqs = [];
   bool _isLoading = true;
@@ -318,401 +325,267 @@ class _MechanicalPipingBoqDprScreenState
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
       itemCount: rows.length,
-      itemBuilder: (_, index) => _rowCard(rows[index], cs),
+      itemBuilder: (_, index) {
+        final row = rows[index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _pipingCard(
+            material: _boqRowAsPipingItem(row),
+            quantity: _qtyController(row.item.id).text,
+            isEditable: true,
+            categoryId: row.item.calculationCategory ?? 'A',
+            onQuantityChanged: (value) =>
+                _qtyController(row.item.id).text = value,
+            onLengthChanged: (value) =>
+                _qtyController(row.item.id).text = value,
+            onDynamicChanged: (key, value) {
+              if (key.toLowerCase() == 'qty') {
+                _qtyController(row.item.id).text = value;
+              }
+            },
+            onRemark: () => _showRemarkSheet(row.item.id),
+            onEdit: () => _showCardActionMessage(),
+            onCopy: () => _showCardActionMessage(),
+            onDelete: () => _clearBoqInput(row.item.id),
+          ),
+        );
+      },
     );
   }
 
   Widget _defaultMaterialState(ColorScheme cs) {
-    final materials = [
-      ...PipingMaterialsData.materials.map(
-        (e) => _DefaultMaterialCard(title: e.materialName, image: e.image),
-      ),
-      ...EquipmentMaterialsData.materials.map(
-        (e) => _DefaultMaterialCard(title: e.materialName, image: e.image),
-      ),
-    ];
-
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
       children: [
-        Text(
-          'Default Materials',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-            color: cs.onSurface,
+        ..._defaultMaterials.values.map(
+          (material) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _pipingCard(
+              material: material,
+              quantity: '',
+              isEditable: true,
+              categoryId: material.calculationCategory,
+              onQuantityChanged: (_) {},
+              onLengthChanged: (_) {},
+              onDynamicChanged: (key, value) =>
+                  _updateDefaultMaterialField(material.id, key, value),
+              onRemark: () => _showRemarkSheet('default_${material.id}'),
+              onEdit: () => _showCardActionMessage(),
+              onCopy: () => _copyDefaultMaterial(material),
+              onDelete: () => _deleteDefaultMaterial(material.id),
+            ),
           ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Search drawing number or item name to load BOQ cards for DPR entry.',
-          style: TextStyle(
-            fontSize: 12,
-            height: 1.35,
-            fontWeight: FontWeight.w600,
-            color: cs.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 14),
-        GridView.builder(
-          physics: const NeverScrollableScrollPhysics(),
-          shrinkWrap: true,
-          itemCount: materials.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.08,
-          ),
-          itemBuilder: (_, index) {
-            final material = materials[index];
-            return Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: cs.surface,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: cs.outlineVariant),
-                boxShadow: [
-                  BoxShadow(
-                    color: cs.shadow.withValues(alpha: 0.05),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Center(
-                      child: Image.asset(
-                        material.image,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => Icon(
-                          Icons.precision_manufacturing_outlined,
-                          color: cs.primary,
-                          size: 42,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    material.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      height: 1.15,
-                      fontWeight: FontWeight.w800,
-                      color: cs.onSurface,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
         ),
       ],
     );
   }
 
-  Widget _rowCard(_PipingBoqRow row, ColorScheme cs) {
+  Widget _pipingCard({
+    required PipingItem material,
+    required String quantity,
+    required bool isEditable,
+    required String categoryId,
+    required ValueChanged<String> onQuantityChanged,
+    required ValueChanged<String> onLengthChanged,
+    required void Function(String key, String value) onDynamicChanged,
+    required VoidCallback onRemark,
+    required VoidCallback onEdit,
+    required VoidCallback onCopy,
+    required VoidCallback onDelete,
+  }) {
+    return MaterialCardWrapper(
+      isUpdating: false,
+      child: ExpandableMaterialCard(
+        categoryId: categoryId,
+        isEditMode: false,
+        child: testDynamicItemCard(
+          image: material.image,
+          isEditMode: false,
+          lengthLabel: material.materialName,
+          lengthPlaceholder: material.uom,
+          fields: _sameDprFields(material, quantity),
+          onChanged: onDynamicChanged,
+          quantity: quantity,
+          remark: material.remarks,
+          size: material.size,
+          length: quantity,
+          floor: material.floor,
+          moc: material.moc,
+          sizeLabel: '',
+          sizePlaceholder: '',
+          onQtyChanged: onQuantityChanged,
+          onSizeChanged: (_) {},
+          onLengthChanged: onLengthChanged,
+          onFloorChanged: (_) {},
+          onMocChanged: (_) {},
+          onCopy: onCopy,
+          onAdd: onCopy,
+          onDelete: onDelete,
+          onEdit: onEdit,
+          onRemark: onRemark,
+          isEditable: isEditable,
+        ),
+      ),
+    );
+  }
+
+  PipingItem _boqRowAsPipingItem(_PipingBoqRow row) {
     final item = row.item;
     final remaining = item.remainingQuantity > 0
         ? item.remainingQuantity
         : item.totalQuantityCalculated;
-    final imagePath = _imageForItem(item);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: cs.outlineVariant),
-        boxShadow: [
-          BoxShadow(
-            color: cs.shadow.withValues(alpha: 0.07),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.displayDescription,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 16,
-                        height: 1.1,
-                        fontWeight: FontWeight.w900,
-                        color: cs.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      row.group.workDescription,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                        color: cs.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              _remarkButton(cs, item.id),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 9,
-                child: Container(
-                  height: 150,
-                  decoration: BoxDecoration(
-                    color: cs.surfaceContainerHighest.withValues(alpha: 0.45),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: cs.outlineVariant),
-                  ),
-                  padding: const EdgeInsets.all(10),
-                  child: Image.asset(
-                    imagePath,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => Icon(
-                      Icons.precision_manufacturing_outlined,
-                      color: cs.primary,
-                      size: 52,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 10,
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _infoBox(
-                            cs,
-                            label: 'Drawing No.',
-                            value: row.group.drawingNo,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _infoBox(
-                            cs,
-                            label: 'Size',
-                            value: item.displaySize,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    _uomBox(cs, item.displayUom),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: _qtyController(item.id),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        color: cs.onSurface,
-                      ),
-                      decoration: InputDecoration(
-                        labelText: 'Progress',
-                        hintText: '0',
-                        filled: true,
-                        fillColor: cs.surfaceContainerLowest,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        isDense: true,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-            decoration: BoxDecoration(
-              color: cs.surfaceContainerHighest.withValues(alpha: 0.42),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _smallStat(
-                    cs,
-                    'BOQ',
-                    '${_fmt(item.totalQuantityCalculated)} ${item.displayUom}',
-                  ),
-                ),
-                Container(width: 1, height: 28, color: cs.outlineVariant),
-                Expanded(
-                  child: _smallStat(
-                    cs,
-                    'Balance',
-                    '${_fmt(remaining)} ${item.displayUom}',
-                  ),
-                ),
-                if ((item.moc ?? '').trim().isNotEmpty) ...[
-                  Container(width: 1, height: 28, color: cs.outlineVariant),
-                  Expanded(child: _smallStat(cs, 'MOC', item.moc!)),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _infoBox(
-    ColorScheme cs, {
-    required String label,
-    required String value,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            color: cs.onSurfaceVariant,
-          ),
+    return PipingItem(
+      id: item.id,
+      lineItemId: item.id,
+      rawMaterialName: item.displayDescription,
+      normalizedMaterialName: item.displayDescription.toLowerCase(),
+      materialName: item.displayDescription,
+      image: _imageForItem(item),
+      qty: item.isPipeItem ? 1 : _valueFor(item.id),
+      uom: item.displayUom,
+      length: _valueFor(item.id),
+      rmt: 0,
+      diameter: 0,
+      weight: 0,
+      power: 0,
+      floor: row.group.drawingNo,
+      elevation: '',
+      actualRate: 0,
+      rate: 0,
+      moc: item.moc ?? '',
+      size: item.displaySize,
+      location: '',
+      plant: '',
+      designation: const ['piping'],
+      calculationCategory: item.calculationCategory ?? 'A',
+      dynamicFields: [
+        DynamicField(
+          key: 'boq',
+          label: 'BOQ',
+          value: _fmt(item.totalQuantityCalculated),
+          displayText: _fmt(item.totalQuantityCalculated),
+          unit: item.displayUom,
         ),
-        const SizedBox(height: 5),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          decoration: BoxDecoration(
-            color: const Color(0xFFCFEAFF),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF111827),
-            ),
-          ),
+        DynamicField(
+          key: 'balance',
+          label: 'Balance',
+          value: _fmt(remaining),
+          displayText: _fmt(remaining),
+          unit: item.displayUom,
+        ),
+        DynamicField(
+          key: 'moc',
+          label: 'MOC',
+          value: item.moc ?? '',
+          displayText: item.moc ?? '',
+          unit: '',
+        ),
+        DynamicField(
+          key: 'workDescription',
+          label: 'Work',
+          value: row.group.workDescription,
+          displayText: row.group.workDescription,
+          unit: '',
         ),
       ],
+      remarks: _remarkController(item.id).text,
     );
   }
 
-  Widget _uomBox(ColorScheme cs, String uom) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-        color: cs.primaryContainer.withValues(alpha: 0.40),
-        borderRadius: BorderRadius.circular(12),
+  List<DynamicField> _sameDprFields(PipingItem material, String quantity) {
+    return [
+      DynamicField(
+        key: 'qty',
+        label: 'Qty',
+        value: quantity,
+        displayText: quantity,
+        unit: '',
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'UOM',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              color: cs.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            uom,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
-              color: cs.primary,
-            ),
-          ),
-        ],
+      DynamicField(
+        key: 'size',
+        label: 'Size',
+        value: material.size,
+        displayText: material.size,
+        unit: '',
       ),
-    );
+      DynamicField(
+        key: 'floor',
+        label: 'Floor',
+        value: material.floor,
+        displayText: material.floor,
+        unit: '',
+      ),
+      DynamicField(
+        key: 'moc',
+        label: 'MOC',
+        value: material.moc,
+        displayText: material.moc,
+        unit: '',
+      ),
+      ...material.dynamicFields.where((field) {
+        final key = field.key.toLowerCase();
+        return key != 'qty' && key != 'size' && key != 'floor' && key != 'moc';
+      }),
+    ];
   }
 
-  Widget _smallStat(ColorScheme cs, String label, String value) {
-    return Column(
-      children: [
-        Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 10.5,
-            fontWeight: FontWeight.w700,
-            color: cs.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 3),
-        Text(
-          value,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w900,
-            color: cs.onSurface,
-          ),
-        ),
-      ],
-    );
+  void _showCardActionMessage() {
+    AppToast.info('Use the same DPR Entry card controls for this material.');
   }
 
-  Widget _remarkButton(ColorScheme cs, String itemId) {
-    return InkWell(
-      onTap: () => _showRemarkSheet(itemId),
-      borderRadius: BorderRadius.circular(9),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFFC9F7F7),
-          borderRadius: BorderRadius.circular(9),
-          border: Border.all(color: cs.outline.withValues(alpha: 0.40)),
-        ),
-        child: const Text(
-          'Remark',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w900,
-            color: Color(0xFF111827),
-          ),
-        ),
-      ),
+  void _clearBoqInput(String itemId) {
+    _qtyController(itemId).clear();
+    setState(() {});
+  }
+
+  void _updateDefaultMaterialField(
+      String materialId, String key, String value) {
+    final material = _defaultMaterials[materialId];
+    if (material == null) return;
+
+    final normalizedKey = key.toLowerCase();
+    if (normalizedKey == 'qty') return;
+    if (normalizedKey == 'size') {
+      setState(() {
+        _defaultMaterials[materialId] = material.copyWith(size: value);
+      });
+      return;
+    }
+    if (normalizedKey == 'floor') {
+      setState(() {
+        _defaultMaterials[materialId] = material.copyWith(floor: value);
+      });
+      return;
+    }
+    if (normalizedKey == 'moc') {
+      setState(() {
+        _defaultMaterials[materialId] = material.copyWith(moc: value);
+      });
+      return;
+    }
+
+    final updated = material.dynamicFields.map((field) {
+      if (field.key.toLowerCase() == normalizedKey) {
+        return field.copyWith(value: value, displayText: value);
+      }
+      return field;
+    }).toList();
+
+    setState(() {
+      _defaultMaterials[materialId] = material.copyWith(dynamicFields: updated);
+    });
+  }
+
+  void _copyDefaultMaterial(PipingItem material) {
+    final copy = material.copyWith(
+      id: '${material.id}_${DateTime.now().millisecondsSinceEpoch}',
+      materialName: material.materialName,
     );
+    setState(() => _defaultMaterials[copy.id] = copy);
+  }
+
+  void _deleteDefaultMaterial(String materialId) {
+    setState(() => _defaultMaterials.remove(materialId));
   }
 
   Future<void> _showRemarkSheet(String itemId) async {
@@ -860,14 +733,4 @@ class _PipingBoqRow {
   final BoqDetail boq;
   final MechanicalBoqGroup group;
   final MechanicalBoqItem item;
-}
-
-class _DefaultMaterialCard {
-  const _DefaultMaterialCard({
-    required this.title,
-    required this.image,
-  });
-
-  final String title;
-  final String image;
 }

@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:untitled2/core/api/dio.dart';
 
 import '../../../../../../features/language/service/providers.dart';
-import '../../../boq/service/boq_service.dart';
 import '../../../site_Details/providers/site_current_provider.dart';
 import '../../providers/rate_variant_provider.dart';
 import '../../providers/selectedSize_provider.dart';
 import '../../providers/selection_provider.dart';
 import '../../utils/image_track/dpr_cached_image.dart';
 import '../add_description.dart';
-import '../mechanical_piping_boq_dpr_screen.dart';
 
 class MechanichalStepperScreen extends ConsumerStatefulWidget {
   const MechanichalStepperScreen({
@@ -45,7 +42,6 @@ class _MechanichalStepperScreenState
     _selectedMoc = ref.read(selectedMocNameProvider);
     _selectedFloor = ref.read(selectedFloorNameProvider);
     _sizeController.text = ref.read(selectedSizeProvider) ?? '';
-    WidgetsBinding.instance.addPostFrameCallback((_) => _openBoqDprIfReady());
   }
 
   @override
@@ -143,7 +139,12 @@ class _MechanichalStepperScreenState
 
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => AddDescriptionScreen()),
+      MaterialPageRoute(
+        builder: (_) => AddDescriptionScreen(
+          siteId: widget.siteId,
+          teamId: widget.teamId,
+        ),
+      ),
     );
 
     if (!mounted) return;
@@ -162,28 +163,6 @@ class _MechanichalStepperScreenState
     ref.read(selectedMocNameProvider.notifier).state = null;
     ref.read(selectedFloorNameProvider.notifier).state = null;
     ref.read(selectedSizeProvider.notifier).state = null;
-  }
-
-  Future<void> _openBoqDprIfReady() async {
-    final siteId = widget.siteId;
-    if (siteId == null || siteId.trim().isEmpty || !mounted) return;
-    try {
-      final boqs = await BoqApiService(DioClient.dio)
-          .getMechanicalPipingBoqs(siteId: siteId);
-      if (!mounted || boqs.isEmpty) return;
-      await Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => MechanicalPipingBoqDprScreen(
-            siteId: siteId,
-            teamId: widget.teamId,
-            teamName: widget.teamName,
-          ),
-        ),
-      );
-    } catch (error) {
-      debugPrint('Mechanical piping BOQ entry unavailable: $error');
-    }
   }
 
   Widget _buildImage(

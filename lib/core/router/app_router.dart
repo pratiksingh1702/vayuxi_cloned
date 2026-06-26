@@ -596,20 +596,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               case 'follow-up':
                 screen = const PlaceholderScreen(title: 'Follow Up');
                 break;
-              case 'inv-setup':
-                screen = InventoryManagementScreen(siteId: site.id);
-                break;
-              case 'inv-entry':
-                screen = InventoryManagementScreen(siteId: site.id);
-                break;
               case 'inventory-list':
                 screen = InventoryManagementScreen(siteId: site.id);
                 break;
               case 'edit-inventory':
                 screen = InventoryManagementScreen(siteId: site.id);
-                break;
-              case 'boq-upload':
-                screen = const PlaceholderScreen(title: 'BOQ Upload');
                 break;
               case 'dispatch-tracking':
                 screen = const PlaceholderScreen(title: 'Dispatch Tracking');

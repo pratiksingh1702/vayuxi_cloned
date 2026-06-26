@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -10,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:untitled2/core/api/dio.dart';
 import 'package:untitled2/core/router/routes.dart';
 import '../../../../../core/utlis/widgets/timeline_date_picker.dart';
 import '../../../../../core/utlis/widgets/timeline_calendar_dialog.dart';
@@ -19,6 +21,8 @@ import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/models/data/equipment_material_data.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/models/data/piping_material_data.dart';
+import 'package:untitled2/features/modules/all_Modules/boq/models/boq_model.dart';
+import 'package:untitled2/features/modules/all_Modules/boq/service/boq_service.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/providers/dprService.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/providers/floorProvider.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/providers/mocProvider.dart';
@@ -67,11 +71,15 @@ enum MechModuleSortOption {
 class AddDescriptionScreen extends ConsumerStatefulWidget {
   final DprModel? work;
   final bool fromDraft;
+  final String? siteId;
+  final String? teamId;
 
   const AddDescriptionScreen({
     super.key,
     this.work,
     this.fromDraft = false,
+    this.siteId,
+    this.teamId,
   });
 
   @override
@@ -122,6 +130,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  final List<_MechanicalBoqDprRow> _mechanicalBoqRows = [];
+  bool _isLoadingMechanicalBoqRows = false;
+  Timer? _boqSearchDebounce;
+  static const int _maxBoqSearchResults = 25;
   Set<String> _filterTypes = {};
   Set<String> _filterStatuses = {};
   MechModuleSortOption _currentSort = MechModuleSortOption.displayOrderAsc;
@@ -147,6 +159,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     _initializeData();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || _isDisposed) return;
       // 🔴 Read persisted session
       final session = ref.read(dprSessionProvider);
 
@@ -159,10 +172,14 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       }
 
       await loadScreenState(Dpr: widget.work);
+      if (!mounted || _isDisposed) return;
+      await _loadMechanicalBoqRowsForSearch();
+      if (!mounted || _isDisposed) return;
 
       // 🔴 If edit mode was on for a past date, fetch DPR list for that date
       if (session.isEditMode && !_isToday(session.selectedDate)) {
         await _fetchDprListForDate(session.selectedDate);
+        if (!mounted || _isDisposed) return;
       }
 
       if (widget.work == null) _applyHeaderValuesToMaterials();
@@ -295,6 +312,230 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       debugPrint("❌ Failed: $e");
       debugPrintStack(stackTrace: st);
     }
+  }
+
+  Future<void> _loadMechanicalBoqRowsForSearch() async {
+    if (_isLoadingMechanicalBoqRows) return;
+    if (!mounted || _isDisposed) return;
+    if (siteId.trim().isEmpty) return;
+
+    _isLoadingMechanicalBoqRows = true;
+    try {
+      final boqs = await BoqApiService(DioClient.dio).getMechanicalPipingBoqs(
+        siteId: siteId,
+      );
+
+      if (!mounted || _isDisposed) return;
+      _mechanicalBoqRows
+        ..clear()
+        ..addAll(_flattenMechanicalBoqRows(boqs));
+
+      _syncMechanicalBoqSearchResults();
+    } catch (e) {
+      debugPrint('Mechanical BOQ search rows unavailable: $e');
+    } finally {
+      _isLoadingMechanicalBoqRows = false;
+    }
+  }
+
+  List<_MechanicalBoqDprRow> _flattenMechanicalBoqRows(List<BoqDetail> boqs) {
+    final rows = <_MechanicalBoqDprRow>[];
+    for (final boq in boqs) {
+      for (final group in boq.mechanicalGroups) {
+        for (final item in group.items) {
+          rows.add(_MechanicalBoqDprRow(
+            boq: boq,
+            group: group,
+            item: item,
+          ));
+        }
+      }
+    }
+    return rows;
+  }
+
+  void _syncMechanicalBoqSearchResults() {
+    if (!mounted || _isDisposed) return;
+    final current = ref.read(pipingMaterialsProvider);
+    final withoutBoq = current.where((m) => !_isMechanicalBoqItem(m)).toList();
+
+    if (_searchQuery.isEmpty || _mechanicalBoqRows.isEmpty) {
+      if (withoutBoq.length != current.length) {
+        ref.read(pipingMaterialsProvider.notifier).setMaterials(withoutBoq);
+      }
+      return;
+    }
+
+    final matchingBoqItems = _mechanicalBoqRows
+        .where(_matchesMechanicalBoqSearch)
+        .take(_maxBoqSearchResults)
+        .map(_mechanicalBoqRowToPipingItem)
+        .toList();
+
+    ref.read(pipingMaterialsProvider.notifier).setMaterials([
+      ...withoutBoq,
+      ...matchingBoqItems,
+    ]);
+  }
+
+  void _scheduleMechanicalBoqSearchSync() {
+    _boqSearchDebounce?.cancel();
+
+    if (_searchQuery.isEmpty) {
+      _syncMechanicalBoqSearchResults();
+      return;
+    }
+
+    _boqSearchDebounce = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted || _isDisposed) return;
+      _syncMechanicalBoqSearchResults();
+    });
+  }
+
+  bool _isMechanicalBoqItem(PipingItem item) =>
+      item.id.startsWith('boq_') || item.rateFileId == 'mechanical_boq';
+
+  String? _boqIdFromMechanicalBoqItem(PipingItem item) {
+    if (!item.id.startsWith('boq_')) return null;
+
+    final value = item.id.substring(4);
+    final lineItemId = item.lineItemId.trim();
+    if (lineItemId.isNotEmpty) {
+      final suffix = '_$lineItemId';
+      if (value.endsWith(suffix)) {
+        final boqId = value.substring(0, value.length - suffix.length);
+        return boqId.isEmpty ? null : boqId;
+      }
+    }
+
+    final separatorIndex = value.indexOf('_');
+    if (separatorIndex <= 0) return value.isEmpty ? null : value;
+    return value.substring(0, separatorIndex);
+  }
+
+  _MechanicalBoqDprRow? _mechanicalBoqRowForPipingItem(PipingItem item) {
+    final boqId = _boqIdFromMechanicalBoqItem(item);
+    final itemId = item.lineItemId.trim();
+    if (boqId == null || itemId.isEmpty) return null;
+
+    for (final row in _mechanicalBoqRows) {
+      if (row.boq.id == boqId && row.item.id == itemId) return row;
+    }
+    return null;
+  }
+
+  double _resolveMechanicalBoqActualQty(PipingItem item, num qty) {
+    if (item.length > 0) return item.length;
+    final qtyValue = qty.toDouble();
+    return qtyValue > 0 ? qtyValue : item.qty;
+  }
+
+  bool _matchesMechanicalBoqSearch(_MechanicalBoqDprRow row) {
+    final query = _searchQuery.trim();
+    if (query.isEmpty) return false;
+    return row.group.drawingNo.toLowerCase().contains(query);
+  }
+
+  PipingItem _mechanicalBoqRowToPipingItem(_MechanicalBoqDprRow row) {
+    final item = row.item;
+    final boqQty = item.totalQuantityCalculated;
+    final boqQtyText = _formatBoqQuantity(boqQty);
+
+    return PipingItem(
+      id: 'boq_${row.boq.id}_${item.id}',
+      lineItemId: item.id,
+      rateId: '',
+      rawMaterialName: item.displayDescription,
+      normalizedMaterialName: item.displayDescription.toLowerCase().trim(),
+      materialName: item.displayDescription,
+      image: _imageForMechanicalBoqItem(item),
+      qty: boqQty,
+      uom: item.displayUom,
+      length: boqQty,
+      rmt: 0,
+      diameter: 0,
+      weight: 0,
+      power: 0,
+      floor: '',
+      elevation: '',
+      actualRate: 0,
+      rate: 0,
+      moc: item.moc ?? '',
+      size: item.displaySize,
+      location: '',
+      plant: '',
+      designation: const ['piping'],
+      calculationCategory: item.calculationCategory ?? 'A',
+      dynamicFields: [
+        DynamicField(
+          key: 'qty',
+          label: 'Qty',
+          value: boqQtyText,
+          unit: '',
+          displayText: boqQtyText,
+        ),
+        DynamicField(
+          key: 'size',
+          label: 'Size',
+          value: item.displaySize,
+          unit: '',
+          displayText: item.displaySize,
+        ),
+        DynamicField(
+          key: 'floor',
+          label: 'Floor',
+          value: '',
+          unit: '',
+          displayText: '',
+        ),
+        DynamicField(
+          key: 'moc',
+          label: 'MOC',
+          value: item.moc ?? '',
+          unit: '',
+          displayText: item.moc ?? '',
+        ),
+      ],
+      remarks: item.remarks ?? '',
+      isFromRateFile: false,
+      rateFileId: 'mechanical_boq',
+      rateVariantId: item.boqItemKey,
+    );
+  }
+
+  String _formatBoqQuantity(num value) {
+    if (value % 1 == 0) return value.toStringAsFixed(0);
+    return value.toStringAsFixed(2);
+  }
+
+  String _imageForMechanicalBoqItem(MechanicalBoqItem item) {
+    final text = [
+      item.itemType ?? '',
+      item.displayDescription,
+      item.sourceHeader ?? '',
+    ].join(' ').toLowerCase();
+    if (text.contains('reducer')) {
+      return 'assets/images/piping/reducer_joints_fitting.webp';
+    }
+    if (text.contains('tee')) {
+      return 'assets/images/piping/tee_joints_fitting.webp';
+    }
+    if (text.contains('elbow')) {
+      return 'assets/images/piping/elbow_90_joint_fitting.webp';
+    }
+    if (text.contains('flange') || text.contains('gasket')) {
+      return 'assets/images/piping/flange_joints_fitting.webp';
+    }
+    if (text.contains('valve')) {
+      return 'assets/images/piping/valve_fitting.webp';
+    }
+    if (text.contains('blind')) {
+      return 'assets/images/piping/blind_fabrication_and_fitting.webp';
+    }
+    if (text.contains('support')) {
+      return 'assets/images/piping/support_fabrication_and_erection.webp';
+    }
+    return 'assets/images/piping/pipe_erection_fittings.webp';
   }
 
   Future<void> _loadDprMaterials(DprModel? fallbackDpr) async {
@@ -500,11 +741,16 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
   void _initializeControllers() {
     _dprNameController = TextEditingController();
-    _dprNameController.addListener(() => setState(() {}));
+    _dprNameController.addListener(() {
+      if (!mounted || _isDisposed) return;
+      setState(() {});
+    });
     _searchController.addListener(() {
+      if (!mounted || _isDisposed) return;
       setState(() {
         _searchQuery = _searchController.text.toLowerCase().trim();
       });
+      _scheduleMechanicalBoqSearchSync();
     });
     _mocController = TextEditingController();
     _sizeController = TextEditingController();
@@ -514,12 +760,16 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   void _initializeData() {
-    siteId = widget.work?.siteId.trim().isNotEmpty == true
-        ? widget.work!.siteId
-        : (ref.read(selectedSiteIdProvider) ?? '');
-    teamId = widget.work?.teamId.trim().isNotEmpty == true
-        ? widget.work!.teamId
-        : (ref.read(selectedTeamIdProvider) ?? 'default');
+    siteId = widget.siteId?.trim().isNotEmpty == true
+        ? widget.siteId!.trim()
+        : widget.work?.siteId.trim().isNotEmpty == true
+            ? widget.work!.siteId
+            : (ref.read(selectedSiteIdProvider) ?? '');
+    teamId = widget.teamId?.trim().isNotEmpty == true
+        ? widget.teamId!.trim()
+        : widget.work?.teamId.trim().isNotEmpty == true
+            ? widget.work!.teamId
+            : (ref.read(selectedTeamIdProvider) ?? 'default');
     team = ref.read(currentTeamProvider) ??
         TeamModel(
           id: "",
@@ -564,7 +814,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     );
     if (mounted) {
       setState(() {
-        _completedDates = dates.map((d) => DateTime(d.year, d.month, d.day)).toSet();
+        _completedDates =
+            dates.map((d) => DateTime(d.year, d.month, d.day)).toSet();
       });
     }
   }
@@ -1514,7 +1765,27 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     // Initial Filter by Search Query
     List<PipingItem> filteredPiping = pipingMaterials.where((m) {
       if (_searchQuery.isEmpty) return true;
-      return m.materialName.toLowerCase().contains(_searchQuery.toLowerCase());
+      if (_isMechanicalBoqItem(m)) return true;
+      final haystack = [
+        m.materialName,
+        m.rawMaterialName,
+        m.normalizedMaterialName,
+        m.size,
+        m.floor,
+        m.location,
+        m.moc,
+        m.uom,
+        ...m.dynamicFields.map((field) {
+          return [
+            field.key,
+            field.label,
+            field.value?.toString() ?? '',
+            field.displayText,
+            field.unit,
+          ].join(' ');
+        }),
+      ].join(' ').toLowerCase();
+      return haystack.contains(_searchQuery.toLowerCase());
     }).toList();
 
     List<EquipmentItem> filteredEquipment = equipmentMaterials.where((m) {
@@ -2419,7 +2690,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               controller: _searchController,
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               decoration: InputDecoration(
-                hintText: 'Search material...',
+                hintText: 'Search drawing number...',
                 hintStyle: TextStyle(
                     color: colorScheme.onSurfaceVariant.withOpacity(0.6)),
                 prefixIcon:
@@ -2906,6 +3177,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     }
 
     final materials = ref.read(pipingMaterialsProvider);
+    final isBoqItem = materials.any(
+      (m) => m.id == materialId && _isMechanicalBoqItem(m),
+    );
+    if (isBoqItem && key.toLowerCase() != 'qty') return;
 
     final updated = materials.map((m) {
       if (m.id != materialId) return m;
@@ -3427,7 +3702,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   bool _hasUnsavedChanges() {
     // Check if name is edited and not just the default
     final name = _dprNameController.text.trim();
-    if (name.isNotEmpty && name != 'New DPR Entry' && name != 'DPR') return true;
+    if (name.isNotEmpty && name != 'New DPR Entry' && name != 'DPR')
+      return true;
 
     // Check if any materials have meaningful values
     final piping = ref.read(pipingMaterialsProvider);
@@ -3579,8 +3855,23 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       // ✅ merge piping + equipment into ONE list
       final items = [
         ...pipingMaterials.map((material) {
+          final isMechanicalBoq = _isMechanicalBoqItem(material);
+          final boqId =
+              isMechanicalBoq ? _boqIdFromMechanicalBoqItem(material) : null;
+          final boqRow =
+              isMechanicalBoq ? _mechanicalBoqRowForPipingItem(material) : null;
+          final payloadQty = _resolvePayloadQty(
+            qty: _getDynamicQty(material),
+            fields: material.dynamicFields,
+          );
+          final mechanicalBoqActualQty = isMechanicalBoq
+              ? _resolveMechanicalBoqActualQty(material, payloadQty)
+              : null;
+
           return {
-            'lineItemId': material.id,
+            'lineItemId': isMechanicalBoq && material.lineItemId.isNotEmpty
+                ? material.lineItemId
+                : material.id,
 
             // 🔥 TRACEABILITY
             'rawMaterialName': material.rawMaterialName,
@@ -3590,10 +3881,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             'rateId': material.rateId,
 
             // 🔥 CORE VALUES
-            'qty': _resolvePayloadQty(
-              qty: _getDynamicQty(material),
-              fields: material.dynamicFields,
-            ),
+            'qty': payloadQty,
             'length': material.length,
             'rmt': material.rmt,
             'diameter': material.diameter,
@@ -3652,6 +3940,27 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             'isFromRateFile': material.isFromRateFile,
             'rateFileId': material.rateFileId,
             'rateVariantId': material.rateVariantId,
+            if (isMechanicalBoq) ...{
+              if (boqId != null) 'boqId': boqId,
+              if (material.lineItemId.isNotEmpty)
+                'boqItemId': material.lineItemId,
+              'drawingNo':
+                  boqRow?.group.drawingNo ?? boqRow?.item.drawingNo ?? '',
+              'workDescription': boqRow?.group.workDescription ??
+                  boqRow?.item.workDescription ??
+                  material.materialName,
+              'plannedQty':
+                  boqRow?.item.totalQuantityCalculated ?? material.qty,
+              'actualQty': mechanicalBoqActualQty,
+              'pipeMtr': mechanicalBoqActualQty,
+              if (boqRow?.item.boqGroupKey?.isNotEmpty == true)
+                'boqGroupKey': boqRow!.item.boqGroupKey,
+              if ((material.rateVariantId ?? '').isNotEmpty)
+                'boqItemKey': material.rateVariantId,
+              if (boqRow?.item.sourceRowNo != null)
+                'sourceRowNo': boqRow!.item.sourceRowNo,
+              'isBoqLinked': true,
+            },
           };
         }),
         ...equipmentMaterials.map((material) {
@@ -3868,10 +4177,13 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   @override
   void dispose() {
     _isDisposed = true;
+    _boqSearchDebounce?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _dprNameController.dispose();
+    _searchController.dispose();
     _mocController.dispose();
     _sizeController.dispose();
+    _sizeUomController.dispose();
     _plantController.dispose();
     _floorController.dispose();
     super.dispose();
@@ -3944,4 +4256,16 @@ class MaterialCardWrapper extends StatelessWidget {
       ],
     );
   }
+}
+
+class _MechanicalBoqDprRow {
+  const _MechanicalBoqDprRow({
+    required this.boq,
+    required this.group,
+    required this.item,
+  });
+
+  final BoqDetail boq;
+  final MechanicalBoqGroup group;
+  final MechanicalBoqItem item;
 }
