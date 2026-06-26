@@ -9,7 +9,6 @@ import 'boq_Settings.dart';
 import 'boq_add_screen.dart';
 import 'boq_detail_screen.dart';
 
-
 // ─────────────────────────────────────────────────────────────────────────────
 // BOQ DASHBOARD SCREEN
 // Entry point: receives siteId from navigation extras (as in your project)
@@ -19,11 +18,15 @@ import 'boq_detail_screen.dart';
 class BoqDashboardScreen extends ConsumerStatefulWidget {
   final String siteId;
   final String siteName;
+  final int initialTabIndex;
+  final bool directViewMode;
 
   const BoqDashboardScreen({
     super.key,
     required this.siteId,
     required this.siteName,
+    this.initialTabIndex = 0,
+    this.directViewMode = false,
   });
 
   @override
@@ -37,7 +40,11 @@ class _BoqDashboardScreenState extends ConsumerState<BoqDashboardScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: widget.initialTabIndex.clamp(0, 2),
+    );
     // Kick off the initial load
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(boqListParamsProvider.notifier).state = BoqListParams(
@@ -54,6 +61,86 @@ class _BoqDashboardScreenState extends ConsumerState<BoqDashboardScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.directViewMode) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF5F7FA),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'BOQ',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1A1A2E),
+                ),
+              ),
+              Text(
+                widget.siteName,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF6B7280),
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ],
+          ),
+        ),
+        body: _BoqViewTab(siteId: widget.siteId),
+        bottomNavigationBar: SafeArea(
+          top: false,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(
+                top: BorderSide(color: Color(0xFFE5E7EB)),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Back'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => Scaffold(
+                            backgroundColor: const Color(0xFFF5F7FA),
+                            appBar: AppBar(
+                              backgroundColor: Colors.white,
+                              elevation: 0,
+                              title: const Text('Add BOQ'),
+                            ),
+                            body: BoqAddScreen(siteId: widget.siteId),
+                          ),
+                        ),
+                      );
+                      ref.read(boqListParamsProvider.notifier).state =
+                          BoqListParams(siteId: widget.siteId);
+                      ref.invalidate(boqListProvider);
+                    },
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('Add'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
@@ -162,7 +249,8 @@ class _BoqViewTabState extends ConsumerState<_BoqViewTab> {
     final params = ref.watch(boqListParamsProvider);
     final boqListAsync = params != null
         ? ref.watch(boqListProvider(params))
-        : const AsyncValue<({List<BoqListItem> boqs, BoqPagination pagination})>.loading();
+        : const AsyncValue<
+            ({List<BoqListItem> boqs, BoqPagination pagination})>.loading();
 
     return Column(
       children: [
@@ -179,14 +267,14 @@ class _BoqViewTabState extends ConsumerState<_BoqViewTab> {
                   label: Text(f.label),
                   selected: isActive,
                   onSelected: (_) => _applyFilter(f.value),
-                  selectedColor: const Color(0xFF2563EB).withOpacity(0.12),
+                  selectedColor:
+                      const Color(0xFF2563EB).withValues(alpha: 0.12),
                   checkmarkColor: const Color(0xFF2563EB),
                   labelStyle: TextStyle(
                     color: isActive
                         ? const Color(0xFF2563EB)
                         : const Color(0xFF6B7280),
-                    fontWeight:
-                    isActive ? FontWeight.w600 : FontWeight.w400,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                     fontSize: 12,
                   ),
                   side: BorderSide(
@@ -256,10 +344,9 @@ class _BoqCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final progress = boq.progressPercentage.clamp(0, 100).toDouble();
     final statusColor = _statusColor(boq.status);
-    final typeLabel =
-    boq.isMechanical ? 'Mechanical' : 'Insulation';
+    final typeLabel = boq.isMechanical ? 'Mechanical' : 'Insulation';
     final typeColor =
-    boq.isMechanical ? const Color(0xFF7C3AED) : const Color(0xFF0891B2);
+        boq.isMechanical ? const Color(0xFF7C3AED) : const Color(0xFF0891B2);
 
     return GestureDetector(
       onTap: () {
@@ -278,7 +365,7 @@ class _BoqCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -451,7 +538,7 @@ class _Badge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
@@ -519,7 +606,7 @@ class _EmptyBoqView extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: const Color(0xFF2563EB).withOpacity(0.08),
+              color: const Color(0xFF2563EB).withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
             child: const Icon(

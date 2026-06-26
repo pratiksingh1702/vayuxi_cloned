@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 
@@ -37,11 +36,11 @@ class BoqApiService {
     final rawBoqs = data['boqs'] as List<dynamic>;
 
     return (
-    boqs: rawBoqs
-        .map((e) => BoqListItem.fromJson(e as Map<String, dynamic>))
-        .toList(),
-    pagination: BoqPagination.fromJson(
-        data['pagination'] as Map<String, dynamic>),
+      boqs: rawBoqs
+          .map((e) => BoqListItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      pagination:
+          BoqPagination.fromJson(data['pagination'] as Map<String, dynamic>),
     );
   }
 
@@ -53,6 +52,21 @@ class BoqApiService {
   }) async {
     final resp = await _dio.get('/site/$siteId/boq/$boqId');
     return BoqDetail.fromJson(resp.data['data'] as Map<String, dynamic>);
+  }
+
+  Future<List<BoqDetail>> getMechanicalPipingBoqs({
+    required String siteId,
+  }) async {
+    final resp = await _dio.get('/site/$siteId/boq/mechanical-piping');
+    final raw = resp.data['data'];
+    final list = raw is List
+        ? raw
+        : raw is Map<String, dynamic> && raw['boqs'] is List
+            ? raw['boqs'] as List
+            : const [];
+    return list
+        .map((e) => BoqDetail.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   // ── Get BOQ Progress ──────────────────────────────────────────────────────
@@ -105,8 +119,9 @@ class BoqApiService {
     final summaryJson = resp.data['summary'] as Map<String, dynamic>?;
 
     return (
-    boq: BoqListItem.fromJson(data),
-    summary: summaryJson != null ? BoqUploadSummary.fromJson(summaryJson) : null,
+      boq: BoqListItem.fromJson(data),
+      summary:
+          summaryJson != null ? BoqUploadSummary.fromJson(summaryJson) : null,
     );
   }
 
@@ -248,8 +263,7 @@ class BoqApiService {
     );
     final rawList = resp.data['data'] as List<dynamic>;
     return rawList
-        .map((e) =>
-        NotificationHistoryItem.fromJson(e as Map<String, dynamic>))
+        .map((e) => NotificationHistoryItem.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 

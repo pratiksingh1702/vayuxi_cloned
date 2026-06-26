@@ -49,7 +49,8 @@ class BoqListItem {
       totalArea: (json['totalArea'] as num?)?.toDouble(),
       totalItems: json['totalItems'] as int?,
       status: json['status'] as String? ?? 'active',
-      progressPercentage: (json['progressPercentage'] as num?)?.toDouble() ?? 0.0,
+      progressPercentage:
+          (json['progressPercentage'] as num?)?.toDouble() ?? 0.0,
       createdAt: json['createdAt'] as String? ?? '',
     );
   }
@@ -86,6 +87,7 @@ class BoqPagination {
 // ── BOQ Detail Item (mechanical) ────────────────────────────────────────────
 
 class MechanicalBoqItem {
+  final String id;
   final int srNo;
   final String inputMaterialName;
   final String matchedMaterialName;
@@ -96,10 +98,25 @@ class MechanicalBoqItem {
   final String? uom; // "INCH_DIA" | "INCH_MTR"
   final double totalQuantityCalculated;
   final double completedQuantity;
+  final double remainingQuantity;
   final double progressPercentage;
   final String? remarks;
+  final String? drawingNo;
+  final String? workDescription;
+  final String? itemType;
+  final String? itemSize;
+  final String? parentHeader;
+  final int? sourceRowNo;
+  final int? sourceColumnNo;
+  final String? sourceHeader;
+  final String? boqGroupKey;
+  final String? boqItemKey;
+  final String? moc;
+  final String? sch;
+  final String? spec;
 
   const MechanicalBoqItem({
+    required this.id,
     required this.srNo,
     required this.inputMaterialName,
     required this.matchedMaterialName,
@@ -110,13 +127,32 @@ class MechanicalBoqItem {
     this.uom,
     required this.totalQuantityCalculated,
     required this.completedQuantity,
+    required this.remainingQuantity,
     required this.progressPercentage,
     this.remarks,
+    this.drawingNo,
+    this.workDescription,
+    this.itemType,
+    this.itemSize,
+    this.parentHeader,
+    this.sourceRowNo,
+    this.sourceColumnNo,
+    this.sourceHeader,
+    this.boqGroupKey,
+    this.boqItemKey,
+    this.moc,
+    this.sch,
+    this.spec,
   });
 
   factory MechanicalBoqItem.fromJson(Map<String, dynamic> json) {
     return MechanicalBoqItem(
-      srNo: json['srNo'] as int? ?? 0,
+      id: (json['_id'] ??
+              json['id'] ??
+              json['boqItemKey'] ??
+              '${json['sourceRowNo'] ?? ''}-${json['sourceColumnNo'] ?? ''}-${json['srNo'] ?? ''}')
+          .toString(),
+      srNo: (json['srNo'] as num?)?.toInt() ?? 0,
       inputMaterialName: json['inputMaterialName'] as String? ?? '',
       matchedMaterialName: json['matchedMaterialName'] as String? ?? '',
       size: (json['size'] as num?)?.toDouble() ?? 0.0,
@@ -124,20 +160,80 @@ class MechanicalBoqItem {
       length: (json['length'] as num?)?.toDouble(),
       calculationCategory: json['calculationCategory'] as String?,
       uom: json['uom'] as String?,
-      totalQuantityCalculated: (json['totalQuantityCalculated'] as num?)?.toDouble() ?? 0.0,
+      totalQuantityCalculated:
+          (json['totalQuantityCalculated'] as num?)?.toDouble() ?? 0.0,
       completedQuantity: (json['completedQuantity'] as num?)?.toDouble() ?? 0.0,
-      progressPercentage: (json['progressPercentage'] as num?)?.toDouble() ?? 0.0,
+      remainingQuantity: (json['remainingQuantity'] as num?)?.toDouble() ?? 0.0,
+      progressPercentage:
+          (json['progressPercentage'] as num?)?.toDouble() ?? 0.0,
       remarks: json['remarks'] as String?,
+      drawingNo: json['drawingNo'] as String?,
+      workDescription: json['workDescription'] as String?,
+      itemType: json['itemType'] as String?,
+      itemSize: json['itemSize']?.toString(),
+      parentHeader: json['parentHeader'] as String?,
+      sourceRowNo: (json['sourceRowNo'] as num?)?.toInt(),
+      sourceColumnNo: (json['sourceColumnNo'] as num?)?.toInt(),
+      sourceHeader: json['sourceHeader'] as String?,
+      boqGroupKey: json['boqGroupKey'] as String?,
+      boqItemKey: json['boqItemKey'] as String?,
+      moc: json['moc'] as String?,
+      sch: json['sch'] as String?,
+      spec: json['spec'] as String?,
     );
   }
 
+  bool get isPipeItem => displayUom == 'MTR';
+
+  String get displayUom =>
+      (uom ?? (length != null ? 'MTR' : 'NOS')).toUpperCase();
+
+  String get displaySize {
+    final value = itemSize?.trim();
+    if (value != null && value.isNotEmpty) return value;
+    return size % 1 == 0 ? size.toStringAsFixed(0) : size.toString();
+  }
+
+  String get displayDescription {
+    final value = itemType?.trim();
+    if (value != null && value.isNotEmpty) return value;
+    if (matchedMaterialName.trim().isNotEmpty) return matchedMaterialName;
+    if (inputMaterialName.trim().isNotEmpty) return inputMaterialName;
+    return workDescription?.trim().isNotEmpty == true
+        ? workDescription!.trim()
+        : 'BOQ Item';
+  }
+
   Map<String, dynamic> toJson() => {
-    'materialName': matchedMaterialName,
-    'size': size,
-    if (quantity != null) 'quantity': quantity,
-    if (length != null) 'length': length,
-    if (remarks != null) 'remarks': remarks,
-  };
+        'materialName': matchedMaterialName,
+        'size': size,
+        if (quantity != null) 'quantity': quantity,
+        if (length != null) 'length': length,
+        if (remarks != null) 'remarks': remarks,
+      };
+}
+
+class MechanicalBoqGroup {
+  final String drawingNo;
+  final String workDescription;
+  final List<MechanicalBoqItem> items;
+
+  const MechanicalBoqGroup({
+    required this.drawingNo,
+    required this.workDescription,
+    required this.items,
+  });
+
+  factory MechanicalBoqGroup.fromJson(Map<String, dynamic> json) {
+    final rawItems = json['items'] as List<dynamic>? ?? [];
+    return MechanicalBoqGroup(
+      drawingNo: json['drawingNo'] as String? ?? '',
+      workDescription: json['workDescription'] as String? ?? '',
+      items: rawItems
+          .map((e) => MechanicalBoqItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
 }
 
 // ── BOQ Detail Item (insulation) ────────────────────────────────────────────
@@ -192,13 +288,15 @@ class InsulationBoqItem {
   factory InsulationBoqItem.fromJson(Map<String, dynamic> json) {
     return InsulationBoqItem(
       srNo: json['srNo'] as int? ?? 0,
-      materialName: (json['materialName'] ?? json['inputMaterialName'] ?? '') as String,
+      materialName:
+          (json['materialName'] ?? json['inputMaterialName'] ?? '') as String,
       size: (json['size'] as num?)?.toDouble() ?? 0.0,
       sizeUom: json['sizeUom'] as String? ?? 'inch',
       qty: (json['qty'] as num?)?.toDouble() ?? 0.0,
       layer: json['layer'] as String? ?? 'single',
       leggingMaterial1: json['legging_material_1'] as String? ?? '',
-      leggingThickness1: (json['legging_thickness_1'] as num?)?.toDouble() ?? 0.0,
+      leggingThickness1:
+          (json['legging_thickness_1'] as num?)?.toDouble() ?? 0.0,
       leggingMaterial2: json['legging_material_2'] as String?,
       leggingThickness2: (json['legging_thickness_2'] as num?)?.toDouble(),
       leggingMaterial3: json['legging_material_3'] as String?,
@@ -207,32 +305,35 @@ class InsulationBoqItem {
       claddingSwg: json['cladding_swg'] as int? ?? 24,
       userProvidedRMT: (json['userProvidedRMT'] as num?)?.toDouble(),
       userProvidedArea: (json['userProvidedArea'] as num?)?.toDouble(),
-      calculatedRMT: (json['calculatedRMT'] ?? json['rmt'] as num?)?.toDouble() ?? 0.0,
-      calculatedArea: (json['calculatedArea'] ?? json['area'] as num?)?.toDouble() ?? 0.0,
+      calculatedRMT:
+          (json['calculatedRMT'] ?? json['rmt'] as num?)?.toDouble() ?? 0.0,
+      calculatedArea:
+          (json['calculatedArea'] ?? json['area'] as num?)?.toDouble() ?? 0.0,
       completedQuantity: (json['completedQuantity'] as num?)?.toDouble() ?? 0.0,
-      progressPercentage: (json['progressPercentage'] as num?)?.toDouble() ?? 0.0,
+      progressPercentage:
+          (json['progressPercentage'] as num?)?.toDouble() ?? 0.0,
       remarks: json['remarks'] as String?,
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'materialName': materialName,
-    'size': size,
-    'sizeUom': sizeUom,
-    'qty': qty,
-    'layer': layer,
-    'legging_material_1': leggingMaterial1,
-    'legging_thickness_1': leggingThickness1,
-    if (leggingMaterial2 != null) 'legging_material_2': leggingMaterial2,
-    if (leggingThickness2 != null) 'legging_thickness_2': leggingThickness2,
-    if (leggingMaterial3 != null) 'legging_material_3': leggingMaterial3,
-    if (leggingThickness3 != null) 'legging_thickness_3': leggingThickness3,
-    'cladding_material': claddingMaterial,
-    'cladding_swg': claddingSwg,
-    if (userProvidedRMT != null) 'userProvidedRMT': userProvidedRMT,
-    if (userProvidedArea != null) 'userProvidedArea': userProvidedArea,
-    if (remarks != null) 'remarks': remarks,
-  };
+        'materialName': materialName,
+        'size': size,
+        'sizeUom': sizeUom,
+        'qty': qty,
+        'layer': layer,
+        'legging_material_1': leggingMaterial1,
+        'legging_thickness_1': leggingThickness1,
+        if (leggingMaterial2 != null) 'legging_material_2': leggingMaterial2,
+        if (leggingThickness2 != null) 'legging_thickness_2': leggingThickness2,
+        if (leggingMaterial3 != null) 'legging_material_3': leggingMaterial3,
+        if (leggingThickness3 != null) 'legging_thickness_3': leggingThickness3,
+        'cladding_material': claddingMaterial,
+        'cladding_swg': claddingSwg,
+        if (userProvidedRMT != null) 'userProvidedRMT': userProvidedRMT,
+        if (userProvidedArea != null) 'userProvidedArea': userProvidedArea,
+        if (remarks != null) 'remarks': remarks,
+      };
 }
 
 // ── BOQ Full Detail ─────────────────────────────────────────────────────────
@@ -254,6 +355,7 @@ class BoqDetail {
   final double progressPercentage;
   final String? varianceStatus;
   final List<MechanicalBoqItem> mechanicalItems;
+  final List<MechanicalBoqGroup> mechanicalGroups;
   final List<InsulationBoqItem> insulationItems;
   final String? uploadMethod;
   final String? lastSyncedAt;
@@ -275,6 +377,7 @@ class BoqDetail {
     required this.progressPercentage,
     this.varianceStatus,
     required this.mechanicalItems,
+    this.mechanicalGroups = const [],
     required this.insulationItems,
     this.uploadMethod,
     this.lastSyncedAt,
@@ -282,7 +385,16 @@ class BoqDetail {
 
   factory BoqDetail.fromJson(Map<String, dynamic> json) {
     final rawItems = json['items'] as List<dynamic>? ?? [];
+    final rawGroups = json['mechanicalGroups'] as List<dynamic>? ?? [];
     final isMech = (json['type'] as String?) == 'mechanical_work';
+    final mechanicalItems = isMech
+        ? rawItems
+            .map((e) => MechanicalBoqItem.fromJson(e as Map<String, dynamic>))
+            .toList()
+        : <MechanicalBoqItem>[];
+    final groups = rawGroups
+        .map((e) => MechanicalBoqGroup.fromJson(e as Map<String, dynamic>))
+        .toList();
 
     return BoqDetail(
       id: json['_id'] as String,
@@ -298,13 +410,23 @@ class BoqDetail {
       totalItems: json['totalItems'] as int?,
       completedQuantity: (json['completedQuantity'] as num?)?.toDouble() ?? 0.0,
       remainingQuantity: (json['remainingQuantity'] as num?)?.toDouble() ?? 0.0,
-      progressPercentage: (json['progressPercentage'] as num?)?.toDouble() ?? 0.0,
+      progressPercentage:
+          (json['progressPercentage'] as num?)?.toDouble() ?? 0.0,
       varianceStatus: json['varianceStatus'] as String?,
-      mechanicalItems: isMech
-          ? rawItems.map((e) => MechanicalBoqItem.fromJson(e as Map<String, dynamic>)).toList()
-          : [],
+      mechanicalItems: mechanicalItems,
+      mechanicalGroups: groups.isNotEmpty
+          ? groups
+          : mechanicalItems
+              .map((item) => MechanicalBoqGroup(
+                    drawingNo: item.drawingNo ?? '',
+                    workDescription: item.workDescription ?? '',
+                    items: [item],
+                  ))
+              .toList(),
       insulationItems: !isMech
-          ? rawItems.map((e) => InsulationBoqItem.fromJson(e as Map<String, dynamic>)).toList()
+          ? rawItems
+              .map((e) => InsulationBoqItem.fromJson(e as Map<String, dynamic>))
+              .toList()
           : [],
       uploadMethod: json['uploadMethod'] as String?,
       lastSyncedAt: json['lastSyncedAt'] as String?,
@@ -335,7 +457,8 @@ class BoqTopMaterial {
       materialName: json['materialName'] as String? ?? '',
       totalQuantity: (json['totalQuantity'] as num?)?.toDouble() ?? 0.0,
       completedQuantity: (json['completedQuantity'] as num?)?.toDouble() ?? 0.0,
-      progressPercentage: (json['progressPercentage'] as num?)?.toDouble() ?? 0.0,
+      progressPercentage:
+          (json['progressPercentage'] as num?)?.toDouble() ?? 0.0,
     );
   }
 }
@@ -363,7 +486,8 @@ class BoqDailyTarget {
       targetQuantity: (json['targetQuantity'] as num?)?.toDouble() ?? 0.0,
       completedQuantity: (json['completedQuantity'] as num?)?.toDouble() ?? 0.0,
       remainingQuantity: (json['remainingQuantity'] as num?)?.toDouble() ?? 0.0,
-      progressPercentage: (json['progressPercentage'] as num?)?.toDouble() ?? 0.0,
+      progressPercentage:
+          (json['progressPercentage'] as num?)?.toDouble() ?? 0.0,
       status: json['status'] as String? ?? 'pending',
     );
   }
@@ -436,14 +560,16 @@ class BoqProgress {
       totalQuantity: (json['totalQuantity'] as num?)?.toDouble() ?? 0.0,
       completedQuantity: (json['completedQuantity'] as num?)?.toDouble() ?? 0.0,
       remainingQuantity: (json['remainingQuantity'] as num?)?.toDouble() ?? 0.0,
-      progressPercentage: (json['progressPercentage'] as num?)?.toDouble() ?? 0.0,
+      progressPercentage:
+          (json['progressPercentage'] as num?)?.toDouble() ?? 0.0,
       varianceStatus: json['varianceStatus'] as String?,
       varianceQuantity: (json['varianceQuantity'] as num?)?.toDouble(),
       breakdown: json['breakdown'] as Map<String, dynamic>?,
       topMaterials: rawMaterials
           .map((e) => BoqTopMaterial.fromJson(e as Map<String, dynamic>))
           .toList(),
-      timeline: timelineJson != null ? BoqTimeline.fromJson(timelineJson) : null,
+      timeline:
+          timelineJson != null ? BoqTimeline.fromJson(timelineJson) : null,
       lastSyncedAt: json['lastSyncedAt'] as String?,
     );
   }
@@ -508,12 +634,12 @@ class NotificationSchedule {
   }
 
   Map<String, dynamic> toJson() => {
-    'frequency': frequency,
-    'time': time,
-    'timezone': timezone,
-    if (weeklyDays != null) 'weeklyDays': weeklyDays,
-    if (monthlyDate != null) 'monthlyDate': monthlyDate,
-  };
+        'frequency': frequency,
+        'time': time,
+        'timezone': timezone,
+        if (weeklyDays != null) 'weeklyDays': weeklyDays,
+        if (monthlyDate != null) 'monthlyDate': monthlyDate,
+      };
 }
 
 class NotificationThresholds {
@@ -538,20 +664,22 @@ class NotificationThresholds {
       onTrackMin: (json['onTrackMin'] as num?)?.toDouble() ?? -5.0,
       onTrackMax: (json['onTrackMax'] as num?)?.toDouble() ?? 5.0,
       behindThreshold: (json['behindThreshold'] as num?)?.toDouble() ?? -10.0,
-      criticalBehindThreshold: (json['criticalBehindThreshold'] as num?)?.toDouble() ?? -20.0,
+      criticalBehindThreshold:
+          (json['criticalBehindThreshold'] as num?)?.toDouble() ?? -20.0,
       aheadThreshold: (json['aheadThreshold'] as num?)?.toDouble() ?? 10.0,
-      excellentAheadThreshold: (json['excellentAheadThreshold'] as num?)?.toDouble() ?? 20.0,
+      excellentAheadThreshold:
+          (json['excellentAheadThreshold'] as num?)?.toDouble() ?? 20.0,
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'onTrackMin': onTrackMin,
-    'onTrackMax': onTrackMax,
-    'behindThreshold': behindThreshold,
-    'criticalBehindThreshold': criticalBehindThreshold,
-    'aheadThreshold': aheadThreshold,
-    'excellentAheadThreshold': excellentAheadThreshold,
-  };
+        'onTrackMin': onTrackMin,
+        'onTrackMax': onTrackMax,
+        'behindThreshold': behindThreshold,
+        'criticalBehindThreshold': criticalBehindThreshold,
+        'aheadThreshold': aheadThreshold,
+        'excellentAheadThreshold': excellentAheadThreshold,
+      };
 }
 
 class NotificationSendConditions {
@@ -576,20 +704,21 @@ class NotificationSendConditions {
       sendOnlyIfChanged: json['sendOnlyIfChanged'] as bool? ?? false,
       sendOnlyIfBehind: json['sendOnlyIfBehind'] as bool? ?? false,
       sendOnlyIfCritical: json['sendOnlyIfCritical'] as bool? ?? false,
-      minimumVarianceToSend: (json['minimumVarianceToSend'] as num?)?.toDouble() ?? 0.0,
+      minimumVarianceToSend:
+          (json['minimumVarianceToSend'] as num?)?.toDouble() ?? 0.0,
       sendOnWeekends: json['sendOnWeekends'] as bool? ?? false,
       sendOnHolidays: json['sendOnHolidays'] as bool? ?? false,
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'sendOnlyIfChanged': sendOnlyIfChanged,
-    'sendOnlyIfBehind': sendOnlyIfBehind,
-    'sendOnlyIfCritical': sendOnlyIfCritical,
-    'minimumVarianceToSend': minimumVarianceToSend,
-    'sendOnWeekends': sendOnWeekends,
-    'sendOnHolidays': sendOnHolidays,
-  };
+        'sendOnlyIfChanged': sendOnlyIfChanged,
+        'sendOnlyIfBehind': sendOnlyIfBehind,
+        'sendOnlyIfCritical': sendOnlyIfCritical,
+        'minimumVarianceToSend': minimumVarianceToSend,
+        'sendOnWeekends': sendOnWeekends,
+        'sendOnHolidays': sendOnHolidays,
+      };
 }
 
 class NotificationTemplateSelection {
@@ -615,11 +744,12 @@ class NotificationTemplateSelection {
   }
 
   Map<String, dynamic> toJson() => {
-    'mode': mode,
-    'allowAutoSwitch': allowAutoSwitch,
-    if (singleSiteTemplate != null) 'singleSiteTemplate': singleSiteTemplate,
-    if (multiSiteTemplate != null) 'multiSiteTemplate': multiSiteTemplate,
-  };
+        'mode': mode,
+        'allowAutoSwitch': allowAutoSwitch,
+        if (singleSiteTemplate != null)
+          'singleSiteTemplate': singleSiteTemplate,
+        if (multiSiteTemplate != null) 'multiSiteTemplate': multiSiteTemplate,
+      };
 }
 
 class GlobalNotificationSettings {
@@ -652,12 +782,12 @@ class GlobalNotificationSettings {
   }
 
   Map<String, dynamic> toJson() => {
-    'enabled': enabled,
-    'templateSelection': templateSelection.toJson(),
-    'schedule': schedule.toJson(),
-    'customThresholds': customThresholds.toJson(),
-    'sendConditions': sendConditions.toJson(),
-  };
+        'enabled': enabled,
+        'templateSelection': templateSelection.toJson(),
+        'schedule': schedule.toJson(),
+        'customThresholds': customThresholds.toJson(),
+        'sendConditions': sendConditions.toJson(),
+      };
 }
 
 class SiteNotificationPreference {
@@ -692,13 +822,14 @@ class SiteNotificationPreference {
   }
 
   Map<String, dynamic> toJson() => {
-    'siteId': siteId,
-    'enabled': enabled,
-    'includeInMultiSite': includeInMultiSite,
-    if (templateOverride != null) 'templateOverride': templateOverride,
-    if (thresholdsOverride != null) 'thresholdsOverride': thresholdsOverride,
-    if (scheduleOverride != null) 'scheduleOverride': scheduleOverride,
-  };
+        'siteId': siteId,
+        'enabled': enabled,
+        'includeInMultiSite': includeInMultiSite,
+        if (templateOverride != null) 'templateOverride': templateOverride,
+        if (thresholdsOverride != null)
+          'thresholdsOverride': thresholdsOverride,
+        if (scheduleOverride != null) 'scheduleOverride': scheduleOverride,
+      };
 }
 
 class NotificationPreferences {
@@ -724,7 +855,8 @@ class NotificationPreferences {
       globalSettings: GlobalNotificationSettings.fromJson(
           json['globalSettings'] as Map<String, dynamic>? ?? {}),
       sitePreferences: rawSites
-          .map((e) => SiteNotificationPreference.fromJson(e as Map<String, dynamic>))
+          .map((e) =>
+              SiteNotificationPreference.fromJson(e as Map<String, dynamic>))
           .toList(),
       updatedAt: json['updatedAt'] as String? ?? '',
     );

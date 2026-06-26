@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import '../../../../../core/api/dio.dart';
@@ -13,6 +12,7 @@ class DprApi {
   static Future<void> deleteDpr(String id) async {
     await DioClient.dio.delete("/dpr-delete/$id");
   }
+
   static Future<List<DprModel>> fetchDprWork({
     required String siteId,
     required String teamId,
@@ -138,6 +138,34 @@ class DprApi {
     }
   }
 
+  static Future<DprModel> postMechanicalBoqDprEntry({
+    required Map<String, dynamic> data,
+    required String siteId,
+  }) async {
+    try {
+      final response = await DioClient.dio.post(
+        "/site/$siteId/dpr-mechanical",
+        data: data,
+        queryParameters: {"type": "mechanical_work"},
+        options: Options(extra: {"withCredentials": true}),
+      );
+
+      printFormattedJson(response.data);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return DprModel.fromJson(response.data);
+      }
+
+      throw Exception(
+        "Failed to post mechanical BOQ DPR. Status: ${response.statusCode}",
+      );
+    } catch (e, stack) {
+      print("❌ Error posting mechanical BOQ DPR: $e");
+      print(stack);
+      rethrow;
+    }
+  }
+
   // ----------------------------
   // 4. Update DPR Work
   // ----------------------------
@@ -174,12 +202,10 @@ class DprApi {
           print("No response received from server");
         }
 
-        if (e.requestOptions != null) {
-          print("Request URL: ${e.requestOptions.uri}");
-          print("Request Method: ${e.requestOptions.method}");
-          print("Request Headers: ${e.requestOptions.headers}");
-          print("Request Data: ${e.requestOptions.data}");
-        }
+        print("Request URL: ${e.requestOptions.uri}");
+        print("Request Method: ${e.requestOptions.method}");
+        print("Request Headers: ${e.requestOptions.headers}");
+        print("Request Data: ${e.requestOptions.data}");
       } else {
         print("❌ UNKNOWN ERROR: $e");
       }
@@ -290,10 +316,12 @@ class DprApi {
       rethrow;
     }
   }
-  Future<Map<String, dynamic>> deleteMaterial({
 
+  Future<Map<String, dynamic>> deleteMaterial({
     required String mechanicalId,
-    required String materialId, required String designation, bool isMaterialStore=false,
+    required String materialId,
+    required String designation,
+    bool isMaterialStore = false,
   }) async {
     try {
       final response = await DioClient.dio.delete(
@@ -324,6 +352,7 @@ class DprApi {
       rethrow;
     }
   }
+
   static Future<Response> updateDprItem({
     required String dprId,
     required String itemId,
@@ -342,7 +371,6 @@ class DprApi {
       rethrow;
     }
   }
-
 
   // Update material
   Future<Map<String, dynamic>> updateMaterial({
@@ -411,6 +439,7 @@ class DprApi {
       rethrow;
     }
   }
+
   static Future<Map<String, dynamic>> addMechanicalMaterial({
     required String dprId,
     required FormData formData,
@@ -451,14 +480,12 @@ class DprApi {
   // In your DprApi class
   static Future<Map<String, dynamic>> copyDprMaterial({
     required String dprId,
-    required String matId, required bool isMaterialStore,
-
+    required String matId,
+    required bool isMaterialStore,
   }) async {
     try {
       final response = await DioClient.dio.post(
-
         "/dpr-mechanical/$dprId/items/$matId/copy",
-
         options: Options(
           headers: {
             "Content-Type": "multipart/form-data",
@@ -507,6 +534,7 @@ class DprApi {
       rethrow;
     }
   }
+
   static Future<List<DprModel>> fetchInsulationDprWork({
     required String siteId,
     required String teamId,
@@ -517,12 +545,11 @@ class DprApi {
     );
 
     if (response.statusCode == 200) {
-      return (response.data as List)
-          .map((e) => DprModel.fromJson(e))
-          .toList();
+      return (response.data as List).map((e) => DprModel.fromJson(e)).toList();
     }
     throw Exception("Failed to fetch insulation DPR list");
   }
+
   static Future<DprModel> fetchInsulationDprById({
     required String insulationId,
   }) async {
@@ -536,6 +563,7 @@ class DprApi {
     }
     throw Exception("Failed to fetch insulation DPR by ID");
   }
+
   static Future<DprModel> postInsulationDpr({
     required Map<String, dynamic> data,
     required String siteId,
@@ -552,6 +580,7 @@ class DprApi {
     }
     throw Exception("Failed to create insulation DPR");
   }
+
   static Future<void> updateInsulationDprHeader({
     required Map<String, dynamic> data,
     required String insulationId,
@@ -566,6 +595,7 @@ class DprApi {
       throw Exception("Failed to update insulation DPR header");
     }
   }
+
   static Future<Map<String, dynamic>> updateInsulationMaterial({
     required FormData data,
     required String insulationId,
@@ -584,6 +614,7 @@ class DprApi {
     }
     throw Exception("Failed to update insulation material");
   }
+
   static Future<Map<String, dynamic>> addInsulationMaterial({
     required FormData data,
     required String insulationId,
@@ -604,6 +635,7 @@ class DprApi {
     }
     throw Exception("Failed to add insulation material");
   }
+
   static Future<Map<String, dynamic>> copyInsulationMaterial({
     required String insulationId,
     required String materialId,
@@ -618,6 +650,7 @@ class DprApi {
     }
     throw Exception("Failed to copy insulation material");
   }
+
   static Future<void> deleteInsulationMaterial({
     required String insulationId,
     required String materialId,
@@ -632,7 +665,6 @@ class DprApi {
     }
   }
 
-
   // ----------------------------
   // 7. Sheet Handlers
   // ----------------------------
@@ -642,14 +674,15 @@ class DprApi {
     required String toDate,
     required String format,
     required String workType, // 'mechanical' or 'insulation'
-  }) => _fetchSheet(
-    siteId,
-    "measurement",
-    fromDate,
-    toDate,
-    format,
-    workType,
-  );
+  }) =>
+      _fetchSheet(
+        siteId,
+        "measurement",
+        fromDate,
+        toDate,
+        format,
+        workType,
+      );
 
   static Future<Uint8List> fetchMeasurementCalculationSheet({
     required String siteId,
@@ -657,14 +690,15 @@ class DprApi {
     required String toDate,
     required String format,
     required String workType,
-  }) => _fetchSheet(
-    siteId,
-    "abstract",
-    fromDate,
-    toDate,
-    format,
-    workType,
-  );
+  }) =>
+      _fetchSheet(
+        siteId,
+        "abstract",
+        fromDate,
+        toDate,
+        format,
+        workType,
+      );
 
   static Future<Uint8List> fetchSummarySheet({
     required String siteId,
@@ -672,14 +706,15 @@ class DprApi {
     required String toDate,
     required String format,
     required String workType,
-  }) => _fetchSheet(
-    siteId,
-    "summary",
-    fromDate,
-    toDate,
-    format,
-    workType,
-  );
+  }) =>
+      _fetchSheet(
+        siteId,
+        "summary",
+        fromDate,
+        toDate,
+        format,
+        workType,
+      );
 
   static Future<Uint8List> fetchInvoiceSheet({
     required String siteId,
@@ -687,23 +722,24 @@ class DprApi {
     required String toDate,
     required String format,
     required String workType,
-  }) => _fetchSheet(
-    siteId,
-    "invoice",
-    fromDate,
-    toDate,
-    format,
-    workType,
-  );
+  }) =>
+      _fetchSheet(
+        siteId,
+        "invoice",
+        fromDate,
+        toDate,
+        format,
+        workType,
+      );
 
   static Future<Uint8List> _fetchSheet(
-      String siteId,
-      String sheetType,
-      String fromDate,
-      String toDate,
-      String format,
-      String workType,
-      ) async {
+    String siteId,
+    String sheetType,
+    String fromDate,
+    String toDate,
+    String format,
+    String workType,
+  ) async {
     try {
       final String apiWorkType = _convertWorkTypeForApi(workType);
       final response = await DioClient.dioV2.get(
@@ -738,6 +774,7 @@ class DprApi {
       rethrow;
     }
   }
+
   static String _convertWorkTypeForApi(String uiWorkType) {
     switch (uiWorkType) {
       case 'mechanical_work':
@@ -745,8 +782,8 @@ class DprApi {
       case 'insulation_work':
         return 'insulation';
       default:
-      // If it's already in API format, return as-is
-      // This provides backward compatibility
+        // If it's already in API format, return as-is
+        // This provides backward compatibility
         if (uiWorkType == 'mechanical' || uiWorkType == 'insulation') {
           return uiWorkType;
         }
@@ -773,4 +810,3 @@ void printFormattedJson(dynamic data) {
     print(data);
   }
 }
-

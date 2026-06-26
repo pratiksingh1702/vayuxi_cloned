@@ -562,10 +562,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 screen = PebDprSetupScreen(siteId: site.id, workType: 'peb');
                 break;
               case 'boq-upload':
-                screen = BoqItemListScreen(
-                  siteId: site.id,
-                  siteName: site.siteName,
-                );
+                if (type == 'mechanical_work') {
+                  screen = BoqDashboardScreen(
+                    siteId: site.id,
+                    siteName: site.siteName,
+                    directViewMode: true,
+                  );
+                } else if (type == 'insulation_work') {
+                  screen = BoqDashboardScreen(
+                    siteId: site.id,
+                    siteName: site.siteName,
+                  );
+                } else {
+                  screen = BoqItemListScreen(
+                    siteId: site.id,
+                    siteName: site.siteName,
+                  );
+                }
                 break;
               case 'work-assignment':
                 screen = PebWorkAssignmentScreen(
