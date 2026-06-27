@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/dprTeamPage.dart';
-import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/mechanichal_stepper.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/mechanical_dpr_entry_gate.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/dpr_insu/screens/step_insulation_screen.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
 import 'package:untitled2/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_flow_gate.dart';
@@ -35,7 +35,7 @@ class DprFlowGate extends ConsumerWidget {
 
   Widget _buildDirectScreen(String? type) {
     if (type == "mechanical_work") {
-      return MechanichalStepperScreen(
+      return MechanicalDprEntryGate(
         siteId: site.id,
         teamId: "",
         teamName: null,

@@ -135,6 +135,39 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   Timer? _boqSearchDebounce;
   static const int _maxBoqSearchResults = 25;
   static const int _minBoqSearchChars = 3;
+  static const String _backendAssetBaseUrl = 'https://be-vayuxi-chi.vercel.app';
+  static const Map<String, String> _backendPipingImages = {
+    'pipe':
+        '$_backendAssetBaseUrl/DPR-MECHANICAL-PIPE/c36dca50baa3b1e61f033519ac0ac092bc110280.png',
+    'joints':
+        '$_backendAssetBaseUrl/DPR-MECHANICAL-PIPE/1f9b88cb048d509e1973874fa32910e5274b8e6e.png',
+    'elbow':
+        '$_backendAssetBaseUrl/DPR-MECHANICAL-PIPE/1cdeb798a1fef0ffe540016849ee92ddbaac192a.png',
+    'flange':
+        '$_backendAssetBaseUrl/DPR-MECHANICAL-PIPE/839ce17e0550a1676505e1919f3cf8a57b3c659a.png',
+    'tee':
+        '$_backendAssetBaseUrl/DPR-MECHANICAL-PIPE/ca8c00cfb47bb4ae0df1de6f4df8f638ed2bff17.png',
+    'reducer':
+        '$_backendAssetBaseUrl/DPR-MECHANICAL-PIPE/0164579e417f70aeebb1a2fc45ebaaf5d34489ce.png',
+    'valve':
+        '$_backendAssetBaseUrl/DPR-MECHANICAL-PIPE/9a074584ab49bbf387f21a9c293493af30890464.png',
+    'blind':
+        '$_backendAssetBaseUrl/DPR-MECHANICAL-PIPE/37ba4909af05f79be40dd07979e5d779d081ad29.png',
+    'u clamp':
+        '$_backendAssetBaseUrl/DPR-MECHANICAL-PIPE/498f925a986b6b3840d7e2dc42864ee205a35117.png',
+    'support':
+        '$_backendAssetBaseUrl/DPR-MECHANICAL-PIPE/d378b25bc25271dd1339a0aa498528d56582424a.png',
+    'miter':
+        '$_backendAssetBaseUrl/DPR-MECHANICAL-PIPE/004820e25ae89ce7fafaaa99137e7504acede136.png',
+    'plate cutting':
+        '$_backendAssetBaseUrl/DPR-MECHANICAL-PIPE/1172a9d13126bbfafba2235ba7df5b60eea999da.png',
+    'plate welding':
+        '$_backendAssetBaseUrl/DPR-MECHANICAL-PIPE/56d434762561fd6174e8ebf7c44f27d8140bbd91.png',
+    'shoe support':
+        '$_backendAssetBaseUrl/DPR-MECHANICAL-PIPE/5e73f0fb220b5fd3e047b06fc7d99b137aec55fe.png',
+    'pneumatic':
+        '$_backendAssetBaseUrl/DPR-MECHANICAL-PIPE/7d072648de688ed02618b79d4e082196eca8a47d.png',
+  };
   static final RegExp _searchNormalizerPattern = RegExp(r'[^a-z0-9]');
   Set<String> _filterTypes = {};
   Set<String> _filterStatuses = {};
@@ -268,10 +301,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     return materials
         .where((m) => m.availableVariants.isNotEmpty) // 👈 IMPORTANT
         .map((m) {
-          final v = m.availableVariants.first; // guaranteed non-null
-          return PipingItem.fromRateMaterial(m, v);
-        })
-        .toList();
+      final v = m.availableVariants.first; // guaranteed non-null
+      return PipingItem.fromRateMaterial(m, v);
+    }).toList();
   }
 
   List<EquipmentItem> _toApprovedEquipmentItems(
@@ -280,10 +312,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     return materials
         .where((m) => m.availableVariants.isNotEmpty) // 👈 IMPORTANT
         .map((m) {
-          final v = m.availableVariants.first;
-          return EquipmentItem.fromRateMaterial(m, v);
-        })
-        .toList();
+      final v = m.availableVariants.first;
+      return EquipmentItem.fromRateMaterial(m, v);
+    }).toList();
   }
 
   Future<void> _loadDefaultMaterials() async {
@@ -364,7 +395,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     final matchingBoqItems = _mechanicalBoqRows
         .where(_matchesMechanicalBoqSearch)
         .take(_maxBoqSearchResults)
-        .map(_mechanicalBoqRowToPipingItem)
+        .map((row) => _mechanicalBoqRowToPipingItem(row, withoutBoq))
         .toList();
 
     ref.read(pipingMaterialsProvider.notifier).setMaterials([
@@ -448,7 +479,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     });
   }
 
-  PipingItem _mechanicalBoqRowToPipingItem(_MechanicalBoqDprRow row) {
+  PipingItem _mechanicalBoqRowToPipingItem(
+    _MechanicalBoqDprRow row,
+    List<PipingItem> defaultMaterials,
+  ) {
     final item = row.item;
     final boqQty = item.totalQuantityCalculated;
     final boqQtyText = _formatBoqQuantity(boqQty);
@@ -460,7 +494,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       rawMaterialName: item.displayDescription,
       normalizedMaterialName: item.displayDescription.toLowerCase().trim(),
       materialName: item.displayDescription,
-      image: _imageForMechanicalBoqItem(item),
+      image: _imageForMechanicalBoqItem(item, defaultMaterials),
       qty: boqQty,
       uom: item.displayUom,
       length: boqQty,
@@ -520,34 +554,62 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     return value.toStringAsFixed(2);
   }
 
-  String _imageForMechanicalBoqItem(MechanicalBoqItem item) {
+  String _imageForMechanicalBoqItem(
+    MechanicalBoqItem item,
+    List<PipingItem> defaultMaterials,
+  ) {
     final text = [
       item.itemType ?? '',
       item.displayDescription,
+      item.matchedMaterialName,
+      item.inputMaterialName,
       item.sourceHeader ?? '',
     ].join(' ').toLowerCase();
-    if (text.contains('reducer')) {
-      return 'assets/images/piping/reducer_joints_fitting.webp';
+
+    final backendKey = _backendPipingImageKeyForText(text);
+    final matchingDefaultImage = _imageFromDefaultPipingMaterial(
+      defaultMaterials,
+      backendKey,
+    );
+    if (matchingDefaultImage != null) return matchingDefaultImage;
+
+    return _backendPipingImages[backendKey] ?? _backendPipingImages['pipe']!;
+  }
+
+  String _backendPipingImageKeyForText(String text) {
+    if (text.contains('shoe support')) return 'shoe support';
+    if (text.contains('plate cutting')) return 'plate cutting';
+    if (text.contains('plate welding')) return 'plate welding';
+    if (text.contains('u clamp') || text.contains('uclamp')) return 'u clamp';
+    if (text.contains('pneumatic')) return 'pneumatic';
+    if (text.contains('reducer')) return 'reducer';
+    if (text.contains('tee')) return 'tee';
+    if (text.contains('elbow')) return 'elbow';
+    if (text.contains('flange') || text.contains('gasket')) return 'flange';
+    if (text.contains('valve')) return 'valve';
+    if (text.contains('blind')) return 'blind';
+    if (text.contains('miter')) return 'miter';
+    if (text.contains('support')) return 'support';
+    if (text.contains('joint') || text.contains('welding')) return 'joints';
+    return 'pipe';
+  }
+
+  String? _imageFromDefaultPipingMaterial(
+    List<PipingItem> defaultMaterials,
+    String backendKey,
+  ) {
+    for (final material in defaultMaterials) {
+      final image = material.image.trim();
+      if (image.isEmpty || !image.startsWith('http')) continue;
+
+      final materialKey = _backendPipingImageKeyForText(
+        material.materialName.toLowerCase(),
+      );
+      if (materialKey == backendKey) {
+        return image;
+      }
     }
-    if (text.contains('tee')) {
-      return 'assets/images/piping/tee_joints_fitting.webp';
-    }
-    if (text.contains('elbow')) {
-      return 'assets/images/piping/elbow_90_joint_fitting.webp';
-    }
-    if (text.contains('flange') || text.contains('gasket')) {
-      return 'assets/images/piping/flange_joints_fitting.webp';
-    }
-    if (text.contains('valve')) {
-      return 'assets/images/piping/valve_fitting.webp';
-    }
-    if (text.contains('blind')) {
-      return 'assets/images/piping/blind_fabrication_and_fitting.webp';
-    }
-    if (text.contains('support')) {
-      return 'assets/images/piping/support_fabrication_and_erection.webp';
-    }
-    return 'assets/images/piping/pipe_erection_fittings.webp';
+    return null;
   }
 
   Future<void> _loadDprMaterials(DprModel? fallbackDpr) async {
@@ -557,11 +619,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     debugPrint('mechanicalId: $_mechanicalId');
 
     try {
-      final dpr =
-          fallbackDpr ??
-          await ref
-              .read(dprProvider.notifier)
-              .fetchDprById(
+      final dpr = fallbackDpr ??
+          await ref.read(dprProvider.notifier).fetchDprById(
                 siteId: siteId,
                 teamId: teamId,
                 workId: _mechanicalId!,
@@ -774,15 +833,14 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     siteId = widget.siteId?.trim().isNotEmpty == true
         ? widget.siteId!.trim()
         : widget.work?.siteId.trim().isNotEmpty == true
-        ? widget.work!.siteId
-        : (ref.read(selectedSiteIdProvider) ?? '');
+            ? widget.work!.siteId
+            : (ref.read(selectedSiteIdProvider) ?? '');
     teamId = widget.teamId?.trim().isNotEmpty == true
         ? widget.teamId!.trim()
         : widget.work?.teamId.trim().isNotEmpty == true
-        ? widget.work!.teamId
-        : (ref.read(selectedTeamIdProvider) ?? 'default');
-    team =
-        ref.read(currentTeamProvider) ??
+            ? widget.work!.teamId
+            : (ref.read(selectedTeamIdProvider) ?? 'default');
+    team = ref.read(currentTeamProvider) ??
         TeamModel(
           id: "",
           teamName: "",
@@ -791,23 +849,19 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           isDeleted: false,
           type: '',
         );
-    _mocController.text =
-        (widget.work == null
+    _mocController.text = (widget.work == null
             ? ref.read(selectedMocNameProvider)
             : widget.work?.moc) ??
         "";
-    _floorController.text =
-        (widget.work == null
+    _floorController.text = (widget.work == null
             ? ref.read(selectedFloorNameProvider)
             : widget.work?.location) ??
         "";
-    _sizeController.text =
-        (widget.work == null
+    _sizeController.text = (widget.work == null
             ? ref.read(selectedSizeProvider)
             : widget.work?.size) ??
         "";
-    _sizeUomController.text =
-        (widget.work == null
+    _sizeUomController.text = (widget.work == null
             ? (ref.read(selectedUnitProvider) ?? '')
             : widget.work?.size) ??
         "";
@@ -830,9 +884,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     );
     if (mounted) {
       setState(() {
-        _completedDates = dates
-            .map((d) => DateTime(d.year, d.month, d.day))
-            .toSet();
+        _completedDates =
+            dates.map((d) => DateTime(d.year, d.month, d.day)).toSet();
       });
     }
   }
@@ -1692,43 +1745,43 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     if (material is PipingItem) {
       Navigator.of(context)
           .push(
-            MaterialPageRoute(
-              builder: (_) => PersistDPRScreen(
-                editMaterialId: material.id,
-                designation: 'piping',
-                pipingMaterial: material,
+        MaterialPageRoute(
+          builder: (_) => PersistDPRScreen(
+            editMaterialId: material.id,
+            designation: 'piping',
+            pipingMaterial: material,
 
-                // 🔴 DPR CONTEXT (this is the difference)
-                isDpr: true,
-                dprId: _mechanicalId!,
-                siteId: siteId,
-                teamId: teamId,
-              ),
-            ),
-          )
+            // 🔴 DPR CONTEXT (this is the difference)
+            isDpr: true,
+            dprId: _mechanicalId!,
+            siteId: siteId,
+            teamId: teamId,
+          ),
+        ),
+      )
           .then((_) async {
-            await _fetchDprWorkById(); // ✅ DPR refresh, not default materials
-          });
+        await _fetchDprWorkById(); // ✅ DPR refresh, not default materials
+      });
     } else if (material is EquipmentItem) {
       Navigator.of(context)
           .push(
-            MaterialPageRoute(
-              builder: (_) => PersistDPRScreen(
-                editMaterialId: material.id,
-                designation: 'equipment',
-                equipmentMaterial: material,
+        MaterialPageRoute(
+          builder: (_) => PersistDPRScreen(
+            editMaterialId: material.id,
+            designation: 'equipment',
+            equipmentMaterial: material,
 
-                // 🔴 DPR CONTEXT
-                isDpr: true,
-                dprId: _mechanicalId!,
-                siteId: siteId,
-                teamId: teamId,
-              ),
-            ),
-          )
+            // 🔴 DPR CONTEXT
+            isDpr: true,
+            dprId: _mechanicalId!,
+            siteId: siteId,
+            teamId: teamId,
+          ),
+        ),
+      )
           .then((_) async {
-            await _fetchDprWorkById();
-          });
+        await _fetchDprWorkById();
+      });
     }
   }
 
@@ -1832,12 +1885,12 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         switch (_currentSort) {
           case MechModuleSortOption.nameAsc:
             return a.materialName.toLowerCase().compareTo(
-              b.materialName.toLowerCase(),
-            );
+                  b.materialName.toLowerCase(),
+                );
           case MechModuleSortOption.nameDesc:
             return b.materialName.toLowerCase().compareTo(
-              a.materialName.toLowerCase(),
-            );
+                  a.materialName.toLowerCase(),
+                );
           case MechModuleSortOption.typeAsc:
             final typeA = a is PipingItem ? 'Piping' : 'Equipment';
             final typeB = b is PipingItem ? 'Piping' : 'Equipment';
@@ -2156,9 +2209,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               Row(
                 children: [
                   GestureDetector(
-                    onTap: canChangeDateNormal
-                        ? () => _selectDate(context)
-                        : null,
+                    onTap:
+                        canChangeDateNormal ? () => _selectDate(context) : null,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -2184,9 +2236,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: _globalEditMode
-                                  ? cs.primary
-                                  : cs.onSurface,
+                              color:
+                                  _globalEditMode ? cs.primary : cs.onSurface,
                             ),
                           ),
                           if (canChangeDateNormal) ...[
@@ -2433,21 +2484,20 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
                     items: _dprListForSelectedDate
                         .map<DropdownMenuItem<String>>((DprModel dpr) {
-                          return DropdownMenuItem<String>(
-                            value: dpr.id,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                              ),
-                              child: Text(
-                                dpr.dprName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          );
-                        })
-                        .toList(),
+                      return DropdownMenuItem<String>(
+                        value: dpr.id,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                          ),
+                          child: Text(
+                            dpr.dprName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ),
         ),
@@ -3094,8 +3144,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               },
               quantity: '',
               remark: material.remarks,
-              size:
-                  material.dynamicFields
+              size: material.dynamicFields
                       .firstWhere(
                         (f) => f.key.toLowerCase() == 'size',
                         orElse: () => DynamicField(
@@ -3311,8 +3360,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               _onEquipmentDynamicChanged(material.id, key, value);
             },
             title: material.materialName,
-            quantity:
-                material.dynamicFields
+            quantity: material.dynamicFields
                     .firstWhere(
                       (f) => f.key.toLowerCase() == 'qty',
                       orElse: () => DynamicField(
@@ -3334,10 +3382,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             meter: material.uom,
             length:
                 (_equipmentLengthDraft[material.id]?.trim().isNotEmpty ?? false)
-                ? _equipmentLengthDraft[material.id]!
-                : (material.length == null || material.length == 0)
-                ? ''
-                : material.length.toString(),
+                    ? _equipmentLengthDraft[material.id]!
+                    : (material.length == null || material.length == 0)
+                        ? ''
+                        : material.length.toString(),
             remark: material.remarks,
             onMocChanged: (val) =>
                 _onEquipmentFieldChanged(material.id, 'moc', val),
@@ -3676,9 +3724,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         : generateObjectId();
 
     final rawTeamId = ref.read(selectedTeamIdProvider);
-    final safeTeamId = (rawTeamId == null || rawTeamId.trim().isEmpty)
-        ? 'default'
-        : rawTeamId;
+    final safeTeamId =
+        (rawTeamId == null || rawTeamId.trim().isEmpty) ? 'default' : rawTeamId;
 
     await _draftRepo.saveDraft(
       DprDraftRecord(
@@ -3703,9 +3750,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     required String dateString,
   }) async {
     final rawTeamId = ref.read(selectedTeamIdProvider);
-    final safeTeamId = (rawTeamId == null || rawTeamId.trim().isEmpty)
-        ? 'default'
-        : rawTeamId;
+    final safeTeamId =
+        (rawTeamId == null || rawTeamId.trim().isEmpty) ? 'default' : rawTeamId;
 
     final job = UploadJob.create(
       moduleId: 'dpr',
@@ -3756,9 +3802,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         ? customDraftName!.trim()
         : dprName;
 
-    await ref
-        .read(uploadManagerProvider.notifier)
-        .notifyDraftSaved(
+    await ref.read(uploadManagerProvider.notifier).notifyDraftSaved(
           moduleId: 'dpr',
           draftId: draftId,
           dprName: draftName,
@@ -3938,12 +3982,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       final items = [
         ...pipingMaterials.map((material) {
           final isMechanicalBoq = _isMechanicalBoqItem(material);
-          final boqId = isMechanicalBoq
-              ? _boqIdFromMechanicalBoqItem(material)
-              : null;
-          final boqRow = isMechanicalBoq
-              ? _mechanicalBoqRowForPipingItem(material)
-              : null;
+          final boqId =
+              isMechanicalBoq ? _boqIdFromMechanicalBoqItem(material) : null;
+          final boqRow =
+              isMechanicalBoq ? _mechanicalBoqRowForPipingItem(material) : null;
           final payloadQty = _resolvePayloadQty(
             qty: _getDynamicQty(material),
             fields: material.dynamicFields,
@@ -4030,8 +4072,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                 'boqItemId': material.lineItemId,
               'drawingNo':
                   boqRow?.group.drawingNo ?? boqRow?.item.drawingNo ?? '',
-              'workDescription':
-                  boqRow?.group.workDescription ??
+              'workDescription': boqRow?.group.workDescription ??
                   boqRow?.item.workDescription ??
                   material.materialName,
               'plannedQty':
@@ -4156,9 +4197,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           'location': _floorController.text.trim(),
           'plant': _plantController.text.trim(),
           (_mechanicalId == null || _mechanicalId!.isEmpty)
-                  ? 'date'
-                  : 'updatedDate':
-              dateString,
+              ? 'date'
+              : 'updatedDate': dateString,
           if (_mechanicalId == null && dprDesignation.isNotEmpty)
             'designation': dprDesignation,
           if (items.isNotEmpty) 'items': items,

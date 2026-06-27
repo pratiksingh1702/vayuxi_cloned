@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
-import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/mechanichal_stepper.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/mechanical_dpr_entry_gate.dart';
 import 'package:untitled2/features/peb_execution/models/peb_execution_models.dart';
 import 'package:untitled2/features/peb_execution/screens/peb_dpr_entry_screen.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
@@ -69,7 +69,7 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => MechanichalStepperScreen(
+          builder: (_) => MechanicalDprEntryGate(
             siteId: widget.site.id,
             teamId: '',
             teamName: null,
@@ -263,7 +263,7 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => MechanichalStepperScreen(
+                                    builder: (_) => MechanicalDprEntryGate(
                                       siteId: widget.site.id,
                                       teamId: effectiveTeamId,
                                       teamName: team.teamName,

@@ -64,7 +64,7 @@ import '../../features/modules/all_Modules/dpr/screens/dprTeamDetails.dart';
 import '../../features/modules/all_Modules/dpr/screens/dprTeamPage.dart';
 import '../../features/modules/all_Modules/dpr/screens/dpr_flow_gate.dart';
 import '../../features/modules/all_Modules/dpr/screens/add_description.dart';
-import '../../features/modules/all_Modules/dpr/screens/widgets/mechanichal_stepper.dart';
+import '../../features/modules/all_Modules/dpr/screens/widgets/mechanical_dpr_entry_gate.dart';
 import '../../features/modules/all_Modules/expense/screens/add-exp/add_expense.dart';
 import '../../features/modules/all_Modules/expense/screens/expense_screen.dart';
 import '../../features/modules/all_Modules/expense/screens/genericFormScreen.dart';
@@ -383,7 +383,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   screen = const PebDprHomeScreen();
                 } else if (site.counts.teams == 0) {
                   screen = type == 'mechanical_work'
-                      ? MechanichalStepperScreen(
+                      ? MechanicalDprEntryGate(
                           siteId: site.id,
                           teamId: '',
                           teamName: null,
@@ -696,7 +696,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 'teamId': data['teamId'],
                 'teamName': data['teamName'],
               });
-          return MechanichalStepperScreen(
+          return MechanicalDprEntryGate(
             siteId: data['siteId'],
             teamId: data['teamId'],
             teamName: data['teamName'],
@@ -715,7 +715,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 'teamId': data['teamId'],
                 'teamName': data['teamName'],
               });
-          return MechanichalStepperScreen(
+          return MechanicalDprEntryGate(
             siteId: data['siteId'],
             teamId: data['teamId'],
             teamName: data['teamName'],

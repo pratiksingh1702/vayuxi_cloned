@@ -6,9 +6,9 @@ import '../models/equipmentModel.dart';
 /// ---------------------------------------------------------------------------
 /// - Server is the ONLY source of truth
 /// - Shows ONLY materials that exist on server
-/// - Matches server materials with local to get images
+/// - Keeps backend images when the server provides them
 /// - All data (qty, weight, etc.) comes from server
-/// - Images come from local asset paths
+/// - Local images are only a fallback when the server image is empty
 /// ---------------------------------------------------------------------------
 
 class MaterialSyncService {
@@ -41,7 +41,7 @@ class MaterialSyncService {
     _debugPrintList(
       'PIPING – LOCAL (for image lookup only)',
       local,
-          (m) => {
+      (m) => {
         'id': m.id,
         'name': m.materialName,
         'image': m.image,
@@ -53,7 +53,7 @@ class MaterialSyncService {
     _debugPrintList(
       'PIPING – SERVER (source of truth)',
       server,
-          (m) => {
+      (m) => {
         'id': m.id,
         'name': m.materialName,
         'uom': m.uom,
@@ -76,8 +76,7 @@ class MaterialSyncService {
 
     // Create a more flexible map for matching
     final localMapFlexible = {
-      for (final l in local)
-        _flexibleMaterialKey(l.materialName, 'piping'): l
+      for (final l in local) _flexibleMaterialKey(l.materialName, 'piping'): l
     };
 
     // Process ONLY server materials
@@ -103,32 +102,38 @@ class MaterialSyncService {
       // Fall back to flexible match
       else if (localMapFlexible.containsKey(flexibleKey)) {
         matchedLocal = localMapFlexible[flexibleKey]!;
-        print('🔄 FLEXIBLE MATCH PIPING → ${s.materialName} (server uom: ${s.uom}, local uom: ${matchedLocal.uom})');
+        print(
+            '🔄 FLEXIBLE MATCH PIPING → ${s.materialName} (server uom: ${s.uom}, local uom: ${matchedLocal.uom})');
       } else {
         print('⚠️ NO LOCAL MATCH → ${s.materialName} (using server image)');
       }
 
-      // Use ALL data from server, ONLY image from local if matched
-      if (matchedLocal != null && matchedLocal.image != null && matchedLocal.image!.isNotEmpty) {
-        print('📸 Using local image for ${s.materialName}');
+      if (s.image.trim().isNotEmpty) {
         return s.copyWith(
-          image: matchedLocal.image,
-          // Keep all server data including UOM
+          image: s.image.trim(),
           uom: s.uom,
           length: s.length,
           calculationCategory: s.calculationCategory,
           remarks: s.remarks,
         );
       }
-      if (s.image.isNotEmpty) {
-        return s; // <-- THIS was missing
+
+      if (matchedLocal != null && matchedLocal.image.isNotEmpty) {
+        print('📸 Using local fallback image for ${s.materialName}');
+        return s.copyWith(
+          image: matchedLocal.image,
+          uom: s.uom,
+          length: s.length,
+          calculationCategory: s.calculationCategory,
+          remarks: s.remarks,
+        );
       }
 
       // If no match or no image, return server item as-is
       return s.copyWith(
         // Ensure we keep server UOM
         image: s.image,
-        uom: s.uom,length: s.length,
+        uom: s.uom, length: s.length,
         calculationCategory: s.calculationCategory,
       );
     }).toList();
@@ -136,7 +141,7 @@ class MaterialSyncService {
     _debugPrintList(
       'PIPING – FINAL (server materials only)',
       result,
-          (m) => {
+      (m) => {
         'id': m.id,
         'name': m.materialName,
         'image': m.image,
@@ -162,7 +167,7 @@ class MaterialSyncService {
     _debugPrintList(
       'EQUIPMENT – LOCAL (for image lookup only)',
       local,
-          (m) => {
+      (m) => {
         'id': m.id,
         'name': m.materialName,
         'image': m.image,
@@ -174,7 +179,7 @@ class MaterialSyncService {
     _debugPrintList(
       'EQUIPMENT – SERVER (source of truth)',
       server,
-          (m) => {
+      (m) => {
         'id': m.id,
         'name': m.materialName,
         'uom': m.uom, // Check this field!
@@ -224,17 +229,26 @@ class MaterialSyncService {
       // Fall back to flexible match
       else if (localMapFlexible.containsKey(flexibleKey)) {
         matchedLocal = localMapFlexible[flexibleKey]!;
-        print('🔄 FLEXIBLE MATCH EQUIPMENT → ${s.materialName} (server uom: ${s.uom}, local uom: ${matchedLocal.uom})');
+        print(
+            '🔄 FLEXIBLE MATCH EQUIPMENT → ${s.materialName} (server uom: ${s.uom}, local uom: ${matchedLocal.uom})');
       } else {
         print('⚠️ NO LOCAL MATCH → ${s.materialName} (using server image)');
       }
 
-      // Use ALL data from server, ONLY image from local if matched
-      if (matchedLocal != null && matchedLocal.image != null && matchedLocal.image!.isNotEmpty) {
-        print('📸 Using local image for ${s.materialName}');
+      if (s.image.trim().isNotEmpty) {
+        return s.copyWith(
+          image: s.image.trim(),
+          uom: s.uom,
+          length: s.length,
+          calculationCategory: s.calculationCategory,
+          remarks: s.remarks,
+        );
+      }
+
+      if (matchedLocal != null && matchedLocal.image.isNotEmpty) {
+        print('📸 Using local fallback image for ${s.materialName}');
         return s.copyWith(
           image: matchedLocal.image,
-          // Keep all server data including UOM
           uom: s.uom,
           length: s.length,
           calculationCategory: s.calculationCategory,
@@ -258,7 +272,7 @@ class MaterialSyncService {
     _debugPrintList(
       'EQUIPMENT – FINAL (server materials only)',
       result,
-          (m) => {
+      (m) => {
         'id': m.id,
         'name': m.materialName,
         'image': m.image,
@@ -278,21 +292,21 @@ class MaterialSyncService {
   // DEBUG & SAFETY
   // ===========================================================================
   static void _assertIds<T>(
-      List<T> list,
-      String Function(T) idGetter,
-      String type,
-      ) {
+    List<T> list,
+    String Function(T) idGetter,
+    String type,
+  ) {
     assert(
-    list.every((m) => idGetter(m).isNotEmpty),
-    '❌ $type material has empty ID after sync',
+      list.every((m) => idGetter(m).isNotEmpty),
+      '❌ $type material has empty ID after sync',
     );
   }
 
   static void _debugPrintList<T>(
-      String title,
-      List<T> list,
-      Map<String, dynamic> Function(T) mapper,
-      ) {
+    String title,
+    List<T> list,
+    Map<String, dynamic> Function(T) mapper,
+  ) {
     print('========== $title (${list.length}) ==========');
     for (final item in list) {
       print(mapper(item));
