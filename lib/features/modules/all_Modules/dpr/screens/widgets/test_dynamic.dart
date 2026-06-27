@@ -11,6 +11,7 @@ class testDynamicItemCard extends StatefulWidget {
   final String quantity;
   final String size;
   final String length;
+  final String? boqQtyText;
   final String floor;
   final String floorlabel;
   final String moc;
@@ -56,6 +57,7 @@ class testDynamicItemCard extends StatefulWidget {
     this.showInternalSave = true,
     this.onCancel,
     required this.length,
+    this.boqQtyText,
     required this.floor,
     required this.moc,
     required this.image,
@@ -832,14 +834,8 @@ class _testDynamicItemCardState extends State<testDynamicItemCard> {
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 4),
-          child: Text(
-            isUOM ? "$label ( ${widget.lengthPlaceholder} )" : label,
-            style: TextStyle(
-              fontSize: isUOM ? 14 : 9,
-              fontWeight: FontWeight.w600,
-              color: cs.onSurface,
-            ),
-          ),
+          child:
+              isUOM ? _buildUomLabel(label, cs) : _buildSmallLabel(label, cs),
         ),
         SizedBox(
           height: isUOM ? 60 : 23,
@@ -884,6 +880,53 @@ class _testDynamicItemCardState extends State<testDynamicItemCard> {
             ),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildSmallLabel(String label, ColorScheme cs) {
+    return Text(
+      label,
+      style: TextStyle(
+        fontSize: 9,
+        fontWeight: FontWeight.w600,
+        color: cs.onSurface,
+      ),
+    );
+  }
+
+  Widget _buildUomLabel(String label, ColorScheme cs) {
+    final boqQty = widget.boqQtyText?.trim() ?? '';
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 8,
+      runSpacing: 4,
+      children: [
+        Text(
+          "$label (${widget.lengthPlaceholder})",
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: cs.onSurface,
+          ),
+        ),
+        if (boqQty.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+            decoration: BoxDecoration(
+              color: cs.primaryContainer.withOpacity(0.55),
+              borderRadius: BorderRadius.circular(5),
+              border: Border.all(color: cs.outlineVariant),
+            ),
+            child: Text(
+              'BOQ Qty $boqQty',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: cs.onPrimaryContainer,
+              ),
+            ),
+          ),
       ],
     );
   }

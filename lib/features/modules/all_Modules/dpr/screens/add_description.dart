@@ -130,7 +130,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  String? _autoDprNameFromBoqSearch;
   final List<_MechanicalBoqDprRow> _mechanicalBoqRows = [];
+  List<PipingItem> _mechanicalBoqSearchItems = [];
   bool _isLoadingMechanicalBoqRows = false;
   Timer? _boqSearchDebounce;
   static const int _maxBoqSearchResults = 25;
@@ -333,15 +335,171 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             .toList(),
       );
 
-      ref.read(pipingMaterialsProvider.notifier).setMaterials(pipingItems);
-      ref
-          .read(equipmentMaterialsProvider.notifier)
-          .setMaterials(equipmentItems);
+      var resolvedPipingItems = pipingItems;
+      var resolvedEquipmentItems = equipmentItems;
+
+      if (resolvedPipingItems.isEmpty && resolvedEquipmentItems.isEmpty) {
+        try {
+          final service = DefaultMaterialService();
+          final backendDefaults = await _getBackendDefaultMaterials(service);
+          resolvedPipingItems =
+              backendDefaults.whereType<PipingItem>().toList();
+          resolvedEquipmentItems =
+              backendDefaults.whereType<EquipmentItem>().toList();
+
+          if (resolvedPipingItems.isEmpty && resolvedEquipmentItems.isEmpty) {
+            final setupDefaults = await service.setupDpr(
+              siteId: siteId,
+              designation: 'both',
+            );
+            resolvedPipingItems =
+                setupDefaults.whereType<PipingItem>().toList();
+            resolvedEquipmentItems =
+                setupDefaults.whereType<EquipmentItem>().toList();
+          }
+        } catch (e, st) {
+          debugPrint("❌ Backend default material fallback failed: $e");
+          debugPrintStack(stackTrace: st);
+        }
+      }
+
+      if (resolvedPipingItems.isEmpty && resolvedEquipmentItems.isEmpty) {
+        resolvedPipingItems = PipingMaterialsData.materials;
+        resolvedEquipmentItems = EquipmentMaterialsData.materials;
+      }
+
+      ref.read(pipingMaterialsProvider.notifier).setMaterials(
+            resolvedPipingItems.map(_ensurePipingDprCardFields).toList(),
+          );
+      ref.read(equipmentMaterialsProvider.notifier).setMaterials(
+            resolvedEquipmentItems.map(_ensureEquipmentDprCardFields).toList(),
+          );
       _applyHeaderValuesToMaterials();
     } catch (e, st) {
       debugPrint("❌ Failed: $e");
       debugPrintStack(stackTrace: st);
     }
+  }
+
+  Future<List<dynamic>> _getBackendDefaultMaterials(
+    DefaultMaterialService service,
+  ) async {
+    final result = await Future.wait([
+      service.getDefaultMaterials(siteId: siteId, designation: 'piping'),
+      service.getDefaultMaterials(siteId: siteId, designation: 'equipment'),
+    ]);
+    return [...result[0], ...result[1]];
+  }
+
+  List<DynamicField> _ensureDprCardFields(
+    List<DynamicField> fields, {
+    required String qty,
+    required String size,
+    required String location,
+    required String moc,
+    required String plant,
+  }) {
+    final result = fields.map((field) => field.copyWith()).toList();
+
+    void upsert({
+      required String key,
+      required String label,
+      required String value,
+    }) {
+      final index = result.indexWhere((f) => f.key.toLowerCase() == key);
+      final field = DynamicField(
+        key: key,
+        label: label,
+        value: value,
+        unit: '',
+        displayText: value,
+      );
+      if (index == -1) {
+        result.add(field);
+        return;
+      }
+
+      result[index] = result[index].copyWith(
+        label: result[index].label.isNotEmpty ? result[index].label : label,
+        value: result[index].value?.toString().trim().isNotEmpty == true
+            ? result[index].value
+            : value,
+        displayText: result[index].displayText.trim().isNotEmpty
+            ? result[index].displayText
+            : value,
+      );
+    }
+
+    upsert(key: 'qty', label: 'Qty', value: qty);
+    upsert(key: 'size', label: 'Size', value: size);
+    upsert(key: 'location', label: 'Location', value: location);
+    upsert(key: 'moc', label: 'MOC', value: moc);
+    upsert(key: 'plant', label: 'Plant', value: plant);
+
+    const order = ['qty', 'size', 'location', 'moc', 'plant'];
+    result.sort((a, b) {
+      final aIndex = order.indexOf(a.key.toLowerCase());
+      final bIndex = order.indexOf(b.key.toLowerCase());
+      if (aIndex == -1 && bIndex == -1) return 0;
+      if (aIndex == -1) return 1;
+      if (bIndex == -1) return -1;
+      return aIndex.compareTo(bIndex);
+    });
+
+    return result;
+  }
+
+  PipingItem _ensurePipingDprCardFields(PipingItem item) {
+    final qty = item.qty > 0 ? item.qty : 1;
+    final size = item.size.trim().isNotEmpty ? item.size : _sizeController.text;
+    final location =
+        item.location.trim().isNotEmpty ? item.location : _floorController.text;
+    final moc = item.moc.trim().isNotEmpty ? item.moc : _mocController.text;
+    final plant =
+        item.plant.trim().isNotEmpty ? item.plant : _plantController.text;
+
+    return item.copyWith(
+      qty: qty,
+      size: size,
+      location: location,
+      floor: location,
+      moc: moc,
+      plant: plant,
+      dynamicFields: _ensureDprCardFields(
+        item.dynamicFields,
+        qty: _formatBoqQuantity(qty),
+        size: size,
+        location: location,
+        moc: moc,
+        plant: plant,
+      ),
+    );
+  }
+
+  EquipmentItem _ensureEquipmentDprCardFields(EquipmentItem item) {
+    final qty = item.qty > 0 ? item.qty : 1;
+    final size = item.size.trim().isNotEmpty ? item.size : _sizeController.text;
+    final location =
+        item.location.trim().isNotEmpty ? item.location : _floorController.text;
+    final moc = item.moc.trim().isNotEmpty ? item.moc : _mocController.text;
+    final plant =
+        item.plant.trim().isNotEmpty ? item.plant : _plantController.text;
+
+    return item.copyWith(
+      qty: qty,
+      size: size,
+      location: location,
+      moc: moc,
+      plant: plant,
+      dynamicFields: _ensureDprCardFields(
+        item.dynamicFields,
+        qty: _formatBoqQuantity(qty),
+        size: size,
+        location: location,
+        moc: moc,
+        plant: plant,
+      ),
+    );
   }
 
   Future<void> _loadMechanicalBoqRowsForSearch() async {
@@ -386,22 +544,40 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     final withoutBoq = current.where((m) => !_isMechanicalBoqItem(m)).toList();
 
     if (!_isBoqSearchReady(_searchQuery) || _mechanicalBoqRows.isEmpty) {
-      if (withoutBoq.length != current.length) {
-        ref.read(pipingMaterialsProvider.notifier).setMaterials(withoutBoq);
-      }
+      setState(() => _mechanicalBoqSearchItems = []);
       return;
     }
 
-    final matchingBoqItems = _mechanicalBoqRows
+    final matchingRows = _mechanicalBoqRows
         .where(_matchesMechanicalBoqSearch)
         .take(_maxBoqSearchResults)
+        .toList();
+    _syncDprNameFromBoqSearch(matchingRows);
+
+    final matchingBoqItems = matchingRows
         .map((row) => _mechanicalBoqRowToPipingItem(row, withoutBoq))
         .toList();
 
-    ref.read(pipingMaterialsProvider.notifier).setMaterials([
-      ...withoutBoq,
-      ...matchingBoqItems,
-    ]);
+    setState(() => _mechanicalBoqSearchItems = matchingBoqItems);
+  }
+
+  void _syncDprNameFromBoqSearch(List<_MechanicalBoqDprRow> matchingRows) {
+    if (matchingRows.isEmpty) return;
+    final drawingNo = matchingRows.first.group.drawingNo.trim().isNotEmpty
+        ? matchingRows.first.group.drawingNo.trim()
+        : (matchingRows.first.item.drawingNo ?? '').trim();
+    if (drawingNo.isEmpty) return;
+
+    final currentName = _dprNameController.text.trim();
+    final canAutofill = currentName.isEmpty ||
+        currentName == 'New DPR Entry' ||
+        currentName == _autoDprNameFromBoqSearch;
+    if (!canAutofill) return;
+
+    _autoDprNameFromBoqSearch = drawingNo;
+    if (_dprNameController.text != drawingNo) {
+      _dprNameController.text = drawingNo;
+    }
   }
 
   void _scheduleMechanicalBoqSearchSync() {
@@ -419,6 +595,11 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     _boqSearchDebounce = Timer(const Duration(milliseconds: 450), () {
       if (!mounted || _isDisposed) return;
       setState(() => _searchQuery = nextQuery);
+      if (_isBoqSearchReady(nextQuery) &&
+          _mechanicalBoqRows.isEmpty &&
+          !_isLoadingMechanicalBoqRows) {
+        _loadMechanicalBoqRowsForSearch();
+      }
       _syncMechanicalBoqSearchResults();
     });
   }
@@ -461,6 +642,33 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     return null;
   }
 
+  List<PipingItem> _effectivePipingMaterialsForSave() {
+    final base = ref.read(pipingMaterialsProvider);
+    if (_mechanicalBoqSearchItems.isEmpty) return base;
+
+    final byId = <String, PipingItem>{
+      for (final item in base) item.id: item,
+    };
+    for (final item in _mechanicalBoqSearchItems) {
+      byId[item.id] = item;
+    }
+    return byId.values.toList();
+  }
+
+  void _updateMechanicalBoqSearchItem(
+    String materialId,
+    PipingItem Function(PipingItem item) update,
+  ) {
+    final index = _mechanicalBoqSearchItems.indexWhere(
+      (item) => item.id == materialId,
+    );
+    if (index == -1) return;
+
+    final updated = [..._mechanicalBoqSearchItems];
+    updated[index] = update(updated[index]);
+    setState(() => _mechanicalBoqSearchItems = updated);
+  }
+
   double _resolveMechanicalBoqActualQty(PipingItem item, num qty) {
     if (item.length > 0) return item.length;
     final qtyValue = qty.toDouble();
@@ -471,12 +679,16 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     final query = _normalizeSearchText(_searchQuery);
     if (query.length < _minBoqSearchChars) return false;
 
-    final drawingNumbers = [row.group.drawingNo, row.item.drawingNo ?? ''];
+    final searchableText = [
+      row.group.drawingNo,
+      row.item.drawingNo ?? '',
+      row.boq.boqNumber,
+      row.boq.boqName,
+      row.item.boqGroupKey ?? '',
+      row.item.boqItemKey ?? '',
+    ].join(' ');
 
-    return drawingNumbers.any((drawingNo) {
-      final normalizedDrawingNo = _normalizeSearchText(drawingNo);
-      return normalizedDrawingNo.contains(query);
-    });
+    return _normalizeSearchText(searchableText).contains(query);
   }
 
   PipingItem _mechanicalBoqRowToPipingItem(
@@ -485,7 +697,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   ) {
     final item = row.item;
     final boqQty = item.totalQuantityCalculated;
-    final boqQtyText = _formatBoqQuantity(boqQty);
+    final floor = _floorController.text.trim();
+    final moc = (item.moc?.trim().isNotEmpty == true)
+        ? item.moc!.trim()
+        : _mocController.text.trim();
 
     return PipingItem(
       id: 'boq_${row.boq.id}_${item.id}',
@@ -495,30 +710,30 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       normalizedMaterialName: item.displayDescription.toLowerCase().trim(),
       materialName: item.displayDescription,
       image: _imageForMechanicalBoqItem(item, defaultMaterials),
-      qty: boqQty,
+      qty: 1,
       uom: item.displayUom,
       length: boqQty,
       rmt: 0,
       diameter: 0,
       weight: 0,
       power: 0,
-      floor: '',
+      floor: floor,
       elevation: '',
       actualRate: 0,
       rate: 0,
-      moc: item.moc ?? '',
+      moc: moc,
       size: item.displaySize,
-      location: '',
-      plant: '',
+      location: floor,
+      plant: _plantController.text.trim(),
       designation: const ['piping'],
       calculationCategory: item.calculationCategory ?? 'A',
       dynamicFields: [
         DynamicField(
           key: 'qty',
           label: 'Qty',
-          value: boqQtyText,
+          value: '1',
           unit: '',
-          displayText: boqQtyText,
+          displayText: '1',
         ),
         DynamicField(
           key: 'size',
@@ -530,16 +745,16 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         DynamicField(
           key: 'floor',
           label: 'Floor',
-          value: '',
+          value: floor,
           unit: '',
-          displayText: '',
+          displayText: floor,
         ),
         DynamicField(
           key: 'moc',
           label: 'MOC',
-          value: item.moc ?? '',
+          value: moc,
           unit: '',
-          displayText: item.moc ?? '',
+          displayText: moc,
         ),
       ],
       remarks: item.remarks ?? '',
@@ -552,6 +767,22 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   String _formatBoqQuantity(num value) {
     if (value % 1 == 0) return value.toStringAsFixed(0);
     return value.toStringAsFixed(2);
+  }
+
+  String _lengthInputText(PipingItem material) {
+    final length = material.length;
+    if (length == 0) return '';
+    return _isMechanicalBoqItem(material)
+        ? _formatBoqQuantity(length)
+        : length.toString();
+  }
+
+  String? _boqQtyTextForPipingItem(PipingItem material) {
+    if (!_isMechanicalBoqItem(material)) return null;
+    final row = _mechanicalBoqRowForPipingItem(material);
+    final boqQty = row?.item.totalQuantityCalculated ?? material.length;
+    if (boqQty == 0) return null;
+    return _formatBoqQuantity(boqQty);
   }
 
   String _imageForMechanicalBoqItem(
@@ -665,11 +896,13 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       debugPrint('merged piping count: ${mergedPiping.length}');
       debugPrint('merged equipment count: ${mergedEquipment.length}');
 
-      ref.read(pipingMaterialsProvider.notifier).setMaterials(mergedPiping);
+      ref.read(pipingMaterialsProvider.notifier).setMaterials(
+            mergedPiping.map(_ensurePipingDprCardFields).toList(),
+          );
 
-      ref
-          .read(equipmentMaterialsProvider.notifier)
-          .setMaterials(mergedEquipment);
+      ref.read(equipmentMaterialsProvider.notifier).setMaterials(
+            mergedEquipment.map(_ensureEquipmentDprCardFields).toList(),
+          );
       final state = ref.read(pipingMaterialsProvider);
 
       for (final m in state) {
@@ -710,8 +943,12 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
     if (dpr == null) return;
 
-    ref.read(pipingMaterialsProvider.notifier).setMaterials(dpr.piping);
-    ref.read(equipmentMaterialsProvider.notifier).setMaterials(dpr.equipment);
+    ref.read(pipingMaterialsProvider.notifier).setMaterials(
+          dpr.piping.map(_ensurePipingDprCardFields).toList(),
+        );
+    ref.read(equipmentMaterialsProvider.notifier).setMaterials(
+          dpr.equipment.map(_ensureEquipmentDprCardFields).toList(),
+        );
 
     _dprNameController.text = dpr.dprName;
     _mocController.text = dpr.moc;
@@ -723,18 +960,21 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   Future<void> _loadMaterialsForCreate() async {
     final service = DefaultMaterialService();
 
-    final materials = await service.getDefaultMaterials(
-      siteId: siteId,
-      designation: 'both',
-    );
+    final materials = await _getBackendDefaultMaterials(service);
 
-    ref
-        .read(pipingMaterialsProvider.notifier)
-        .setMaterials(materials.whereType<PipingItem>().toList());
+    ref.read(pipingMaterialsProvider.notifier).setMaterials(
+          materials
+              .whereType<PipingItem>()
+              .map(_ensurePipingDprCardFields)
+              .toList(),
+        );
 
-    ref
-        .read(equipmentMaterialsProvider.notifier)
-        .setMaterials(materials.whereType<EquipmentItem>().toList());
+    ref.read(equipmentMaterialsProvider.notifier).setMaterials(
+          materials
+              .whereType<EquipmentItem>()
+              .map(_ensureEquipmentDprCardFields)
+              .toList(),
+        );
   }
 
   void _applyHeaderValuesToMaterials() {
@@ -816,6 +1056,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     _dprNameController = TextEditingController();
     _dprNameController.addListener(() {
       if (!mounted || _isDisposed) return;
+      if (_autoDprNameFromBoqSearch != null &&
+          _dprNameController.text.trim() != _autoDprNameFromBoqSearch) {
+        _autoDprNameFromBoqSearch = null;
+      }
       setState(() {});
     });
     _searchController.addListener(() {
@@ -1202,8 +1446,12 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     );
 
     // ---- UPDATE PROVIDERS ----
-    ref.read(pipingMaterialsProvider.notifier).setMaterials(mergedPiping);
-    ref.read(equipmentMaterialsProvider.notifier).setMaterials(mergedEquipment);
+    ref.read(pipingMaterialsProvider.notifier).setMaterials(
+          mergedPiping.map(_ensurePipingDprCardFields).toList(),
+        );
+    ref.read(equipmentMaterialsProvider.notifier).setMaterials(
+          mergedEquipment.map(_ensureEquipmentDprCardFields).toList(),
+        );
 
     // ---- VERIFY UOM IS PRESERVED ----
     print('📋 VERIFYING UOM AFTER SYNC:');
@@ -1816,10 +2064,12 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     final equipmentMaterials = ref.watch(equipmentMaterialsProvider);
 
     final normalizedSearchQuery = _normalizeSearchText(_searchQuery);
+    final isDrawingBoqSearch = _isBoqSearchReady(_searchQuery);
 
     // Initial Filter by Search Query
     List<PipingItem> filteredPiping = pipingMaterials.where((m) {
       if (_searchQuery.isEmpty) return true;
+      if (isDrawingBoqSearch) return true;
       if (_isMechanicalBoqItem(m)) return true;
       final haystack = [
         m.materialName,
@@ -1854,7 +2104,11 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     }).toList();
 
     // Filter by Designation (Piping/Equipment)
-    List<PipingItem> pipingToDisplay = filteredPiping;
+    List<PipingItem> pipingToDisplay = [
+      ...filteredPiping,
+      if (_filterTypes.isEmpty || _filterTypes.contains('Piping'))
+        ..._mechanicalBoqSearchItems,
+    ];
     List<EquipmentItem> equipmentToDisplay = filteredEquipment;
 
     if (_filterTypes.isNotEmpty) {
@@ -3101,7 +3355,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           f.value != null &&
           f.value.toString().trim().isNotEmpty &&
           f.value.toString() != '0' &&
-          !['floor', 'moc', 'size'].contains(f.key.toLowerCase()),
+          !['floor', 'location', 'plant', 'moc', 'size']
+              .contains(f.key.toLowerCase()),
     );
   }
 
@@ -3142,7 +3397,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               onChanged: (key, value) {
                 _onPipingDynamicChanged(material.id, key, value);
               },
-              quantity: '',
+              quantity: _formatBoqQuantity(_getDynamicQty(material)),
               remark: material.remarks,
               size: material.dynamicFields
                       .firstWhere(
@@ -3157,9 +3412,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                       )
                       .value ??
                   _sizeController.text,
-              length: (material.length == null || material.length == 0)
-                  ? ''
-                  : material.length.toString(),
+              length: _lengthInputText(material),
+              boqQtyText: _boqQtyTextForPipingItem(material),
               floor: _floorController.text,
               moc: _mocController.text,
               onSave: (result) async {
@@ -3295,6 +3549,23 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   void _onPipingDynamicChanged(String materialId, String key, String value) {
     if (!_isEditable) {
       _showEditRequiredMessage();
+      return;
+    }
+
+    final localBoqItem = _mechanicalBoqSearchItems.any(
+      (m) => m.id == materialId,
+    );
+    if (localBoqItem) {
+      if (key.toLowerCase() != 'qty') return;
+      _updateMechanicalBoqSearchItem(materialId, (m) {
+        final updatedFields = m.dynamicFields.map((f) {
+          if (f.key == key) {
+            return f.copyWith(value: value, displayText: f.displayText);
+          }
+          return f;
+        }).toList();
+        return m.copyWith(dynamicFields: updatedFields);
+      });
       return;
     }
 
@@ -3476,6 +3747,25 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       return;
     }
 
+    if (_mechanicalBoqSearchItems.any((m) => m.id == materialId)) {
+      _updateMechanicalBoqSearchItem(materialId, (material) {
+        switch (field) {
+          case 'quantity':
+            return material.copyWith(
+              qty: int.tryParse(value)?.toDouble() ?? material.qty,
+            );
+          case 'length':
+            return material.copyWith(
+              length: double.tryParse(value) ?? material.length,
+            );
+          default:
+            return material;
+        }
+      });
+      print('BOQ search material $materialId: $field changed to $value');
+      return;
+    }
+
     final pipingMaterials = ref.read(pipingMaterialsProvider);
     final updatedMaterials = pipingMaterials.map((material) {
       if (material.id == materialId) {
@@ -3552,6 +3842,14 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     bool isPiping = true,
   }) {
     if (isPiping) {
+      if (_mechanicalBoqSearchItems.any((m) => m.id == materialId)) {
+        _updateMechanicalBoqSearchItem(
+          materialId,
+          (material) => material.copyWith(remarks: remark),
+        );
+        return;
+      }
+
       final pipingMaterials = ref.read(pipingMaterialsProvider);
       final updatedMaterials = pipingMaterials.map((material) {
         if (material.id == materialId) {
@@ -3641,7 +3939,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
   bool _hasMeaningfulDynamicFieldValues(List<DynamicField> fields) {
     for (final field in fields) {
-      if (field.key.toLowerCase() == 'qty') continue;
+      if (['qty', 'floor', 'location', 'plant', 'moc', 'size']
+          .contains(field.key.toLowerCase())) {
+        continue;
+      }
       final raw = field.value;
       if (raw == null) continue;
       final text = raw.toString().trim();
@@ -3719,9 +4020,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     required DprModel draft,
     required Map<String, dynamic> updateData,
   }) async {
-    final draftId = _mechanicalId?.trim().isNotEmpty == true
-        ? _mechanicalId!
-        : generateObjectId();
+    final draftId = _draftIdForCurrentDpr();
 
     final rawTeamId = ref.read(selectedTeamIdProvider);
     final safeTeamId =
@@ -3740,6 +4039,31 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       ),
     );
     return draftId;
+  }
+
+  String _draftIdForCurrentDpr() {
+    if (_mechanicalId?.trim().isNotEmpty == true) return _mechanicalId!.trim();
+
+    final rawTeamId = ref.read(selectedTeamIdProvider);
+    final safeTeamId =
+        (rawTeamId == null || rawTeamId.trim().isEmpty) ? 'default' : rawTeamId;
+    final dateKey = DateFormat('yyyy-MM-dd').format(_selectedDate);
+    final nameKey = _slugForDraftId(
+      _dprNameController.text.trim().isNotEmpty
+          ? _dprNameController.text.trim()
+          : 'New DPR Entry',
+    );
+
+    return 'local_dpr_${_slugForDraftId(siteId)}_${_slugForDraftId(safeTeamId)}_${dateKey}_$nameKey';
+  }
+
+  String _slugForDraftId(String value) {
+    final slug = value
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+        .replaceAll(RegExp(r'^_+|_+$'), '');
+    return slug.isEmpty ? 'draft' : slug;
   }
 
   Future<void> _enqueueDprBackgroundSave({
@@ -3779,7 +4103,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }) async {
     if (_isDisposed || _isSubmitting) return;
 
-    final pipingMaterials = ref.read(pipingMaterialsProvider);
+    final pipingMaterials = _effectivePipingMaterialsForSave();
     final equipmentMaterials = ref.read(equipmentMaterialsProvider);
 
     final designation = <String>[
@@ -3832,7 +4156,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       return true;
 
     // Check if any materials have meaningful values
-    final piping = ref.read(pipingMaterialsProvider);
+    final piping = _effectivePipingMaterialsForSave();
     final equipment = ref.read(equipmentMaterialsProvider);
 
     for (final m in piping) {
@@ -3875,7 +4199,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       // }
 
       // Get current piping and equipment materials from providers
-      final pipingMaterials = ref.read(pipingMaterialsProvider);
+      final pipingMaterials = _effectivePipingMaterialsForSave();
       var equipmentMaterials = ref.read(equipmentMaterialsProvider);
 
       // Flush buffered equipment length edits once, right before payload build.

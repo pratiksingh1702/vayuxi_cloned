@@ -385,7 +385,9 @@ class BoqDetail {
 
   factory BoqDetail.fromJson(Map<String, dynamic> json) {
     final rawItems = json['items'] as List<dynamic>? ?? [];
-    final rawGroups = json['mechanicalGroups'] as List<dynamic>? ?? [];
+    final rawGroups =
+        (json['mechanicalGroups'] ?? json['groupedItems']) as List<dynamic>? ??
+            [];
     final isMech = (json['type'] as String?) == 'mechanical_work';
     final mechanicalItems = isMech
         ? rawItems
