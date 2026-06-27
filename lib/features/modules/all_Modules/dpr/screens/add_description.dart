@@ -65,7 +65,7 @@ enum MechModuleSortOption {
   typeAsc,
   typeDesc,
   displayOrderAsc,
-  displayOrderDesc
+  displayOrderDesc,
 }
 
 class AddDescriptionScreen extends ConsumerStatefulWidget {
@@ -134,6 +134,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   bool _isLoadingMechanicalBoqRows = false;
   Timer? _boqSearchDebounce;
   static const int _maxBoqSearchResults = 25;
+  static const int _minBoqSearchChars = 3;
+  static final RegExp _searchNormalizerPattern = RegExp(r'[^a-z0-9]');
   Set<String> _filterTypes = {};
   Set<String> _filterStatuses = {};
   MechModuleSortOption _currentSort = MechModuleSortOption.displayOrderAsc;
@@ -191,10 +193,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     _sizeController.addListener(_applyHeaderValuesToMaterials);
   }
 
-  void _setControllerSilently(
-    TextEditingController controller,
-    String value,
-  ) {
+  void _setControllerSilently(TextEditingController controller, String value) {
     controller.removeListener(_applyHeaderValuesToMaterials);
     controller.text = value;
     controller.addListener(_applyHeaderValuesToMaterials);
@@ -265,15 +264,14 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     }
   }
 
-  List<PipingItem> _toApprovedPipingItems(
-    List<RateFileMaterial> materials,
-  ) {
+  List<PipingItem> _toApprovedPipingItems(List<RateFileMaterial> materials) {
     return materials
         .where((m) => m.availableVariants.isNotEmpty) // 👈 IMPORTANT
         .map((m) {
-      final v = m.availableVariants.first; // guaranteed non-null
-      return PipingItem.fromRateMaterial(m, v);
-    }).toList();
+          final v = m.availableVariants.first; // guaranteed non-null
+          return PipingItem.fromRateMaterial(m, v);
+        })
+        .toList();
   }
 
   List<EquipmentItem> _toApprovedEquipmentItems(
@@ -282,9 +280,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     return materials
         .where((m) => m.availableVariants.isNotEmpty) // 👈 IMPORTANT
         .map((m) {
-      final v = m.availableVariants.first;
-      return EquipmentItem.fromRateMaterial(m, v);
-    }).toList();
+          final v = m.availableVariants.first;
+          return EquipmentItem.fromRateMaterial(m, v);
+        })
+        .toList();
   }
 
   Future<void> _loadDefaultMaterials() async {
@@ -321,9 +320,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
     _isLoadingMechanicalBoqRows = true;
     try {
-      final boqs = await BoqApiService(DioClient.dio).getMechanicalPipingBoqs(
-        siteId: siteId,
-      );
+      final boqs = await BoqApiService(
+        DioClient.dio,
+      ).getMechanicalPipingBoqs(siteId: siteId);
 
       if (!mounted || _isDisposed) return;
       _mechanicalBoqRows
@@ -343,11 +342,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     for (final boq in boqs) {
       for (final group in boq.mechanicalGroups) {
         for (final item in group.items) {
-          rows.add(_MechanicalBoqDprRow(
-            boq: boq,
-            group: group,
-            item: item,
-          ));
+          rows.add(_MechanicalBoqDprRow(boq: boq, group: group, item: item));
         }
       }
     }
@@ -359,7 +354,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     final current = ref.read(pipingMaterialsProvider);
     final withoutBoq = current.where((m) => !_isMechanicalBoqItem(m)).toList();
 
-    if (_searchQuery.isEmpty || _mechanicalBoqRows.isEmpty) {
+    if (!_isBoqSearchReady(_searchQuery) || _mechanicalBoqRows.isEmpty) {
       if (withoutBoq.length != current.length) {
         ref.read(pipingMaterialsProvider.notifier).setMaterials(withoutBoq);
       }
@@ -380,20 +375,31 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
   void _scheduleMechanicalBoqSearchSync() {
     _boqSearchDebounce?.cancel();
+    final nextQuery = _searchController.text.toLowerCase().trim();
 
-    if (_searchQuery.isEmpty) {
+    if (nextQuery.isEmpty) {
+      if (_searchQuery.isNotEmpty) {
+        setState(() => _searchQuery = '');
+      }
       _syncMechanicalBoqSearchResults();
       return;
     }
 
-    _boqSearchDebounce = Timer(const Duration(milliseconds: 300), () {
+    _boqSearchDebounce = Timer(const Duration(milliseconds: 450), () {
       if (!mounted || _isDisposed) return;
+      setState(() => _searchQuery = nextQuery);
       _syncMechanicalBoqSearchResults();
     });
   }
 
   bool _isMechanicalBoqItem(PipingItem item) =>
       item.id.startsWith('boq_') || item.rateFileId == 'mechanical_boq';
+
+  String _normalizeSearchText(String value) =>
+      value.toLowerCase().replaceAll(_searchNormalizerPattern, '');
+
+  bool _isBoqSearchReady(String query) =>
+      _normalizeSearchText(query).length >= _minBoqSearchChars;
 
   String? _boqIdFromMechanicalBoqItem(PipingItem item) {
     if (!item.id.startsWith('boq_')) return null;
@@ -431,9 +437,15 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   bool _matchesMechanicalBoqSearch(_MechanicalBoqDprRow row) {
-    final query = _searchQuery.trim();
-    if (query.isEmpty) return false;
-    return row.group.drawingNo.toLowerCase().contains(query);
+    final query = _normalizeSearchText(_searchQuery);
+    if (query.length < _minBoqSearchChars) return false;
+
+    final drawingNumbers = [row.group.drawingNo, row.item.drawingNo ?? ''];
+
+    return drawingNumbers.any((drawingNo) {
+      final normalizedDrawingNo = _normalizeSearchText(drawingNo);
+      return normalizedDrawingNo.contains(query);
+    });
   }
 
   PipingItem _mechanicalBoqRowToPipingItem(_MechanicalBoqDprRow row) {
@@ -545,8 +557,11 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     debugPrint('mechanicalId: $_mechanicalId');
 
     try {
-      final dpr = fallbackDpr ??
-          await ref.read(dprProvider.notifier).fetchDprById(
+      final dpr =
+          fallbackDpr ??
+          await ref
+              .read(dprProvider.notifier)
+              .fetchDprById(
                 siteId: siteId,
                 teamId: teamId,
                 workId: _mechanicalId!,
@@ -575,7 +590,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
       debugPrint('local piping count: ${PipingMaterialsData.materials.length}');
       debugPrint(
-          'local equipment count: ${EquipmentMaterialsData.materials.length}');
+        'local equipment count: ${EquipmentMaterialsData.materials.length}',
+      );
 
       final mergedPiping = MaterialSyncService.syncPiping(
         local: PipingMaterialsData.materials,
@@ -629,11 +645,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   Future<void> _loadMaterialsForEditing() async {
-    final dpr = await ref.read(dprProvider.notifier).fetchDprById(
-          siteId: siteId,
-          teamId: teamId,
-          workId: _mechanicalId!,
-        );
+    final dpr = await ref
+        .read(dprProvider.notifier)
+        .fetchDprById(siteId: siteId, teamId: teamId, workId: _mechanicalId!);
 
     if (dpr == null) return;
 
@@ -655,13 +669,13 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       designation: 'both',
     );
 
-    ref.read(pipingMaterialsProvider.notifier).setMaterials(
-          materials.whereType<PipingItem>().toList(),
-        );
+    ref
+        .read(pipingMaterialsProvider.notifier)
+        .setMaterials(materials.whereType<PipingItem>().toList());
 
-    ref.read(equipmentMaterialsProvider.notifier).setMaterials(
-          materials.whereType<EquipmentItem>().toList(),
-        );
+    ref
+        .read(equipmentMaterialsProvider.notifier)
+        .setMaterials(materials.whereType<EquipmentItem>().toList());
   }
 
   void _applyHeaderValuesToMaterials() {
@@ -747,9 +761,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     });
     _searchController.addListener(() {
       if (!mounted || _isDisposed) return;
-      setState(() {
-        _searchQuery = _searchController.text.toLowerCase().trim();
-      });
       _scheduleMechanicalBoqSearchSync();
     });
     _mocController = TextEditingController();
@@ -763,14 +774,15 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     siteId = widget.siteId?.trim().isNotEmpty == true
         ? widget.siteId!.trim()
         : widget.work?.siteId.trim().isNotEmpty == true
-            ? widget.work!.siteId
-            : (ref.read(selectedSiteIdProvider) ?? '');
+        ? widget.work!.siteId
+        : (ref.read(selectedSiteIdProvider) ?? '');
     teamId = widget.teamId?.trim().isNotEmpty == true
         ? widget.teamId!.trim()
         : widget.work?.teamId.trim().isNotEmpty == true
-            ? widget.work!.teamId
-            : (ref.read(selectedTeamIdProvider) ?? 'default');
-    team = ref.read(currentTeamProvider) ??
+        ? widget.work!.teamId
+        : (ref.read(selectedTeamIdProvider) ?? 'default');
+    team =
+        ref.read(currentTeamProvider) ??
         TeamModel(
           id: "",
           teamName: "",
@@ -779,19 +791,23 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           isDeleted: false,
           type: '',
         );
-    _mocController.text = (widget.work == null
+    _mocController.text =
+        (widget.work == null
             ? ref.read(selectedMocNameProvider)
             : widget.work?.moc) ??
         "";
-    _floorController.text = (widget.work == null
+    _floorController.text =
+        (widget.work == null
             ? ref.read(selectedFloorNameProvider)
             : widget.work?.location) ??
         "";
-    _sizeController.text = (widget.work == null
+    _sizeController.text =
+        (widget.work == null
             ? ref.read(selectedSizeProvider)
             : widget.work?.size) ??
         "";
-    _sizeUomController.text = (widget.work == null
+    _sizeUomController.text =
+        (widget.work == null
             ? (ref.read(selectedUnitProvider) ?? '')
             : widget.work?.size) ??
         "";
@@ -814,8 +830,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     );
     if (mounted) {
       setState(() {
-        _completedDates =
-            dates.map((d) => DateTime(d.year, d.month, d.day)).toSet();
+        _completedDates = dates
+            .map((d) => DateTime(d.year, d.month, d.day))
+            .toSet();
       });
     }
   }
@@ -921,18 +938,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       );
       _dprListForSelectedDate = allDprs.where((dpr) {
         // Normalize DPR date (strip time completely)
-        final dprDate = DateTime(
-          dpr.date.year,
-          dpr.date.month,
-          dpr.date.day,
-        );
+        final dprDate = DateTime(dpr.date.year, dpr.date.month, dpr.date.day);
 
         // Normalize selected date (strip time completely)
-        final selectedDate = DateTime(
-          date.year,
-          date.month,
-          date.day,
-        );
+        final selectedDate = DateTime(date.year, date.month, date.day);
 
         return dprDate.year == selectedDate.year &&
             dprDate.month == selectedDate.month &&
@@ -973,7 +982,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       // }
 
       print(
-          'Found ${_dprListForSelectedDate.length} DPR(s) for ${_formatDate(date)}');
+        'Found ${_dprListForSelectedDate.length} DPR(s) for ${_formatDate(date)}',
+      );
     } catch (e) {
       final message = extractBackendError(e);
       _showSnackBar('Error fetching DPR list: $message', isError: true);
@@ -1168,11 +1178,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     try {
       print('Fetching DPR work with ID: $_mechanicalId');
 
-      final dprWork = await ref.read(dprProvider.notifier).fetchDprById(
-            siteId: siteId,
-            teamId: teamId,
-            workId: _mechanicalId!,
-          );
+      final dprWork = await ref
+          .read(dprProvider.notifier)
+          .fetchDprById(siteId: siteId, teamId: teamId, workId: _mechanicalId!);
 
       if (dprWork == null) return;
 
@@ -1187,7 +1195,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       // No-op for removed toggles
 
       print(
-          'Fetched DPR work successfully with ${dprWork.piping.length} piping and ${dprWork.equipment.length} equipment materials');
+        'Fetched DPR work successfully with ${dprWork.piping.length} piping and ${dprWork.equipment.length} equipment materials',
+      );
     } catch (e) {
       if (mounted && !_isDisposed) {
         print('Error fetching DPR work: $e');
@@ -1283,9 +1292,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             ElevatedButton(
               onPressed: () {
                 final value = controller.text.trim();
-                Navigator.of(context).pop(
-                  value.isNotEmpty ? value : fallbackValue,
-                );
+                Navigator.of(
+                  context,
+                ).pop(value.isNotEmpty ? value : fallbackValue);
               },
               child: const Text('Save Draft'),
             ),
@@ -1309,10 +1318,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
     if (draftName == null || draftName.trim().isEmpty) return;
 
-    await _saveDraft(
-      customDraftName: draftName.trim(),
-      showSuccessToast: true,
-    );
+    await _saveDraft(customDraftName: draftName.trim(), showSuccessToast: true);
   }
 
   // _________MATERIAL  FUNCTIONS_______ //
@@ -1322,9 +1328,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         .padLeft(8, '0');
 
     final random = Random.secure();
-    final randomPart = List.generate(10, (_) => random.nextInt(16))
-        .map((e) => e.toRadixString(16))
-        .join();
+    final randomPart = List.generate(
+      10,
+      (_) => random.nextInt(16),
+    ).map((e) => e.toRadixString(16)).join();
 
     final counter = random.nextInt(0xffffff).toRadixString(16).padLeft(6, '0');
 
@@ -1366,9 +1373,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       print(st);
 
       final error = extractBackendError(e);
-      AppToast.info(
-        "$error\nDeleted locally. Will sync on final DPR save.",
-      );
+      AppToast.info("$error\nDeleted locally. Will sync on final DPR save.");
     }
 
     // ✅ ALWAYS DELETE LOCALLY (even if API fails)
@@ -1429,10 +1434,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                 const SizedBox(height: 16),
                 const Text(
                   "How should these changes be applied?",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.black87,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.black87),
                 ),
                 const SizedBox(height: 24),
                 Column(
@@ -1527,9 +1529,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       print(st);
 
       final error = extractBackendError(e);
-      AppToast.info(
-        "$error\nCopied locally. Will sync on final DPR save.",
-      );
+      AppToast.info("$error\nCopied locally. Will sync on final DPR save.");
     }
 
     // 🔥 Always generate local ID if backend didn’t return one
@@ -1692,43 +1692,43 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     if (material is PipingItem) {
       Navigator.of(context)
           .push(
-        MaterialPageRoute(
-          builder: (_) => PersistDPRScreen(
-            editMaterialId: material.id,
-            designation: 'piping',
-            pipingMaterial: material,
+            MaterialPageRoute(
+              builder: (_) => PersistDPRScreen(
+                editMaterialId: material.id,
+                designation: 'piping',
+                pipingMaterial: material,
 
-            // 🔴 DPR CONTEXT (this is the difference)
-            isDpr: true,
-            dprId: _mechanicalId!,
-            siteId: siteId,
-            teamId: teamId,
-          ),
-        ),
-      )
+                // 🔴 DPR CONTEXT (this is the difference)
+                isDpr: true,
+                dprId: _mechanicalId!,
+                siteId: siteId,
+                teamId: teamId,
+              ),
+            ),
+          )
           .then((_) async {
-        await _fetchDprWorkById(); // ✅ DPR refresh, not default materials
-      });
+            await _fetchDprWorkById(); // ✅ DPR refresh, not default materials
+          });
     } else if (material is EquipmentItem) {
       Navigator.of(context)
           .push(
-        MaterialPageRoute(
-          builder: (_) => PersistDPRScreen(
-            editMaterialId: material.id,
-            designation: 'equipment',
-            equipmentMaterial: material,
+            MaterialPageRoute(
+              builder: (_) => PersistDPRScreen(
+                editMaterialId: material.id,
+                designation: 'equipment',
+                equipmentMaterial: material,
 
-            // 🔴 DPR CONTEXT
-            isDpr: true,
-            dprId: _mechanicalId!,
-            siteId: siteId,
-            teamId: teamId,
-          ),
-        ),
-      )
+                // 🔴 DPR CONTEXT
+                isDpr: true,
+                dprId: _mechanicalId!,
+                siteId: siteId,
+                teamId: teamId,
+              ),
+            ),
+          )
           .then((_) async {
-        await _fetchDprWorkById();
-      });
+            await _fetchDprWorkById();
+          });
     }
   }
 
@@ -1762,6 +1762,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     final pipingMaterials = ref.watch(pipingMaterialsProvider);
     final equipmentMaterials = ref.watch(equipmentMaterialsProvider);
 
+    final normalizedSearchQuery = _normalizeSearchText(_searchQuery);
+
     // Initial Filter by Search Query
     List<PipingItem> filteredPiping = pipingMaterials.where((m) {
       if (_searchQuery.isEmpty) return true;
@@ -1785,12 +1787,17 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           ].join(' ');
         }),
       ].join(' ').toLowerCase();
-      return haystack.contains(_searchQuery.toLowerCase());
+      return haystack.contains(_searchQuery) ||
+          (normalizedSearchQuery.isNotEmpty &&
+              _normalizeSearchText(haystack).contains(normalizedSearchQuery));
     }).toList();
 
     List<EquipmentItem> filteredEquipment = equipmentMaterials.where((m) {
       if (_searchQuery.isEmpty) return true;
-      return m.materialName.toLowerCase().contains(_searchQuery.toLowerCase());
+      final haystack = m.materialName.toLowerCase();
+      return haystack.contains(_searchQuery) ||
+          (normalizedSearchQuery.isNotEmpty &&
+              _normalizeSearchText(haystack).contains(normalizedSearchQuery));
     }).toList();
 
     // Filter by Designation (Piping/Equipment)
@@ -1824,13 +1831,13 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       list.sort((a, b) {
         switch (_currentSort) {
           case MechModuleSortOption.nameAsc:
-            return a.materialName
-                .toLowerCase()
-                .compareTo(b.materialName.toLowerCase());
+            return a.materialName.toLowerCase().compareTo(
+              b.materialName.toLowerCase(),
+            );
           case MechModuleSortOption.nameDesc:
-            return b.materialName
-                .toLowerCase()
-                .compareTo(a.materialName.toLowerCase());
+            return b.materialName.toLowerCase().compareTo(
+              a.materialName.toLowerCase(),
+            );
           case MechModuleSortOption.typeAsc:
             final typeA = a is PipingItem ? 'Piping' : 'Equipment';
             final typeB = b is PipingItem ? 'Piping' : 'Equipment';
@@ -1979,15 +1986,18 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                             ],
                             if (equipmentToDisplay.isNotEmpty) ...[
                               _buildSectionHeader(
-                                  'Equipment', Icons.precision_manufacturing),
+                                'Equipment',
+                                Icons.precision_manufacturing,
+                              ),
                               ..._buildEquipmentMaterials(equipmentToDisplay),
                             ],
                             if (pipingToDisplay.isEmpty &&
                                 equipmentToDisplay.isEmpty &&
                                 hasActiveFilters)
                               _buildEmptyState(
-                                  'No materials match your filters',
-                                  Icons.search_off),
+                                'No materials match your filters',
+                                Icons.search_off,
+                              ),
                           ],
                         ),
                         const SizedBox(height: 100),
@@ -2023,15 +2033,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       },
       child: Container(
         padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: cs.primary,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          Icons.add,
-          size: 18,
-          color: cs.onPrimary,
-        ),
+        decoration: BoxDecoration(color: cs.primary, shape: BoxShape.circle),
+        child: Icon(Icons.add, size: 18, color: cs.onPrimary),
       ),
     );
   }
@@ -2063,7 +2066,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           Text(
             title,
             style: TextStyle(
-                color: cs.onSurface, fontSize: 14, fontWeight: FontWeight.w500),
+              color: cs.onSurface,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -2101,9 +2107,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             message,
             textAlign: TextAlign.center,
             style: TextStyle(
-                color: cs.onSurfaceVariant,
-                fontSize: 14,
-                fontWeight: FontWeight.w500),
+              color: cs.onSurfaceVariant,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
@@ -2140,18 +2147,23 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                   Text(
                     "${lang.dailyReportTitle}",
                     style: const TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.w600),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
               Row(
                 children: [
                   GestureDetector(
-                    onTap:
-                        canChangeDateNormal ? () => _selectDate(context) : null,
+                    onTap: canChangeDateNormal
+                        ? () => _selectDate(context)
+                        : null,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: _globalEditMode
                             ? Colors.blue.shade50
@@ -2172,8 +2184,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color:
-                                  _globalEditMode ? cs.primary : cs.onSurface,
+                              color: _globalEditMode
+                                  ? cs.primary
+                                  : cs.onSurface,
                             ),
                           ),
                           if (canChangeDateNormal) ...[
@@ -2299,10 +2312,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           children: [
             Text(
               _globalEditMode ? "Editing" : "Edit",
-              style: TextStyle(
-                color: cs.primary,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: cs.primary, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -2402,8 +2412,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                     // },
                     onChanged: (String? newValue) async {
                       if (newValue == null) return;
-                      final dpr = _dprListForSelectedDate
-                          .firstWhere((dpr) => dpr.id == newValue);
+                      final dpr = _dprListForSelectedDate.firstWhere(
+                        (dpr) => dpr.id == newValue,
+                      );
                       _dprNameController.text = dpr.dprName;
                       _mocController.text = dpr.moc;
                       _sizeController.text = dpr.size;
@@ -2422,18 +2433,21 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
                     items: _dprListForSelectedDate
                         .map<DropdownMenuItem<String>>((DprModel dpr) {
-                      return DropdownMenuItem<String>(
-                        value: dpr.id,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Text(
-                            dpr.dprName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                          return DropdownMenuItem<String>(
+                            value: dpr.id,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
+                              child: Text(
+                                dpr.dprName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          );
+                        })
+                        .toList(),
                   ),
                 ),
         ),
@@ -2507,7 +2521,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               ? TextField(
                   controller: _dprNameController,
                   style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w600),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -2518,29 +2534,41 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                       borderSide: BorderSide(color: cs.primary, width: 2),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 14),
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                     hintText: 'Enter DPR Name',
-                    prefixIcon:
-                        Icon(Icons.edit_document, size: 20, color: cs.primary),
+                    prefixIcon: Icon(
+                      Icons.edit_document,
+                      size: 20,
+                      color: cs.primary,
+                    ),
                   ),
                 )
               : Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
                     color: cs.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.description,
-                          color: cs.onSurfaceVariant, size: 20),
+                      Icon(
+                        Icons.description,
+                        color: cs.onSurfaceVariant,
+                        size: 20,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           _dprNameController.text,
                           style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w600),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
@@ -2581,28 +2609,47 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         Row(
           children: [
             Expanded(
-                child: _buildCompactInputField(
-                    lang.plantTab, _plantController, Icons.factory)),
+              child: _buildCompactInputField(
+                lang.plantTab,
+                _plantController,
+                Icons.factory,
+              ),
+            ),
             const SizedBox(width: 12),
             Expanded(
-                child: _buildCompactInputField(
-                    lang.locationTab, _floorController, Icons.location_on)),
+              child: _buildCompactInputField(
+                lang.locationTab,
+                _floorController,
+                Icons.location_on,
+              ),
+            ),
             const SizedBox(width: 12),
             Expanded(
-                child: _buildCompactInputField(
-                    lang.mocTab, _mocController, Icons.category)),
+              child: _buildCompactInputField(
+                lang.mocTab,
+                _mocController,
+                Icons.category,
+              ),
+            ),
             const SizedBox(width: 12),
             Expanded(
-                child: _buildCompactInputField(
-                    'Size($sizeUom)', _sizeController, Icons.straighten)),
+              child: _buildCompactInputField(
+                'Size($sizeUom)',
+                _sizeController,
+                Icons.straighten,
+              ),
+            ),
           ],
-        )
+        ),
       ],
     );
   }
 
   Widget _buildCompactInputField(
-      String label, TextEditingController controller, IconData icon) {
+    String label,
+    TextEditingController controller,
+    IconData icon,
+  ) {
     final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2612,9 +2659,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           child: Text(
             label,
             style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: cs.onSurfaceVariant),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: cs.onSurfaceVariant,
+            ),
           ),
         ),
         SizedBox(
@@ -2625,8 +2673,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             decoration: InputDecoration(
               isDense: true,
-              contentPadding:
-                  const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 2,
+                horizontal: 2,
+              ),
               filled: true,
               fillColor: cs.surfaceContainerHigh,
               border: OutlineInputBorder(
@@ -2677,7 +2727,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               color: colorScheme.surfaceContainerLow,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                  color: colorScheme.outlineVariant.withOpacity(0.5)),
+                color: colorScheme.outlineVariant.withOpacity(0.5),
+              ),
               boxShadow: [
                 BoxShadow(
                   color: colorScheme.shadow.withOpacity(0.05),
@@ -2692,9 +2743,13 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               decoration: InputDecoration(
                 hintText: 'Search drawing number...',
                 hintStyle: TextStyle(
-                    color: colorScheme.onSurfaceVariant.withOpacity(0.6)),
-                prefixIcon:
-                    Icon(Icons.search, color: colorScheme.primary, size: 20),
+                  color: colorScheme.onSurfaceVariant.withOpacity(0.6),
+                ),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: colorScheme.primary,
+                  size: 20,
+                ),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear, size: 18),
@@ -2765,8 +2820,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           return Container(
             decoration: BoxDecoration(
               color: colorScheme.surface,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(24)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
             ),
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             child: Column(
@@ -2818,7 +2874,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                       selected: _currentSort == MechModuleSortOption.nameAsc,
                       onSelected: (val) {
                         setSheetState(
-                            () => _currentSort = MechModuleSortOption.nameAsc);
+                          () => _currentSort = MechModuleSortOption.nameAsc,
+                        );
                         setState(() {});
                       },
                     ),
@@ -2827,7 +2884,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                       selected: _currentSort == MechModuleSortOption.nameDesc,
                       onSelected: (val) {
                         setSheetState(
-                            () => _currentSort = MechModuleSortOption.nameDesc);
+                          () => _currentSort = MechModuleSortOption.nameDesc,
+                        );
                         setState(() {});
                       },
                     ),
@@ -2836,8 +2894,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                       selected:
                           _currentSort == MechModuleSortOption.displayOrderAsc,
                       onSelected: (val) {
-                        setSheetState(() => _currentSort =
-                            MechModuleSortOption.displayOrderAsc);
+                        setSheetState(
+                          () => _currentSort =
+                              MechModuleSortOption.displayOrderAsc,
+                        );
                         setState(() {});
                       },
                     ),
@@ -2926,9 +2986,13 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text('Apply Filters',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w700, fontSize: 16)),
+                    child: const Text(
+                      'Apply Filters',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -2945,7 +3009,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       child: Text(
         label,
         style: const TextStyle(
-            fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey),
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: Colors.grey,
+        ),
       ),
     );
   }
@@ -2979,11 +3046,13 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   bool _hasMeaningfulMaterialValues(List<DynamicField> fields) {
-    return fields.any((f) =>
-        f.value != null &&
-        f.value.toString().trim().isNotEmpty &&
-        f.value.toString() != '0' &&
-        !['floor', 'moc', 'size'].contains(f.key.toLowerCase()));
+    return fields.any(
+      (f) =>
+          f.value != null &&
+          f.value.toString().trim().isNotEmpty &&
+          f.value.toString() != '0' &&
+          !['floor', 'moc', 'size'].contains(f.key.toLowerCase()),
+    );
   }
 
   List<Widget> _buildPipingMaterials(List<PipingItem> materials) {
@@ -3025,15 +3094,17 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               },
               quantity: '',
               remark: material.remarks,
-              size: material.dynamicFields
+              size:
+                  material.dynamicFields
                       .firstWhere(
                         (f) => f.key.toLowerCase() == 'size',
                         orElse: () => DynamicField(
-                            key: 'size',
-                            label: 'Size',
-                            value: _sizeController.text,
-                            unit: '',
-                            displayText: ''),
+                          key: 'size',
+                          label: 'Size',
+                          value: _sizeController.text,
+                          unit: '',
+                          displayText: '',
+                        ),
                       )
                       .value ??
                   _sizeController.text,
@@ -3145,19 +3216,25 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               onMocChanged: (val) =>
                   _onPipingFieldChanged(material.id, 'moc', val),
               onCopy: () => copyDprMaterialLocal(
-                  material: material,
-                  isPiping: true,
-                  rateUploadId: rateUploadId!),
+                material: material,
+                isPiping: true,
+                rateUploadId: rateUploadId!,
+              ),
               onAdd: () => copyDprMaterialLocal(
-                  material: material,
-                  isPiping: true,
-                  rateUploadId: rateUploadId!),
+                material: material,
+                isPiping: true,
+                rateUploadId: rateUploadId!,
+              ),
               onDelete: () => deleteDprMaterialLocal(
-                  materialId: material.id, isPiping: true),
+                materialId: material.id,
+                isPiping: true,
+              ),
               onEdit: () => _openEditOverlay(material, true),
               onRemark: () => _showRemarkDialog(
-                  material.id, material.remarks ?? '',
-                  isPiping: true),
+                material.id,
+                material.remarks ?? '',
+                isPiping: true,
+              ),
               isEditable: true,
             ),
           ),
@@ -3166,11 +3243,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     }).toList();
   }
 
-  void _onPipingDynamicChanged(
-    String materialId,
-    String key,
-    String value,
-  ) {
+  void _onPipingDynamicChanged(String materialId, String key, String value) {
     if (!_isEditable) {
       _showEditRequiredMessage();
       return;
@@ -3201,11 +3274,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     ref.read(pipingMaterialsProvider.notifier).state = updated;
   }
 
-  void _onEquipmentDynamicChanged(
-    String materialId,
-    String key,
-    String value,
-  ) {
+  void _onEquipmentDynamicChanged(String materialId, String key, String value) {
     final materials = ref.read(equipmentMaterialsProvider);
 
     final updated = materials.map((m) {
@@ -3242,7 +3311,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               _onEquipmentDynamicChanged(material.id, key, value);
             },
             title: material.materialName,
-            quantity: material.dynamicFields
+            quantity:
+                material.dynamicFields
                     .firstWhere(
                       (f) => f.key.toLowerCase() == 'qty',
                       orElse: () => DynamicField(
@@ -3264,10 +3334,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             meter: material.uom,
             length:
                 (_equipmentLengthDraft[material.id]?.trim().isNotEmpty ?? false)
-                    ? _equipmentLengthDraft[material.id]!
-                    : (material.length == null || material.length == 0)
-                        ? ''
-                        : material.length.toString(),
+                ? _equipmentLengthDraft[material.id]!
+                : (material.length == null || material.length == 0)
+                ? ''
+                : material.length.toString(),
             remark: material.remarks,
             onMocChanged: (val) =>
                 _onEquipmentFieldChanged(material.id, 'moc', val),
@@ -3278,15 +3348,19 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             onTonChanged: (val) =>
                 _onEquipmentFieldChanged(material.id, 'ton', val),
             onCopy: () => copyDprMaterialLocal(
-                material: material,
-                isPiping: false,
-                rateUploadId: rateUploadId!),
+              material: material,
+              isPiping: false,
+              rateUploadId: rateUploadId!,
+            ),
             onAdd: () => copyDprMaterialLocal(
-                material: material,
-                isPiping: false,
-                rateUploadId: rateUploadId!),
+              material: material,
+              isPiping: false,
+              rateUploadId: rateUploadId!,
+            ),
             onDelete: () => deleteDprMaterialLocal(
-                materialId: material.id, isPiping: false),
+              materialId: material.id,
+              isPiping: false,
+            ),
             onEdit: () => _openEditOverlay(material, false),
             isEditable: _isEditable,
             onRemark: () => _showRemarkDialog(
@@ -3301,8 +3375,11 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     });
   }
 
-  void _showRemarkDialog(String materialId, String currentRemark,
-      {bool isPiping = true}) {
+  void _showRemarkDialog(
+    String materialId,
+    String currentRemark, {
+    bool isPiping = true,
+  }) {
     final remarkController = TextEditingController(text: currentRemark);
 
     showDialog(
@@ -3315,9 +3392,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           maxLines: 3,
           decoration: InputDecoration(
             hintText: 'Enter remark...',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
           ),
         ),
         actions: [
@@ -3328,16 +3403,20 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           ElevatedButton(
             onPressed: () {
               context.pop();
-              _updateMaterialRemark(materialId, remarkController.text,
-                  isPiping: isPiping);
+              _updateMaterialRemark(
+                materialId,
+                remarkController.text,
+                isPiping: isPiping,
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             child: const Text('Save', style: TextStyle(color: Colors.white)),
-          )
+          ),
         ],
       ),
     );
@@ -3354,16 +3433,15 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       if (material.id == materialId) {
         switch (field) {
           case 'quantity':
-            return material.copyWith(
-              qty: int.tryParse(value)?.toDouble() ?? 0,
-            );
+            return material.copyWith(qty: int.tryParse(value)?.toDouble() ?? 0);
 
           case 'size':
             // Size is handled globally via _sizeController
             return material;
           case 'length':
             return material.copyWith(
-                length: double.tryParse(value) ?? material.length);
+              length: double.tryParse(value) ?? material.length,
+            );
           case 'floor':
             // Floor is handled globally via _floorController
             return material;
@@ -3397,14 +3475,13 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       if (material.id == materialId) {
         switch (field) {
           case 'quantity':
-            return material.copyWith(
-              qty: int.tryParse(value)?.toDouble() ?? 0,
-            );
+            return material.copyWith(qty: int.tryParse(value)?.toDouble() ?? 0);
           case 'uom':
             return material;
           case 'ton':
             return material.copyWith(
-                weight: double.tryParse(value) ?? material.weight);
+              weight: double.tryParse(value) ?? material.weight,
+            );
           case 'floor':
             // Floor is handled globally via _floorController
             return material;
@@ -3421,8 +3498,11 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     ref.read(equipmentMaterialsProvider.notifier).state = updatedMaterials;
   }
 
-  void _updateMaterialRemark(String materialId, String remark,
-      {bool isPiping = true}) {
+  void _updateMaterialRemark(
+    String materialId,
+    String remark, {
+    bool isPiping = true,
+  }) {
     if (isPiping) {
       final pipingMaterials = ref.read(pipingMaterialsProvider);
       final updatedMaterials = pipingMaterials.map((material) {
@@ -3449,10 +3529,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   void _toggleGlobalEditMode() {
     final newMode = !_globalEditMode;
 
-    ref.read(dprSessionProvider.notifier).setEditMode(
-          newMode,
-          date: newMode ? _selectedDate : null,
-        );
+    ref
+        .read(dprSessionProvider.notifier)
+        .setEditMode(newMode, date: newMode ? _selectedDate : null);
 
     setState(() {
       _globalEditMode = newMode;
@@ -3466,9 +3545,11 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     if (_globalEditMode) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_isToday(_selectedDate)
-              ? "Edit mode enabled - You can now modify today's DPR and change date"
-              : "Edit mode enabled - You can now modify DPR for ${_formatDate(_selectedDate)}"),
+          content: Text(
+            _isToday(_selectedDate)
+                ? "Edit mode enabled - You can now modify today's DPR and change date"
+                : "Edit mode enabled - You can now modify DPR for ${_formatDate(_selectedDate)}",
+          ),
           backgroundColor: Colors.green,
           duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
@@ -3595,8 +3676,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         : generateObjectId();
 
     final rawTeamId = ref.read(selectedTeamIdProvider);
-    final safeTeamId =
-        (rawTeamId == null || rawTeamId.trim().isEmpty) ? 'default' : rawTeamId;
+    final safeTeamId = (rawTeamId == null || rawTeamId.trim().isEmpty)
+        ? 'default'
+        : rawTeamId;
 
     await _draftRepo.saveDraft(
       DprDraftRecord(
@@ -3621,8 +3703,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     required String dateString,
   }) async {
     final rawTeamId = ref.read(selectedTeamIdProvider);
-    final safeTeamId =
-        (rawTeamId == null || rawTeamId.trim().isEmpty) ? 'default' : rawTeamId;
+    final safeTeamId = (rawTeamId == null || rawTeamId.trim().isEmpty)
+        ? 'default'
+        : rawTeamId;
 
     final job = UploadJob.create(
       moduleId: 'dpr',
@@ -3664,10 +3747,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       designation: designation,
     );
 
-    final draftId = await _draftDpr(
-      draft: draftModel,
-      updateData: const {},
-    );
+    final draftId = await _draftDpr(draft: draftModel, updateData: const {});
 
     final dprName = _dprNameController.text.trim().isNotEmpty
         ? _dprNameController.text.trim()
@@ -3676,7 +3756,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         ? customDraftName!.trim()
         : dprName;
 
-    await ref.read(uploadManagerProvider.notifier).notifyDraftSaved(
+    await ref
+        .read(uploadManagerProvider.notifier)
+        .notifyDraftSaved(
           moduleId: 'dpr',
           draftId: draftId,
           dprName: draftName,
@@ -3774,46 +3856,46 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
       debugPrint("🟦 RAW PIPING MATERIALS (${pipingMaterials.length})");
 
-//       for (final m in pipingMaterials) {
-//         debugPrint("""
-// 🧱 PIPING
-//   id: ${m.id}
-//
-//   🔍 TRACEABILITY
-//   rawName: ${m.rawMaterialName}
-//   normalizedName: ${m.normalizedMaterialName}
-//   displayName: ${m.materialName}
-//   isFromRateFile: ${m.isFromRateFile}
-//   rateFileId: ${m.rateFileId}
-//   rateVariantId: ${m.rateVariantId}
-//   rateId: ${m.rateId}
-//
-//
-//
-//   📦 VALUES
-//   qty(dynamic): ${_getDynamicQty(m)}
-//   size(dynamic): ${_getDynamicValue(m.dynamicFields, 'size')}
-//   length: ${m.length}
-//   uom: ${m.uom}
-//   moc: ${m.moc}
-//   calcCat: ${m.calculationCategory}
-//   remarks: ${m.remarks}
-// """);
-//
-//         if (m.dynamicFields.isEmpty) {
-//           debugPrint("  ⚠️ No dynamic fields");
-//         } else {
-//           debugPrint("  🔸 Dynamic Fields:");
-//           for (final f in m.dynamicFields) {
-//             debugPrint(
-//               "     → key: ${f.key}, label: ${f.label}, value: ${f.value}, unit: ${f.unit}, display: ${f.displayText}",
-//             );
-//           }
-//         }
-//       }
-//       debugPrint("🟩 RAW EQUIPMENT MATERIALS (${equipmentMaterials.length})");
-//
-//
+      //       for (final m in pipingMaterials) {
+      //         debugPrint("""
+      // 🧱 PIPING
+      //   id: ${m.id}
+      //
+      //   🔍 TRACEABILITY
+      //   rawName: ${m.rawMaterialName}
+      //   normalizedName: ${m.normalizedMaterialName}
+      //   displayName: ${m.materialName}
+      //   isFromRateFile: ${m.isFromRateFile}
+      //   rateFileId: ${m.rateFileId}
+      //   rateVariantId: ${m.rateVariantId}
+      //   rateId: ${m.rateId}
+      //
+      //
+      //
+      //   📦 VALUES
+      //   qty(dynamic): ${_getDynamicQty(m)}
+      //   size(dynamic): ${_getDynamicValue(m.dynamicFields, 'size')}
+      //   length: ${m.length}
+      //   uom: ${m.uom}
+      //   moc: ${m.moc}
+      //   calcCat: ${m.calculationCategory}
+      //   remarks: ${m.remarks}
+      // """);
+      //
+      //         if (m.dynamicFields.isEmpty) {
+      //           debugPrint("  ⚠️ No dynamic fields");
+      //         } else {
+      //           debugPrint("  🔸 Dynamic Fields:");
+      //           for (final f in m.dynamicFields) {
+      //             debugPrint(
+      //               "     → key: ${f.key}, label: ${f.label}, value: ${f.value}, unit: ${f.unit}, display: ${f.displayText}",
+      //             );
+      //           }
+      //         }
+      //       }
+      //       debugPrint("🟩 RAW EQUIPMENT MATERIALS (${equipmentMaterials.length})");
+      //
+      //
       for (final m in equipmentMaterials) {
         debugPrint("""
 🔩 EQUIPMENT
@@ -3856,10 +3938,12 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       final items = [
         ...pipingMaterials.map((material) {
           final isMechanicalBoq = _isMechanicalBoqItem(material);
-          final boqId =
-              isMechanicalBoq ? _boqIdFromMechanicalBoqItem(material) : null;
-          final boqRow =
-              isMechanicalBoq ? _mechanicalBoqRowForPipingItem(material) : null;
+          final boqId = isMechanicalBoq
+              ? _boqIdFromMechanicalBoqItem(material)
+              : null;
+          final boqRow = isMechanicalBoq
+              ? _mechanicalBoqRowForPipingItem(material)
+              : null;
           final payloadQty = _resolvePayloadQty(
             qty: _getDynamicQty(material),
             fields: material.dynamicFields,
@@ -3946,7 +4030,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                 'boqItemId': material.lineItemId,
               'drawingNo':
                   boqRow?.group.drawingNo ?? boqRow?.item.drawingNo ?? '',
-              'workDescription': boqRow?.group.workDescription ??
+              'workDescription':
+                  boqRow?.group.workDescription ??
                   boqRow?.item.workDescription ??
                   material.materialName,
               'plannedQty':
@@ -4071,8 +4156,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           'location': _floorController.text.trim(),
           'plant': _plantController.text.trim(),
           (_mechanicalId == null || _mechanicalId!.isEmpty)
-              ? 'date'
-              : 'updatedDate': dateString,
+                  ? 'date'
+                  : 'updatedDate':
+              dateString,
           if (_mechanicalId == null && dprDesignation.isNotEmpty)
             'designation': dprDesignation,
           if (items.isNotEmpty) 'items': items,
